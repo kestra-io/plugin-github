@@ -1,0 +1,203 @@
+plugins {
+    id 'java-library'
+    id "idea"
+    id 'jacoco'
+    id "com.adarshr.test-logger" version "4.0.0"
+    id "com.github.johnrengelman.shadow" version "8.1.1"
+    id 'ru.vyarus.java-lib' version '3.0.0'
+    id 'ru.vyarus.github-info' version '2.0.0'
+    id 'signing'
+    id "io.github.gradle-nexus.publish-plugin" version "2.0.0"
+    id "com.github.ben-manes.versions" version "0.51.0"
+    id 'net.researchgate.release' version '3.0.2'
+}
+
+def isBuildSnapshot = version.toString().endsWith("-SNAPSHOT")
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    if (isBuildSnapshot) {
+        maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots/" }
+    }
+}
+
+sourceCompatibility = 21
+targetCompatibility = 21
+
+group "io.kestra.plugin"
+description 'Plugin template for Kestra'
+
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+    options.compilerArgs.add("-parameters")
+}
+
+dependencies {
+    // lombok
+    annotationProcessor "org.projectlombok:lombok:$lombokVersion"
+    compileOnly "org.projectlombok:lombok:$lombokVersion"
+
+    // Kestra
+    annotationProcessor group: "io.kestra", name: "processor", version: kestraVersion
+    compileOnly group: "io.kestra", name: "core", version: kestraVersion
+    annotationProcessor group: "io.kestra", name: "processor", version: kestraVersion
+
+    // Logs
+    compileOnly'org.slf4j:slf4j-api:2.0.13'
+
+    // libs included in the final jar
+    api group: 'com.google.code.gson', name: 'gson', version: '2.11.0'
+}
+
+
+/**********************************************************************************************************************\
+ * Test
+ **********************************************************************************************************************/
+test {
+    useJUnitPlatform()
+}
+
+testlogger {
+    theme "mocha-parallel"
+    showExceptions true
+    showFullStackTraces true
+    showStandardStreams true
+    showPassedStandardStreams false
+    showSkippedStandardStreams true
+}
+
+dependencies {
+    // lombok
+    testAnnotationProcessor "org.projectlombok:lombok:" + lombokVersion
+    testCompileOnly 'org.projectlombok:lombok:' + lombokVersion
+
+    // micronaut
+    testAnnotationProcessor platform("io.micronaut.platform:micronaut-platform:$micronautVersion")
+    testAnnotationProcessor "io.micronaut:micronaut-inject-java"
+    testAnnotationProcessor "io.micronaut.validation:micronaut-validation-processor"
+
+    testImplementation platform("io.micronaut.platform:micronaut-platform:$micronautVersion")
+    testImplementation "io.micronaut.test:micronaut-test-junit5"
+    testImplementation "io.micronaut:micronaut-jackson-databind"
+
+    // Kestra
+    testAnnotationProcessor group: "io.kestra", name: "processor", version: kestraVersion
+
+    // test deps needed only for to have a runner
+    testAnnotationProcessor group: "io.kestra", name: "processor", version: kestraVersion
+    testImplementation group: "io.kestra", name: "core", version: kestraVersion
+    testImplementation group: "io.kestra", name: "tests", version: kestraVersion
+    testImplementation group: "io.kestra", name: "repository-memory", version: kestraVersion
+    testImplementation group: "io.kestra", name: "runner-memory", version: kestraVersion
+    testImplementation group: "io.kestra", name: "storage-local", version: kestraVersion
+
+    // test
+    testImplementation "org.junit.jupiter:junit-jupiter-engine"
+    testImplementation "org.hamcrest:hamcrest:2.2"
+    testImplementation "org.hamcrest:hamcrest-library:2.2"
+}
+
+/**********************************************************************************************************************\
+ * Allure Reports
+ **********************************************************************************************************************/
+dependencies {
+    testImplementation platform("io.qameta.allure:allure-bom:2.27.0")
+    testImplementation "io.qameta.allure:allure-junit5"
+}
+
+configurations {
+    agent {
+        canBeResolved = true
+        canBeConsumed = true
+    }
+}
+
+dependencies {
+    agent "org.aspectj:aspectjweaver:1.9.22.1"
+}
+
+test {
+    jvmArgs = [ "-javaagent:${configurations.agent.singleFile}" ]
+}
+
+/**********************************************************************************************************************\
+ * Jacoco
+ **********************************************************************************************************************/
+test {
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+}
+
+/**********************************************************************************************************************\
+ * Publish
+ **********************************************************************************************************************/
+nexusPublishing {
+    repositoryDescription = "${project.group}:${rootProject.name}:${project.version}"
+    useStaging = !isBuildSnapshot
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+        }
+    }
+}
+
+jar {
+    manifest {
+        attributes(
+                "X-Kestra-Name": project.name,
+                "X-Kestra-Title": "Template",
+                "X-Kestra-Group": project.group + ".templates",
+                "X-Kestra-Description": project.description,
+                "X-Kestra-Version": project.version
+        )
+    }
+}
+
+maven.pom {
+    developers {
+        developer {
+            id = "tchiotludo"
+            name = "Ludovic Dehon"
+        }
+    }
+}
+
+shadowJar {
+    archiveClassifier.set(null)
+    mergeServiceFiles()
+}
+
+github {
+    user 'kestra-io'
+    license 'Apache'
+}
+
+/**********************************************************************************************************************\
+ * Version
+ **********************************************************************************************************************/
+release {
+    preCommitText = 'chore(version):'
+    preTagCommitMessage = 'update to version'
+    tagCommitMessage = 'tag version'
+    newVersionCommitMessage = 'update snapshot version'
+    tagTemplate = 'v${version}'
+    buildTasks = ['classes']
+    git {
+        requireBranch.set('master')
+    }
+}
+
+/**********************************************************************************************************************\
+ * Dev
+ **********************************************************************************************************************/
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
