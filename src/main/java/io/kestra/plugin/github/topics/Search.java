@@ -28,7 +28,7 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
 @NoArgsConstructor
 @Schema(
     title = "Search for github topics",
-    description = "Requires authentication"
+    description = "If no authentication is provided, anonymous connection will be used. Anonymous connection can't retrieve full information"
 )
 @Plugin(
     examples = {

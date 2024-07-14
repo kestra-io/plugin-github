@@ -31,7 +31,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @NoArgsConstructor
 @Schema(
     title = "Search for github code",
-    description = "If no authentication is provided, anonymous connect will be used"
+    description = "Requires authentication"
 )
 @Plugin(
     examples = {
@@ -40,7 +40,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
                    id: search
                    type: io.kestra.plugin.github.code.Search
                    oauthToken: your_github_token
-                   query: "kestra in:login language:java"
+                   query: "addClass in:file language:js repo:jquery/jquery"
                    """
         ),
         @Example(
@@ -48,9 +48,10 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
                    id: search
                    type: io.kestra.plugin.github.code.Search
                    oauthToken: your_github_token
-                   query: kestra
-                   in: login
-                   language: java
+                   query: addClass
+                   in: file
+                   language: js
+                   repository: jquery/jquery
                    """
         )
     }

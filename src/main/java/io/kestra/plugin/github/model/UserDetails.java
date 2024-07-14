@@ -1,5 +1,7 @@
 package io.kestra.plugin.github.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import org.kohsuke.github.GHUser;
 
@@ -8,42 +10,51 @@ import java.net.URL;
 import java.util.Date;
 
 @Getter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class UserDetails {
 
     private final String username;
 
-    private final String name;
-
-    private final int followers;
-
-    private final int following;
-
-    private final String location;
-
-    private final String company;
-
-    private final int publicRepositories;
-
-    private final Integer privateRepositories;
-
-    private final Date updated;
-
-    private final Date created;
-
     private final URL url;
 
-    public UserDetails(GHUser user) throws IOException {
+    private String name;
+
+    private int followers;
+
+    private int following;
+
+    private String location;
+
+    private String company;
+
+    @JsonProperty("public_repositories")
+    private int publicRepositories;
+
+    @JsonProperty("private_repositories")
+    private Integer privateRepositories;
+
+    private Date updated;
+
+    private Date created;
+
+    private String type;
+
+    public UserDetails(GHUser user, boolean isAnonymous) throws IOException {
         this.username = user.getLogin();
-        this.name = user.getName();
-        this.followers = user.getFollowersCount();
-        this.following = user.getFollowingCount();
-        this.location = user.getLocation();
-        this.company = user.getCompany();
-        this.publicRepositories = user.getPublicRepoCount();
-        this.privateRepositories = user.getTotalPrivateRepoCount().orElse(null);
-        this.updated = user.getUpdatedAt();
-        this.created = user.getCreatedAt();
         this.url = user.getHtmlUrl();
+
+        if (!isAnonymous) {
+            this.name = user.getName();
+            this.company = user.getCompany();
+            this.location = user.getLocation();
+            this.created = user.getCreatedAt();
+            this.updated = user.getUpdatedAt();
+            this.publicRepositories = user.getPublicRepoCount();
+            this.privateRepositories = user.getTotalPrivateRepoCount().orElse(null);
+            this.followers = user.getFollowersCount();
+            this.following = user.getFollowingCount();
+            this.type = user.getType();
+        }
     }
 
 }

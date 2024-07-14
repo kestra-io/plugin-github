@@ -19,26 +19,25 @@ import org.kohsuke.github.*;
 @NoArgsConstructor
 @Schema(
     title = "Search for github pull requests",
-    description = "If no authentication is provided, anonymous connect will be used"
+    description = "If no authentication is provided, anonymous connection will be used. Anonymous connection can't retrieve full information"
 )
 @Plugin(
     examples = {
         @Example(
             code = """
                    id: search
-                   type: io.kestra.plugin.github.issues.Search
+                   type: io.kestra.plugin.github.pulls.Search
                    oauthToken: your_github_token
-                   query: "kestra in:login language:java"
+                   query: "repo:kestra-io/plugin-github is:open"
                    """
         ),
         @Example(
             code = """
                    id: search
-                   type: io.kestra.plugin.github.issues.Search
+                   type: io.kestra.plugin.github.pulls.Search
                    oauthToken: your_github_token
-                   query: kestra
-                   in: login
-                   language: java
+                   repository: kestra-io/plugin-github
+                   open: TRUE
                    """
         )
     }
@@ -202,7 +201,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
 
         PagedSearchIterable<GHPullRequest> pullRequests = searchBuilder.list();
 
-        return this.run(runContext, pullRequests);
+        return this.run(runContext, pullRequests, gitHub);
     }
 
     private GHPullRequestSearchBuilderCustom setupSearchParameters(RunContext runContext, GitHub gitHub) throws Exception {

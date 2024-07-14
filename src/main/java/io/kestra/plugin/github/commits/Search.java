@@ -21,6 +21,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import static io.kestra.core.utils.Rethrow.throwConsumer;
 import static io.kestra.core.utils.Rethrow.throwFunction;
@@ -32,7 +33,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @NoArgsConstructor
 @Schema(
     title = "Search for github commits",
-    description = "If no authentication is provided, anonymous connect will be used"
+    description = "Requires authentication"
 )
 @Plugin(
     examples = {
@@ -41,7 +42,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
                    id: commits
                    type: io.kestra.plugin.github.commits.Search
                    oauthToken: your_github_token
-                   query: "kestra in:login language:java"
+                   query: "Initial repo:kestra-io/plugin-github language:java"
                    """
         ),
         @Example(
@@ -49,9 +50,8 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
                    id: commits
                    type: io.kestra.plugin.github.commits.Search
                    oauthToken: your_github_token
-                   query: kestra
-                   in: login
-                   language: java
+                   query: Initial
+                   repository: kestra-io/plugin-github
                    """
         )
     }
@@ -205,6 +205,10 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     public Output run(RunContext runContext) throws Exception {
         GitHub gitHub = connect(runContext);
 
+        if (gitHub.isAnonymous()) {
+            return Output.builder().build();
+        }
+
         GHCommitSearchBuilder searchBuilder = setupSearchParameters(runContext, gitHub);
 
         PagedSearchIterable<GHCommit> commits = searchBuilder.list();
@@ -215,7 +219,7 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
             commits.toList()
                 .stream()
                 .map(
-                    throwFunction(Search::getCommitDetails)
+                    throwFunction(ghCommit -> getCommitDetails(ghCommit, gitHub.isAnonymous()))
                 )
                 .forEachOrdered(
                     throwConsumer(
@@ -309,29 +313,62 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
         return searchBuilder;
     }
 
-    private static Map<String, Object> getCommitDetails(GHCommit commit) throws IOException {
+    private static Map<String, Object> getCommitDetails(GHCommit commit, boolean isAnonymous) throws IOException {
         Map<String, Object> body = new LinkedHashMap<>();
-        Optional.ofNullable(commit.getSHA1()).ifPresent(text -> body.put("sha", text));
+        Optional
+            .ofNullable(commit.getSHA1())
+            .ifPresent(text -> body.put("sha", text));
 
-        Optional.ofNullable(commit.getAuthor()).map(GHPerson::getLogin).ifPresent(text -> body.put("author", text));
-        Optional.ofNullable(commit.getCommitter()).map(GHPerson::getLogin).ifPresent(text -> body.put("committer", text));
+        Optional
+            .ofNullable(commit.getAuthor())
+            .filter(Predicate.not(o -> isAnonymous))
+            .map(GHPerson::getLogin)
+            .ifPresent(text -> body.put("author", text));
 
-        Optional.ofNullable(commit.getAuthoredDate()).map(Date::toString).ifPresent(text -> body.put("authored_date", text));
-        Optional.ofNullable(commit.getCommitDate()).map(Date::toString).ifPresent(text -> body.put("commit_date", text));
+        Optional
+            .ofNullable(commit.getCommitter())
+            .map(GHPerson::getLogin)
+            .ifPresent(text -> body.put("committer", text));
 
-        Optional.ofNullable(commit.getOwner()).map(GHRepository::getName).ifPresent(text -> body.put("repository", text));
-        Optional.ofNullable(commit.getCommitShortInfo()).map(GHCommit.ShortInfo::getMessage).ifPresent(text -> body.put("message", text));
+        Optional
+            .ofNullable(commit.getAuthoredDate())
+            .map(Date::toString)
+            .ifPresent(text -> body.put("authored_date", text));
+        Optional
+            .ofNullable(commit.getCommitDate())
+            .map(Date::toString)
+            .ifPresent(text -> body.put("commit_date", text));
+
+        Optional
+            .ofNullable(commit.getOwner())
+            .map(GHRepository::getName)
+            .ifPresent(text -> body.put("repository", text));
+        Optional
+            .ofNullable(commit.getCommitShortInfo())
+            .map(GHCommit.ShortInfo::getMessage)
+            .ifPresent(text -> body.put("message", text));
 
         body.put("lines_changed", commit.getLinesChanged());
         body.put("lines_added", commit.getLinesAdded());
         body.put("lines_deleted", commit.getLinesDeleted());
 
-        Optional.ofNullable(commit.getTree()).map(GHTree::getSha).ifPresent(text -> body.put("tree_sha", text));
-        Optional.ofNullable(commit.getTree()).map(GHTree::getUrl).ifPresent(text -> body.put("tree_url", text));
+        Optional
+            .ofNullable(commit.getTree())
+            .map(GHTree::getSha)
+            .ifPresent(text -> body.put("tree_sha", text));
+        Optional
+            .ofNullable(commit.getTree())
+            .map(GHTree::getUrl)
+            .ifPresent(text -> body.put("tree_url", text));
 
-        Optional.ofNullable(commit.getLastStatus()).map(GHCommitStatus::getContext).ifPresent(text -> body.put("last_status", text));
+        Optional
+            .ofNullable(commit.getLastStatus())
+            .map(GHCommitStatus::getContext)
+            .ifPresent(text -> body.put("last_status", text));
 
-        Optional.ofNullable(commit.getHtmlUrl()).ifPresent(text -> body.put("url", text));
+        Optional
+            .ofNullable(commit.getHtmlUrl())
+            .ifPresent(text -> body.put("url", text));
 
         return body;
     }

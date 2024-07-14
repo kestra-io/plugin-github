@@ -18,7 +18,7 @@ import org.kohsuke.github.*;
 @NoArgsConstructor
 @Schema(
     title = "Search for github users",
-    description = "If no authentication is provided, anonymous connect will be used"
+    description = "If no authentication is provided, anonymous connection will be used. Anonymous connection can't retrieve full information"
 )
 @Plugin(
     examples = {
@@ -27,7 +27,7 @@ import org.kohsuke.github.*;
                    id: users
                    type: io.kestra.plugin.github.users.Search
                    oauthToken: your_github_token
-                   query: "kestra in:login language:java"
+                   query: "kestra-io in:login language:java"
                    """
         ),
         @Example(
@@ -35,7 +35,7 @@ import org.kohsuke.github.*;
                    id: users
                    type: io.kestra.plugin.github.users.Search
                    oauthToken: your_github_token
-                   query: kestra
+                   query: kestra-io
                    in: login
                    language: java
                    """
@@ -163,7 +163,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
 
         PagedSearchIterable<GHUser> users = searchBuilder.list();
 
-        return this.run(runContext, users);
+        return this.run(runContext, users, gitHub);
     }
 
     private GHUserSearchBuilder setupSearchParameters(RunContext runContext, GitHub gitHub) throws Exception {

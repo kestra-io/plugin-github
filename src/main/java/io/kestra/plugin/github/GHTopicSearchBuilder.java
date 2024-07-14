@@ -108,7 +108,7 @@ public class GHTopicSearchBuilder {
 
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class GHTopicResponse extends GHObject {
+    public static class GHTopicResponse {
 
         @JsonProperty("total_count")
         private int totalCount;
@@ -119,6 +119,7 @@ public class GHTopicSearchBuilder {
         @JsonProperty("items")
         private List<GHTopic> items;
 
+        @JsonProperty("url")
         private URL htmlUrl;
 
         @Data
@@ -145,7 +146,9 @@ public class GHTopicSearchBuilder {
             private String updatedAt;
 
             private boolean featured;
+
             private boolean curated;
+
             private int score;
 
         }

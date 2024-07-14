@@ -27,7 +27,10 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @NoArgsConstructor
 abstract public class GithubSearchTask extends GithubConnector {
 
-    protected FileOutput run(RunContext runContext, PagedSearchIterable<? extends GHObject> items) throws IOException {
+    protected FileOutput run(RunContext runContext,
+                             PagedSearchIterable<? extends GHObject> items,
+                             GitHub gitHub
+    ) throws IOException {
         File tempFile = runContext.workingDir().createTempFile(".ion").toFile();
         try (BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(tempFile))) {
 
@@ -35,7 +38,7 @@ abstract public class GithubSearchTask extends GithubConnector {
                 .toList()
                 .stream()
                 .map(
-                    throwFunction(GithubSearchTask::getDetails)
+                    throwFunction(ghObject -> getDetails(ghObject, gitHub.isAnonymous()))
                 )
                 .forEachOrdered(
                     throwConsumer(
@@ -52,12 +55,12 @@ abstract public class GithubSearchTask extends GithubConnector {
         }
     }
 
-    private static Object getDetails(GHObject ghObject) throws IOException {
+    private static Object getDetails(GHObject ghObject, boolean isAnonymous) throws IOException {
         return switch (ghObject) {
-            case GHUser user -> new UserDetails(user);
-            case GHRepository repository -> new RepositoryDetails(repository);
-            case GHPullRequest pullRequest -> new PullRequestDetails(pullRequest);
-            case GHIssue issue -> new IssueDetails(issue);
+            case GHUser user -> new UserDetails(user, isAnonymous);
+            case GHRepository repository -> new RepositoryDetails(repository, isAnonymous);
+            case GHPullRequest pullRequest -> new PullRequestDetails(pullRequest, isAnonymous);
+            case GHIssue issue -> new IssueDetails(issue, isAnonymous);
             default -> null;
         };
     }

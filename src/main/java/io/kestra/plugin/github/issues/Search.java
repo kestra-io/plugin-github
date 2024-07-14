@@ -27,7 +27,7 @@ import org.kohsuke.github.*;
                    id: search
                    type: io.kestra.plugin.github.issues.Search
                    oauthToken: your_github_token
-                   query: "kestra in:login language:java"
+                   query: "repo:kestra-io/plugin-github is:open"
                    """
         ),
         @Example(
@@ -35,9 +35,8 @@ import org.kohsuke.github.*;
                    id: search
                    type: io.kestra.plugin.github.issues.Search
                    oauthToken: your_github_token
-                   query: kestra
-                   in: login
-                   language: java
+                   repository: kestra-io/plugin-github
+                   open: TRUE
                    """
         )
     }
@@ -123,7 +122,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
 
         PagedSearchIterable<GHIssue> issues = searchBuilder.list();
 
-        return this.run(runContext, issues);
+        return this.run(runContext, issues, gitHub);
     }
 
     private GHIssueSearchBuilder setupSearchParameters(RunContext runContext, GitHub gitHub) throws Exception {

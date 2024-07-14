@@ -18,7 +18,7 @@ import org.kohsuke.github.*;
 @NoArgsConstructor
 @Schema(
     title = "Search for github repositories",
-    description = "If no authentication is provided, anonymous connect will be used"
+    description = "If no authentication is provided, anonymous connection will be used. Anonymous connection can't retrieve full information"
 )
 @Plugin(
     examples = {
@@ -178,7 +178,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
 
         PagedSearchIterable<GHRepository> repositories = searchBuilder.list();
 
-        return this.run(runContext, repositories);
+        return this.run(runContext, repositories, gitHub);
     }
 
     private GHRepositorySearchBuilder setupSearchParameters(RunContext runContext, GitHub gitHub) throws Exception {

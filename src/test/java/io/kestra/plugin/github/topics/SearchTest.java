@@ -20,7 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 @KestraTest
-//@Disabled("disabled for ci/cd, as there unit tests requires secret (oauth) token")
+@Disabled("disabled for ci/cd, as there unit tests requires secret (oauth) token")
 public class SearchTest {
     @Inject
     private RunContextFactory runContextFactory;
@@ -33,6 +33,7 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
+            .oauthToken("")
             .query("Spring Cloud is:not-curated repositories:>10")
             .build();
 
