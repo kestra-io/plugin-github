@@ -17,8 +17,8 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for github users",
-    description = "If no authentication is provided, anonymous connection will be used. Anonymous connection can't retrieve full information"
+    title = "Search for GitHub users",
+    description = "If no authentication is provided, anonymous authentication will be used. Anonymous authentication can't retrieve full information"
 )
 @Plugin(
     examples = {
@@ -70,21 +70,21 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     }
 
     @Schema(
-        name = "The query contains one or more search keywords and qualifiers",
+        title = "The query contains one or more search keywords and qualifiers",
         description = "Qualifiers allow you to limit your search to specific areas of GitHub"
     )
     @PluginProperty(dynamic = true)
     private String query;
 
     @Schema(
-        name = "Search for users based on the languages of repositories they own",
+        title = "Search for users based on the languages of repositories they own",
         description = "Can be the language name or alias"
     )
     @PluginProperty(dynamic = true)
     private String language;
 
     @Schema(
-        name = "Filter users based on when they joined GitHub",
+        title = "Filter users based on when they joined GitHub",
         description = """
                     Available formats:
                     - '<=YYYY-MM-DD' - joined at or before
@@ -97,13 +97,13 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private String created;
 
     @Schema(
-        name = "You can filter users based on the number of repositories they own"
+        title = "You can filter users based on the number of repositories they own"
     )
     @PluginProperty(dynamic = true)
     private Integer repositories;
 
     @Schema(
-        name = "With the 'in' qualifier you can restrict your search to the username/login, full name, public email",
+        title = "With the 'in' qualifier you can restrict your search to the username/login, full name, public email",
         description = "Example kenya in:login matches users with the word \"kenya\" in their username. " +
             "One more case of use to search users that have sponsor profile, equivalent to query: is:sponsorable"
     )
@@ -111,19 +111,19 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private String in;
 
     @Schema(
-        name = "Search for users by the location indicated in their profile"
+        title = "Search for users by the location indicated in their profile"
     )
     @PluginProperty(dynamic = true)
     private String location;
 
     @Schema(
-        name = "Filter users based on the number of followers that they have"
+        title = "Filter users based on the number of followers that they have"
     )
     @PluginProperty(dynamic = true)
     private String followers;
 
     @Schema(
-        name = "Restrict search results to personal accounts or organizations only",
+        title = "Restrict search results to personal accounts or organizations only",
         description = """
                       USER - the results will include only user accounts
                       ORGANIZATION - the results will include only organization accounts
@@ -133,7 +133,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private Type accountType;
 
     @Schema(
-        name = "Order output",
+        title = "Order output",
         description = """
                       ASC - the results will be in ascending order (DEFAULT)
                       DESC - the results will be in descending order
@@ -144,7 +144,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private Order order = Order.ASC;
 
     @Schema(
-        name = "Sort output",
+        title = "Sort output",
         description = """
                       JOINED - the results will be sorted by when user joined to Github (DEFAULT)
                       REPOSITORIES - the results will be sorted by the number of repositories owned by user

@@ -8,28 +8,28 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public interface GithubConnectionInterface {
 
     @Schema(
-        title = "Github login",
+        title = "GitHub login",
         description = "Requires additional field: oauthToken, to log-in"
     )
     @PluginProperty(dynamic = true)
     String getLogin();
 
     @Schema(
-        title = "Github oauthToken",
-        description = "Github Personal Access Token. In addition can be used with login or by it own"
+        title = "GitHub oauthToken",
+        description = "GitHub Personal Access Token. In addition, can be used with login or by its own"
     )
     @PluginProperty(dynamic = true)
     String getOauthToken();
 
     @Schema(
-        title = "Github jwt token",
+        title = "GitHub JWT token",
         description = "Does not requires additional fields to log-in"
     )
     @PluginProperty(dynamic = true)
     String getJwtToken();
 
     @Schema(
-        title = "Github repository",
+        title = "GitHub repository",
         description = "Repository where issue/ticket should be created. It's a string of Username + / + Repository name",
         example = "kestra-io/plugin-github"
     )

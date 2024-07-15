@@ -22,13 +22,13 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create github issue",
-    description = "If no authentication is provided, anonymous connect will be used"
+    title = "Create a GitHub issue",
+    description = "If no authentication is provided, anonymous authentication will be used"
 )
 @Plugin(
     examples = {
         @Example(
-            title = "Create issue in repository",
+            title = "Create an issue in a repository",
             code = """
                    id: create
                    type: io.kestra.plugin.github.issues.Create
@@ -42,7 +42,7 @@ import java.util.List;
                    """
         ),
         @Example(
-            title = "Create issue in repository",
+            title = "Create an issue in a repository",
             code = """
                    id: create
                    type: io.kestra.plugin.github.issues.Create
@@ -57,7 +57,7 @@ import java.util.List;
                    """
         ),
         @Example(
-            title = "Create issue in repository",
+            title = "Create an issue in a repository",
             code = """
                    id: create
                    type: io.kestra.plugin.github.issues.Create

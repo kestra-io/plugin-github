@@ -30,7 +30,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for github code",
+    title = "Search for GitHub code",
     description = "Requires authentication"
 )
 @Plugin(
@@ -84,63 +84,62 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     }
 
     @Schema(
-        name = "The query contains one or more search keywords and qualifiers",
+        title = "The query contains one or more search keywords and qualifiers",
         description = "Allow you to limit your search to specific areas of GitHub"
     )
     @PluginProperty(dynamic = true)
     private String query;
 
     @Schema(
-        name = "",
-        description = ""
+        title = "The GitHub repository"
     )
     @PluginProperty(dynamic = true)
     private String repository;
 
     @Schema(
-        name = "Search commits in all repositories owned by a certain user"
+        title = "Search commits in all repositories owned by a certain user"
     )
     @PluginProperty(dynamic = true)
     private String user;
 
     @Schema(
-        name = ""
+        title = "In"
     )
     @PluginProperty(dynamic = true)
     private String in;
 
     @Schema(
-        name = ""
+        title = "The language"
     )
     @PluginProperty(dynamic = true)
     private String language;
 
     @Schema(
-        name = ""
+        title = "The file extension"
     )
     @PluginProperty(dynamic = true)
     private String extension;
 
     @Schema(
-        name = ""
+        name = "Whether to include forks"
     )
-    @PluginProperty(dynamic = true)
+    @PluginProperty
     private Fork fork;
 
     @Schema(
-        name = ""
+        title = "The file name"
     )
     @PluginProperty(dynamic = true)
     private String filename;
 
     @Schema(
-        name = ""
+        title = "The file path"
     )
     @PluginProperty(dynamic = true)
     private String path;
 
     @Schema(
-        name = ""
+        title = "The file path"
     )
     @PluginProperty(dynamic = true)
     private String size;
