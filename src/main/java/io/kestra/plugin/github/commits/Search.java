@@ -32,7 +32,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for github commits",
+    title = "Search for GitHub commits",
     description = "Requires authentication"
 )
 @Plugin(
@@ -256,7 +256,7 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
         }
 
         if (this.hash != null) {
-            searchBuilder.hash(this.hash);
+            searchBuilder.hash(runContext.render(this.hash));
         }
 
         if (this.parent != null) {

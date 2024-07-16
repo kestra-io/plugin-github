@@ -21,8 +21,8 @@ import java.net.URL;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create github issue comment",
-    description = "If no authentication is provided, anonymous connect will be used"
+    title = "Create GitHub issue comment",
+    description = "If no authentication is provided, anonymous authentication will be used"
 )
 @Plugin(
     examples = {

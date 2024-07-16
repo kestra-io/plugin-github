@@ -17,8 +17,8 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for github repositories",
-    description = "If no authentication is provided, anonymous connection will be used. Anonymous connection can't retrieve full information"
+    title = "Search for GitHub repositories",
+    description = "If no authentication is provided, anonymous authentication will be used. Anonymous authentication can't retrieve full information"
 )
 @Plugin(
     examples = {
@@ -91,53 +91,53 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     }
 
     @Schema(
-        name = "To search the code in a specific repository",
+        title = "To search the code in a specific repository",
         description = "Example string: \"myUserName/MyRepository\". query equivalent: \"repo:myUserName/MyRepository\""
     )
     @PluginProperty(dynamic = true)
     private String repository;
 
     @Schema(
-        name = "The query contains one or more search keywords and qualifiers",
+        title = "The query contains one or more search keywords and qualifiers",
         description = "Qualifiers allow you to limit your search to specific areas of GitHub"
     )
     @PluginProperty(dynamic = true)
     private String query;
 
     @Schema(
-        name = "Search for code based on what language it's written in",
+        title = "Search for code based on what language it's written in",
         description = "Can be the language name or alias"
     )
     @PluginProperty(dynamic = true)
     private String language;
 
     @Schema(
-        name = "Search for code based on when repository was created"
+        title = "Search for code based on when repository was created"
     )
     @PluginProperty(dynamic = true)
     private String created;
 
     @Schema(
-        name = "Search for code based on how many starts repository has"
+        title = "Search for code based on how many starts repository has"
     )
     @PluginProperty(dynamic = true)
     private String stars;
 
     @Schema(
-        name = "Search the code in all repositories owned by a certain user",
+        title = "Search the code in all repositories owned by a certain user",
         description = "To search by organization use: \"query: org:myOrganization\""
     )
     @PluginProperty(dynamic = true)
     private String user;
 
     @Schema(
-        name = "Search the code by topic"
+        title = "Search the code by topic"
     )
     @PluginProperty(dynamic = true)
     private String topic;
 
     @Schema(
-        name = "Order output",
+        title = "Order output",
         description = """
                       ASC - the results will be in ascending order
                       DESC - the results will be in descending order
@@ -148,7 +148,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private Order order = Order.ASC;
 
     @Schema(
-        name = "Sort output",
+        title = "Sort output",
         description = """
                       UPDATED - the results will be sorted by when the repository was last updated
                       STARS - the results will be sorted by the number of stars the repository has
@@ -160,7 +160,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private Sort sort = Sort.UPDATED;
 
     @Schema(
-        name = "Search repository that have specified repositories. By default it's search for all repositories",
+        title = "Search repository that have specified repositories. By default it's search for all repositories",
         description = """
                       PUBLIC - shows only public repositories
                       PRIVATE - shows only private repositories that are available for user who is searching
