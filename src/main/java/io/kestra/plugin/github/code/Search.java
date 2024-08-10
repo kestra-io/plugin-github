@@ -37,16 +37,12 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
     examples = {
         @Example(
             code = """
-                   id: search
-                   type: io.kestra.plugin.github.code.Search
                    oauthToken: your_github_token
                    query: "addClass in:file language:js repo:jquery/jquery"
                    """
         ),
         @Example(
             code = """
-                   id: search
-                   type: io.kestra.plugin.github.code.Search
                    oauthToken: your_github_token
                    query: addClass
                    in: file

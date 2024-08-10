@@ -24,16 +24,12 @@ import org.kohsuke.github.*;
     examples = {
         @Example(
             code = """
-                   id: users
-                   type: io.kestra.plugin.github.users.Search
                    oauthToken: your_github_token
                    query: "kestra-io in:login language:java"
                    """
         ),
         @Example(
             code = """
-                   id: users
-                   type: io.kestra.plugin.github.users.Search
                    oauthToken: your_github_token
                    query: kestra-io
                    in: login

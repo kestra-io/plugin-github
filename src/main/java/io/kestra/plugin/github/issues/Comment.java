@@ -27,9 +27,7 @@ import java.net.URL;
 @Plugin(
     examples = {
         @Example(
-            code = """
-                   id: comment
-                   type: io.kestra.plugin.github.issues.Comment
+            code = """ 
                    oauthToken: your_github_token
                    repository: kestra-io/kestra
                    issueNumber: 1347

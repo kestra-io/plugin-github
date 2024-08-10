@@ -30,8 +30,6 @@ import java.util.List;
         @Example(
             title = "Create an issue in a repository",
             code = """
-                   id: create
-                   type: io.kestra.plugin.github.issues.Create
                    jwtToken: your_github_jwt_token
                    repository: kestra-io/kestra
                    title: Workflow failed
@@ -44,8 +42,6 @@ import java.util.List;
         @Example(
             title = "Create an issue in a repository",
             code = """
-                   id: create
-                   type: io.kestra.plugin.github.issues.Create
                    login: your_github_login
                    oauthToken: your_github_token
                    repository: kestra-io/kestra
@@ -59,8 +55,6 @@ import java.util.List;
         @Example(
             title = "Create an issue in a repository",
             code = """
-                   id: create
-                   type: io.kestra.plugin.github.issues.Create
                    oauthToken: your_github_token
                    repository: kestra-io/kestra
                    title: Workflow failed

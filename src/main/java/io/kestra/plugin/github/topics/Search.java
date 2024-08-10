@@ -34,16 +34,12 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
     examples = {
         @Example(
             code = """
-                   id: search
-                   type: io.kestra.plugin.github.topics.Search
                    oauthToken: your_github_token
                    query: "micronaut framework is:not-curated repositories:>100"
                    """
         ),
         @Example(
             code = """
-                   id: search
-                   type: io.kestra.plugin.github.topics.Search
                    oauthToken: your_github_token
                    query: "micronaut framework"
                    is: NOT_CURATED

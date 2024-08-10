@@ -28,8 +28,6 @@ import java.net.URL;
     examples = {
         @Example(
             code = """
-                   id: create
-                   type: io.kestra.plugin.github.pulls.Create
                    oauthToken: your_github_token
                    repository: kestra-io/kestra
                    sourceBranch: develop

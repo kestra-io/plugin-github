@@ -24,17 +24,13 @@ import org.kohsuke.github.*;
 @Plugin(
     examples = {
         @Example(
-            code = """
-                   id: search
-                   type: io.kestra.plugin.github.pulls.Search
+            code = """                   
                    oauthToken: your_github_token
                    query: "repo:kestra-io/plugin-github is:open"
                    """
         ),
         @Example(
             code = """
-                   id: search
-                   type: io.kestra.plugin.github.pulls.Search
                    oauthToken: your_github_token
                    repository: kestra-io/plugin-github
                    open: TRUE

@@ -24,24 +24,18 @@ import org.kohsuke.github.*;
     examples = {
         @Example(
             code = """
-                   id: repos
-                   type: io.kestra.plugin.github.repositories.Search
                    oauthToken: your_github_token
                    query: "repo:kestra-io/plugin-github"
                    """
         ),
         @Example(
             code = """
-                   id: repos
-                   type: io.kestra.plugin.github.repositories.Search
                    oauthToken: your_github_token
                    repository: kestra-io/plugin-github
                    """
         ),
         @Example(
             code = """
-                   id: repos
-                   type: io.kestra.plugin.github.repositories.Search
                    oauthToken: your_github_token
                    query: "user:kestra-io language:java is:public"
                    sort: STARS
@@ -50,8 +44,6 @@ import org.kohsuke.github.*;
         ),
         @Example(
             code = """
-                   id: repos
-                   type: io.kestra.plugin.github.repositories.Search
                    oauthToken: your_github_token
                    user: kestra-io
                    language: java

@@ -39,16 +39,12 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
     examples = {
         @Example(
             code = """
-                   id: commits
-                   type: io.kestra.plugin.github.commits.Search
                    oauthToken: your_github_token
                    query: "Initial repo:kestra-io/plugin-github language:java"
                    """
         ),
         @Example(
             code = """
-                   id: commits
-                   type: io.kestra.plugin.github.commits.Search
                    oauthToken: your_github_token
                    query: Initial
                    repository: kestra-io/plugin-github
