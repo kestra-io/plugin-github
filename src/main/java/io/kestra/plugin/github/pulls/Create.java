@@ -21,21 +21,27 @@ import java.net.URL;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create a pull request",
-    description = "If no authentication is provided, anonymous authentication will be used"
+    title = "Create a pull request.",
+    description = "If no authentication is provided, anonymous authentication will be used."
 )
 @Plugin(
     examples = {
         @Example(
+            title = "Create a pull request in a repository.",
+            full = true,
             code = """
-                   id: create
-                   type: io.kestra.plugin.github.pulls.Create
-                   oauthToken: your_github_token
-                   repository: kestra-io/kestra
-                   sourceBranch: develop
-                   targetBranch: main
-                   title: Workflow failed
-                   body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
+                   id: github_pulls_create_flow
+                   namespace: company.team
+                   
+                   tasks:
+                     - id: create_pull_request
+                       type: io.kestra.plugin.github.pulls.Create
+                       oauthToken: your_github_token
+                       repository: kestra-io/kestra
+                       sourceBranch: develop
+                       targetBranch: main
+                       title: Workflow failed
+                       body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
                    """
         )
     }

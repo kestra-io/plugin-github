@@ -28,49 +28,62 @@ import java.util.List;
 @Plugin(
     examples = {
         @Example(
-            title = "Create an issue in a repository",
+            title = "Create an issue in a repository using JWT token.",
+            full = true,
             code = """
-                   id: create
-                   type: io.kestra.plugin.github.issues.Create
-                   jwtToken: your_github_jwt_token
-                   repository: kestra-io/kestra
-                   title: Workflow failed
-                   body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
-                   labels:
-                     - bug
-                     - workflow
+                   id: github_issue_create_flow
+                   namespace: company.team
+                   
+                   tasks:
+                     - id: create_issue
+                       type: io.kestra.plugin.github.issues.Create
+                       jwtToken: your_github_jwt_token
+                       repository: kestra-io/kestra
+                       title: Workflow failed
+                       body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
+                       labels:
+                         - bug
+                         - workflow
                    """
         ),
         @Example(
-            title = "Create an issue in a repository",
+            title = "Create an issue in a repository using OAuth token.",
             code = """
-                   id: create
-                   type: io.kestra.plugin.github.issues.Create
-                   login: your_github_login
-                   oauthToken: your_github_token
-                   repository: kestra-io/kestra
-                   title: Workflow failed
-                   body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
-                   labels:
-                     - bug
-                     - workflow
+                   id: github_issue_create_flow
+                   namespace: company.team
+
+                   tasks:
+                     - id: create_issue
+                       type: io.kestra.plugin.github.issues.Create
+                       login: your_github_login
+                       oauthToken: your_github_token
+                       repository: kestra-io/kestra
+                       title: Workflow failed
+                       body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
+                       labels:
+                         - bug
+                         - workflow
                    """
         ),
         @Example(
-            title = "Create an issue in a repository",
+            title = "Create an issue in a repository with assignees.",
             code = """
-                   id: create
-                   type: io.kestra.plugin.github.issues.Create
-                   oauthToken: your_github_token
-                   repository: kestra-io/kestra
-                   title: Workflow failed
-                   body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
-                   labels:
-                     - bug
-                     - workflow
-                   assignees:
-                     - MyDeveloperUserName
-                     - MyDesignerUserName
+                   id: github_issue_create_flow
+                   namespace: company.team
+
+                   tasks:
+                     - id: create_issue
+                       type: io.kestra.plugin.github.issues.Create
+                       oauthToken: your_github_token
+                       repository: kestra-io/kestra
+                       title: Workflow failed
+                       body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
+                       labels:
+                         - bug
+                         - workflow
+                       assignees:
+                         - MyDeveloperUserName
+                         - MyDesignerUserName
                    """
         )
     }

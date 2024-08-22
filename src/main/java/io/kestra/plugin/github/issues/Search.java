@@ -23,20 +23,31 @@ import org.kohsuke.github.*;
 @Plugin(
     examples = {
         @Example(
+            title = "Search for issues in a repository.",
+            full = true,
             code = """
-                   id: search
-                   type: io.kestra.plugin.github.issues.Search
-                   oauthToken: your_github_token
-                   query: "repo:kestra-io/plugin-github is:open"
+                   id: github_issue_search_flow
+                   namespace: company.team
+
+                   tasks:
+                     - id: search_issues
+                       type: io.kestra.plugin.github.issues.Search
+                       oauthToken: your_github_token
+                       query: "repo:kestra-io/plugin-github is:open"
                    """
         ),
         @Example(
+            title = "Search for open issues in a repository.",
             code = """
-                   id: search
-                   type: io.kestra.plugin.github.issues.Search
-                   oauthToken: your_github_token
-                   repository: kestra-io/plugin-github
-                   open: TRUE
+                   id: github_issue_search_flow
+                   namespace: company.team
+                   
+                   tasks:
+                     - id: search_open_issues
+                       type: io.kestra.plugin.github.issues.Search
+                       oauthToken: your_github_token
+                       repository: kestra-io/plugin-github
+                       open: TRUE
                    """
         )
     }

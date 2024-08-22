@@ -32,26 +32,38 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for GitHub commits",
-    description = "Requires authentication"
+    title = "Search for GitHub commits.",
+    description = "Requires authentication."
 )
 @Plugin(
     examples = {
         @Example(
+            title = "Search for commits in a repository.",
+            full = true,
             code = """
-                   id: commits
-                   type: io.kestra.plugin.github.commits.Search
-                   oauthToken: your_github_token
-                   query: "Initial repo:kestra-io/plugin-github language:java"
+                   id: github_commit_search_flow
+                   namespace: company.team
+
+                   tasks:
+                     - id: search_commit
+                       type: io.kestra.plugin.github.commits.Search
+                       oauthToken: your_github_token
+                       query: "Initial repo:kestra-io/plugin-github language:java"
                    """
         ),
         @Example(
+            title = "Search for commits in a repository.",
+            full = true,
             code = """
-                   id: commits
-                   type: io.kestra.plugin.github.commits.Search
-                   oauthToken: your_github_token
-                   query: Initial
-                   repository: kestra-io/plugin-github
+                   id: github_commit_search_flow
+                   namespace: company.team
+                   
+                   tasks:
+                     - id: search_commit
+                       type: io.kestra.plugin.github.commits.Search
+                       oauthToken: your_github_token
+                       query: Initial
+                       repository: kestra-io/plugin-github
                    """
         )
     }

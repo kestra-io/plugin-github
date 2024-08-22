@@ -24,20 +24,32 @@ import org.kohsuke.github.*;
 @Plugin(
     examples = {
         @Example(
+            title = "Search for pull requests in a repository.",
+            full = true,
             code = """
-                   id: search
-                   type: io.kestra.plugin.github.pulls.Search
-                   oauthToken: your_github_token
-                   query: "repo:kestra-io/plugin-github is:open"
+                   id: github_pulls_search_flow
+                   namespace: company.team
+
+                   tasks:
+                     - id: search_pull_requests
+                       type: io.kestra.plugin.github.pulls.Search
+                       oauthToken: your_github_token
+                       query: "repo:kestra-io/plugin-github is:open"
                    """
         ),
         @Example(
+            title = "Search for open pull requests in a repository.",
+            full = true,
             code = """
-                   id: search
-                   type: io.kestra.plugin.github.pulls.Search
-                   oauthToken: your_github_token
-                   repository: kestra-io/plugin-github
-                   open: TRUE
+                   id: github_pulls_search_flow
+                   namespace: company.team
+                   
+                   tasks:
+                     - id: search_open_pull_requests
+                       type: io.kestra.plugin.github.pulls.Search
+                       oauthToken: your_github_token
+                       repository: kestra-io/plugin-github
+                       open: TRUE
                    """
         )
     }
