@@ -56,6 +56,7 @@ import org.kohsuke.github.*;
             code = """
                    id: github_repo_search_flow
                    namespace: company.team
+                   
                    tasks:
                      - id: search_repositories
                        type: io.kestra.plugin.github.repositories.Search
@@ -71,6 +72,7 @@ import org.kohsuke.github.*;
             code = """
                    id: github_repo_search_flow
                    namespace: company.team
+                   
                    tasks:
                      - id: search_repositories
                        type: io.kestra.plugin.github.repositories.Search
