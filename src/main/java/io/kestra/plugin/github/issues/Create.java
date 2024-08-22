@@ -22,8 +22,8 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create a GitHub issue",
-    description = "If no authentication is provided, anonymous authentication will be used"
+    title = "Create a GitHub issue.",
+    description = "If no authentication is provided, anonymous authentication will be used."
 )
 @Plugin(
     examples = {
@@ -80,27 +80,27 @@ public class Create extends GithubConnector implements RunnableTask<Create.Outpu
     private String repository;
 
     @Schema(
-        title = "Ticket title"
+        title = "Ticket title."
     )
     @PluginProperty(dynamic = true)
     private String title;
 
     @Schema(
-        title = "Ticket body"
+        title = "Ticket body."
     )
     @PluginProperty(dynamic = true)
     private String body;
 
     @Schema(
-        title = "Ticket label",
-        description = "List of labels for ticket"
+        title = "Ticket label.",
+        description = "List of labels for ticket."
     )
     @PluginProperty(dynamic = true)
     private List<String> labels;
 
     @Schema(
-        title = "Ticket assignee",
-        description = "List of unique names of assignees"
+        title = "Ticket assignee.",
+        description = "List of unique names of assignees."
     )
     @PluginProperty(dynamic = true)
     private List<String> assignees;

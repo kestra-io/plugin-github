@@ -27,8 +27,8 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for GitHub topics",
-    description = "If no authentication is provided, anonymous authentication will be used. Anonymous authentication can't retrieve full information"
+    title = "Search for GitHub topics.",
+    description = "If no authentication is provided, anonymous authentication will be used. Anonymous authentication can't retrieve full information."
 )
 @Plugin(
     examples = {
@@ -77,18 +77,18 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     };
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers",
-        description = "Allow you to limit your search to specific areas of GitHub"
+        title = "The query contains one or more search keywords and qualifiers.",
+        description = "Allow you to limit your search to specific areas of GitHub."
     )
     @PluginProperty(dynamic = true)
     private String query;
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers",
+        title = "The query contains one or more search keywords and qualifiers.",
         description = """
-                      CURATED - Matches topics that are curated
-                      FEATURED - Matches topics that are featured on `https://github.com/topics/`
-                      NOT_CURATED - Matches topics that don't have extra information, such as a description or logo
+                      CURATED - Matches topics that are curated\n
+                      FEATURED - Matches topics that are featured on `https://github.com/topics/`\n
+                      NOT_CURATED - Matches topics that don't have extra information, such as a description or logo\n
                       NOT_FEATURED - Matches topics that aren't featured on `https://github.com/topics/`
                       """
     )
@@ -96,23 +96,23 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     private Is is;
 
     @Schema(
-        title = "Matches topics that have number of repositories",
-        description = "You can use greater than, less than, and range qualifiers to further filter results"
+        title = "Matches topics that have number of repositories.",
+        description = "You can use greater than, less than, and range qualifiers to further filter results."
     )
     @PluginProperty(dynamic = true)
     private String repositories;
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers",
-        description = "You can use greater than, less than, and range qualifiers to further filter results"
+        title = "The query contains one or more search keywords and qualifiers.",
+        description = "You can use greater than, less than, and range qualifiers to further filter results."
     )
     @PluginProperty(dynamic = true)
     private String created;
 
     @Schema(
-        title = "Order output",
+        title = "Order of the output.",
         description = """
-                      ASC - the results will be in ascending order
+                      ASC - the results will be in ascending order\n
                       DESC - the results will be in descending order
                       """
     )

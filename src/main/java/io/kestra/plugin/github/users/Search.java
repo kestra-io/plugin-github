@@ -17,8 +17,8 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for GitHub users",
-    description = "If no authentication is provided, anonymous authentication will be used. Anonymous authentication can't retrieve full information"
+    title = "Search for GitHub users.",
+    description = "If no authentication is provided, anonymous authentication will be used. Anonymous authentication can't retrieve full information."
 )
 @Plugin(
     examples = {
@@ -70,26 +70,26 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     }
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers",
-        description = "Qualifiers allow you to limit your search to specific areas of GitHub"
+        title = "The query contains one or more search keywords and qualifiers.",
+        description = "Qualifiers allow you to limit your search to specific areas of GitHub."
     )
     @PluginProperty(dynamic = true)
     private String query;
 
     @Schema(
-        title = "Search for users based on the languages of repositories they own",
-        description = "Can be the language name or alias"
+        title = "Search for users based on the languages of repositories they own.",
+        description = "Can be the language name or alias."
     )
     @PluginProperty(dynamic = true)
     private String language;
 
     @Schema(
-        title = "Filter users based on when they joined GitHub",
+        title = "Filter users based on when they joined GitHub.",
         description = """
-                    Available formats:
-                    - '<=YYYY-MM-DD' - joined at or before
-                    - '>=YYYY-MM-DD' - joined at or after
-                    - Similar cases for above two with ">", "<"
+                    Available formats:\n
+                    - '<=YYYY-MM-DD' - joined at or before\n
+                    - '>=YYYY-MM-DD' - joined at or after\n
+                    - Similar cases for above two with ">", "<"\n
                     - 'YYYY-MM-DD..YYYY-MM-DD' - joined in period between
                     """
     )
@@ -97,35 +97,35 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private String created;
 
     @Schema(
-        title = "You can filter users based on the number of repositories they own"
+        title = "You can filter users based on the number of repositories they own."
     )
     @PluginProperty(dynamic = true)
     private Integer repositories;
 
     @Schema(
-        title = "With the 'in' qualifier you can restrict your search to the username/login, full name, public email",
+        title = "With the 'in' qualifier you can restrict your search to the username/login, full name, public email.",
         description = "Example kenya in:login matches users with the word \"kenya\" in their username. " +
-            "One more case of use to search users that have sponsor profile, equivalent to query: is:sponsorable"
+            "One more case of use to search users that have sponsor profile, equivalent to query: `is:sponsorable`."
     )
     @PluginProperty(dynamic = true)
     private String in;
 
     @Schema(
-        title = "Search for users by the location indicated in their profile"
+        title = "Search for users by the location indicated in their profile."
     )
     @PluginProperty(dynamic = true)
     private String location;
 
     @Schema(
-        title = "Filter users based on the number of followers that they have"
+        title = "Filter users based on the number of followers that they have."
     )
     @PluginProperty(dynamic = true)
     private String followers;
 
     @Schema(
-        title = "Restrict search results to personal accounts or organizations only",
+        title = "Restrict search results to personal accounts or organizations only.",
         description = """
-                      USER - the results will include only user accounts
+                      USER - the results will include only user accounts\n
                       ORGANIZATION - the results will include only organization accounts
                       """
     )
@@ -133,9 +133,9 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private Type accountType;
 
     @Schema(
-        title = "Order output",
+        title = "Order of the output.",
         description = """
-                      ASC - the results will be in ascending order (DEFAULT)
+                      ASC - the results will be in ascending order (DEFAULT)\n
                       DESC - the results will be in descending order
                       """
     )
@@ -144,10 +144,10 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private Order order = Order.ASC;
 
     @Schema(
-        title = "Sort output",
+        title = "Sort condition of the output.",
         description = """
-                      JOINED - the results will be sorted by when user joined to Github (DEFAULT)
-                      REPOSITORIES - the results will be sorted by the number of repositories owned by user
+                      JOINED - the results will be sorted by when user joined to Github (DEFAULT)\n
+                      REPOSITORIES - the results will be sorted by the number of repositories owned by user\n
                       FOLLOWERS - the results will be sorted by the number of followers that user has
                       """
     )

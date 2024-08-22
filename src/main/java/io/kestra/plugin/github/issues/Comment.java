@@ -21,8 +21,8 @@ import java.net.URL;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create GitHub issue comment",
-    description = "If no authentication is provided, anonymous authentication will be used"
+    title = "Create GitHub issue comment.",
+    description = "If no authentication is provided, anonymous authentication will be used."
 )
 @Plugin(
     examples = {
@@ -43,13 +43,13 @@ public class Comment extends GithubConnector implements RunnableTask<Comment.Out
     private String repository;
 
     @Schema(
-        title = "Ticket number"
+        title = "Ticket number."
     )
     @PluginProperty
     private Integer issueNumber;
 
     @Schema(
-        title = "Ticket body"
+        title = "Ticket body."
     )
     @PluginProperty(dynamic = true)
     private String body;

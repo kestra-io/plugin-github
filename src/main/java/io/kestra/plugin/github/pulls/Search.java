@@ -18,8 +18,8 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for GitHub pull requests",
-    description = "If no authentication is provided, anonymous authentication will be used. Anonymous authentication can't retrieve full information"
+    title = "Search for GitHub pull requests.",
+    description = "If no authentication is provided, anonymous authentication will be used. Anonymous authentication can't retrieve full information."
 )
 @Plugin(
     examples = {
@@ -62,64 +62,64 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     }
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers",
-        description = "Allow you to limit your search to specific areas of GitHub"
+        title = "The query contains one or more search keywords and qualifiers.",
+        description = "Allow you to limit your search to specific areas of GitHub."
     )
     @PluginProperty(dynamic = true)
     private String query;
 
     @Schema(
-        title = "Searched issues mentions by specified user"
+        title = "Searched issues mentions by specified user."
     )
     @PluginProperty(dynamic = true)
     private String mentions;
 
     @Schema(
-        title = "Specifies whether the pull request is open"
+        title = "Specifies whether the pull request is open."
     )
     @PluginProperty
     private Boolean open;
 
     @Schema(
-        title = "Specifies whether the pull request is closed"
+        title = "Specifies whether the pull request is closed."
     )
     @PluginProperty
     private Boolean closed;
 
     @Schema(
-        title = "Specifies whether the pull request is merged"
+        title = "Specifies whether the pull request is merged."
     )
     @PluginProperty
     private Boolean merged;
 
     @Schema(
-        title = "Specifies whether the pull request is in draft"
+        title = "Specifies whether the pull request is in draft."
     )
     @PluginProperty
     private Boolean draft;
 
     @Schema(
-        title = "Search pull requests that are assigned to a certain user"
+        title = "Search pull requests that are assigned to a certain user."
     )
     @PluginProperty
     private String assigned;
 
     @Schema(
-        title = "Search pull requests that have title like specified"
+        title = "Search pull requests that have title like specified."
     )
     @PluginProperty
     private String title;
 
     @Schema(
-        title = "Search for code based on when pull request was closed",
-        description = "You can use greater than, less than, and range qualifiers (`..` between two dates) to further filter results"
+        title = "Search for code based on when pull request was closed.",
+        description = "You can use greater than, less than, and range qualifiers (`..` between two dates) to further filter results."
     )
     @PluginProperty
     private String closedAt;
 
     @Schema(
-        title = "Search for code based on when the pull request was created",
-        description = "You can use greater than, less than, and range qualifiers (`..` between two dates) to further filter results"
+        title = "Search for code based on when the pull request was created.",
+        description = "You can use greater than, less than, and range qualifiers (`..` between two dates) to further filter results."
     )
     @PluginProperty
     private String createdAt;
@@ -132,48 +132,48 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private String updatedAt;
 
     @Schema(
-        title = "Search for pull requests that contain that SHA",
-        description = "The SHA syntax must be at least seven characters"
+        title = "Search for pull requests that contain that SHA.",
+        description = "The SHA syntax must be at least seven characters."
     )
     @PluginProperty
     private String commit;
 
     @Schema(
-        title = "Search pull requests in a specific repository"
+        title = "Search pull requests in a specific repository."
     )
     @PluginProperty
     private String repository;
 
     @Schema(
-        title = "Filter pull requests based on the branch they are merging into"
+        title = "Filter pull requests based on the branch they are merging into."
     )
     @PluginProperty
     private String base;
 
     @Schema(
-        title = "Filter pull requests based on the branch they came from"
+        title = "Filter pull requests based on the branch they came from."
     )
     @PluginProperty
     private String head;
 
     @Schema(
-        title = "Specifies whether pull request is created by user who logged in using token",
-        description = "Requires authentication"
+        title = "Specifies whether pull request is created by user who logged in using token.",
+        description = "Requires authentication."
     )
     @PluginProperty
     private Boolean createdByMe;
 
     @Schema(
-        title = "Finds pull requests created by a certain user or integration account"
+        title = "Finds pull requests created by a certain user or integration account."
     )
     @PluginProperty
 
     private String author;
 
     @Schema(
-        title = "Order output",
+        title = "Order of the output.",
         description = """
-                      ASC - the results will be in ascending order
+                      ASC - the results will be in ascending order\n
                       DESC - the results will be in descending order
                       """
     )
@@ -182,10 +182,10 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private Order order = Order.ASC;
 
     @Schema(
-        title = "Sort output",
+        title = "Sort condition for the output.",
         description = """
-                      CREATED - Sorts the results of query by the time issue was created (DEFAULT)
-                      UPDATED - Sorts the results of query by the tome issue was last time updated
+                      CREATED - Sorts the results of query by the time issue was created (DEFAULT)\n
+                      UPDATED - Sorts the results of query by the tome issue was last time updated\n
                       COMMENTS - Sorts the results of query by the number of comments
                       """
     )

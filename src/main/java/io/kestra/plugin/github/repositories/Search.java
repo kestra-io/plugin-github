@@ -91,41 +91,41 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     }
 
     @Schema(
-        title = "To search the code in a specific repository",
-        description = "Example string: \"myUserName/MyRepository\". query equivalent: \"repo:myUserName/MyRepository\""
+        title = "To search the code in a specific repository.",
+        description = "Example string: \"myUserName/MyRepository\". query equivalent: \"repo:myUserName/MyRepository\"."
     )
     @PluginProperty(dynamic = true)
     private String repository;
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers",
-        description = "Qualifiers allow you to limit your search to specific areas of GitHub"
+        title = "The query contains one or more search keywords and qualifiers.",
+        description = "Qualifiers allow you to limit your search to specific areas of GitHub."
     )
     @PluginProperty(dynamic = true)
     private String query;
 
     @Schema(
-        title = "Search for code based on what language it's written in",
-        description = "Can be the language name or alias"
+        title = "Search for code based on what language it's written in.",
+        description = "Can be the language name or alias."
     )
     @PluginProperty(dynamic = true)
     private String language;
 
     @Schema(
-        title = "Search for code based on when repository was created"
+        title = "Search for code based on when repository was created."
     )
     @PluginProperty(dynamic = true)
     private String created;
 
     @Schema(
-        title = "Search for code based on how many starts repository has"
+        title = "Search for code based on how many starts repository has."
     )
     @PluginProperty(dynamic = true)
     private String stars;
 
     @Schema(
-        title = "Search the code in all repositories owned by a certain user",
-        description = "To search by organization use: \"query: org:myOrganization\""
+        title = "Search the code in all repositories owned by a certain user.",
+        description = "To search by organization, use: \"query: org:myOrganization\"."
     )
     @PluginProperty(dynamic = true)
     private String user;
@@ -137,9 +137,9 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private String topic;
 
     @Schema(
-        title = "Order output",
+        title = "Order of the output.",
         description = """
-                      ASC - the results will be in ascending order
+                      ASC - the results will be in ascending order\n
                       DESC - the results will be in descending order
                       """
     )
@@ -148,10 +148,10 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private Order order = Order.ASC;
 
     @Schema(
-        title = "Sort output",
+        title = "Sort condition of the output.",
         description = """
-                      UPDATED - the results will be sorted by when the repository was last updated
-                      STARS - the results will be sorted by the number of stars the repository has
+                      UPDATED - the results will be sorted by when the repository was last updated\n
+                      STARS - the results will be sorted by the number of stars the repository has\n
                       FORKS - the results will be sorted by the number of forks the repository has
                       """
     )
@@ -160,10 +160,10 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private Sort sort = Sort.UPDATED;
 
     @Schema(
-        title = "Search repository that have specified repositories. By default it's search for all repositories",
+        title = "Search repository that have specified repositories. By default, it's search for all repositories.",
         description = """
-                      PUBLIC - shows only public repositories
-                      PRIVATE - shows only private repositories that are available for user who is searching
+                      PUBLIC - shows only public repositories\n
+                      PRIVATE - shows only private repositories that are available for user who is searching\n
                       INTERNAL - shows only internal repositories
                       """
     )
