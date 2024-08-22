@@ -75,114 +75,113 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     }
 
     @Schema(
-        name = "The query contains one or more search keywords and qualifiers",
-        description = "Allow you to limit your search to specific areas of GitHub"
+        title = "The query contains one or more search keywords and qualifiers.",
+        description = "Allows you to limit your search to specific areas of GitHub."
     )
     @PluginProperty(dynamic = true)
     private String query;
 
     @Schema(
-        name = "Search in specified repository"
+        title = "Search in specified repository."
     )
     @PluginProperty(dynamic = true)
     private String repository;
 
     @Schema(
-        name = "Matches commits from repositories with the specified visibility"
+        title = "Matches commits from repositories with the specified visibility."
     )
     @PluginProperty(dynamic = true)
     private String is;
 
     @Schema(
-        name = "Matches commits with the specified SHA-1 hash"
+        title = "Matches commits with the specified SHA-1 hash."
     )
     @PluginProperty(dynamic = true)
     private String hash;
 
     @Schema(
-        name = "matches commits whose parent has the specified SHA-1 hash"
+        title = "Matches commits whose parent has the specified SHA-1 hash."
     )
     @PluginProperty(dynamic = true)
     private String parent;
 
     @Schema(
-        name = "Matches commits with the specified SHA-1 git tree hash"
+        title = "Matches commits with the specified SHA-1 git tree hash."
     )
     @PluginProperty(dynamic = true)
     private String tree;
 
     @Schema(
-        name = "Search commits in all repositories owned by a certain user"
+        title = "Search commits in all repositories owned by a certain user"
     )
     @PluginProperty(dynamic = true)
     private String user;
 
     @Schema(
-        name = "Search commits in all repositories owned by a certain organization"
+        title = "Search commits in all repositories owned by a certain organization."
     )
     @PluginProperty(dynamic = true)
     private String org;
 
     @Schema(
-        name = "Find commits by a particular user"
+        title = "Find commits by a particular user."
     )
     @PluginProperty(dynamic = true)
     private String author;
 
     @Schema(
-        name = "Match commits authored within the specified date range",
-        description = "When you search for a date, you can use greater than, less than, and range qualifiers to further filter results"
+        title = "Match commits authored within the specified date range. When you search for a date, you can use greater than, less than, and range qualifiers to further filter results."
     )
     @PluginProperty(dynamic = true)
     private String authorDate;
 
     @Schema(
-        name = "Match commits by the author's full email address"
+        title = "Match commits by the author's full email address."
     )
     @PluginProperty(dynamic = true)
     private String authorEmail;
 
     @Schema(
-        name = "Match commits by the name of the author"
+        title = "Match commits by the name of the author"
     )
     @PluginProperty(dynamic = true)
     private String authorName;
 
     @Schema(
-        name = "Find commits by a particular user"
+        title = "Find commits by a particular user"
     )
     @PluginProperty(dynamic = true)
     private String committer;
 
     @Schema(
-        name = "Match commits committed within the specified date range",
-        description = "When you search for a date, you can use greater than, less than, and range qualifiers to further filter results"
+        title = "Match commits committed within the specified date range.",
+        description = "When you search for a date, you can use greater than, less than, and range qualifiers to further filter results."
     )
     @PluginProperty(dynamic = true)
     private String committerDate;
 
     @Schema(
-        name = "Match commits by the committer's full email address"
+        title = "Match commits by the committer's full email address."
     )
     @PluginProperty(dynamic = true)
     private String committerEmail;
 
     @Schema(
-        name = "Match commits by the name of the committer"
+        title = "Match commits by the name of the committer"
     )
     @PluginProperty(dynamic = true)
     private String committerName;
 
     @Schema(
-        name = "Filters merge commits"
+        title = "Whether to filter merge commits."
     )
     @PluginProperty
     private Boolean merge;
 
     @Schema(
-        name = "Order output",
+        title = "Order of the output.",
         description = """
-                      ASC - the results will be in ascending order
+                      ASC - the results will be in ascending order\n
                       DESC - the results will be in descending order
                       """
     )
@@ -191,9 +190,9 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     private Order order = Order.ASC;
 
     @Schema(
-        name = "Sort output",
+        title = "Sort condition for the output.",
         description = """
-                      COMMITTER_DATE - the results will be sorted by when user joined to Github
+                      COMMITTER_DATE - the results will be sorted by when user joined to Github\n
                       AUTHOR_DATE - the results will be sorted by the number of repositories owned by user
                       """
     )

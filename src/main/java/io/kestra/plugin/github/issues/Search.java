@@ -61,40 +61,39 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     }
 
     @Schema(
-        name = "The query contains one or more search keywords and qualifiers",
-        description = "Allow you to limit your search to specific areas of GitHub"
+        title = "The query contains one or more search keywords and qualifiers. Allows you to limit your search to specific areas of GitHub."
     )
     @PluginProperty(dynamic = true)
     private String query;
 
     @Schema(
-        name = "Searched issues mentions by specified user"
+        title = "Searched issues mentions by specified user."
     )
     @PluginProperty(dynamic = true)
     private String mentions;
 
     @Schema(
-        name = "Specifies whether issue is open"
+        title = "Whether the issue is open."
     )
     @PluginProperty
     private Boolean open;
 
     @Schema(
-        name = "Specifies whether issue is closed"
+        title = "Whether issue is closed."
     )
     @PluginProperty
     private Boolean closed;
 
     @Schema(
-        name = "Specifies whether issue is merged"
+        title = "Whether issue is merged."
     )
     @PluginProperty
     private Boolean merged;
 
     @Schema(
-        name = "Order output",
+        title = "Order of the output.",
         description = """
-                      ASC - the results will be in ascending order
+                      ASC - the results will be in ascending order\n
                       DESC - the results will be in descending order
                       """
     )
@@ -103,10 +102,10 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private Order order = Order.ASC;
 
     @Schema(
-        name = "Sort output",
+        title = "Sort condition for the output.",
         description = """
-                      CREATED - Sorts the results of query by the time issue was created (DEFAULT)
-                      UPDATED - Sorts the results of query by the tome issue was last time updated
+                      CREATED - Sorts the results of query by the time issue was created (DEFAULT)\n
+                      UPDATED - Sorts the results of query by the tome issue was last time updated\n
                       COMMENTS - Sorts the results of query by the number of comments
                       """
     )

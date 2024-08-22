@@ -30,8 +30,8 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for GitHub code",
-    description = "Requires authentication"
+    title = "Search for GitHub code.",
+    description = "Requires authentication."
 )
 @Plugin(
     examples = {
@@ -84,20 +84,20 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     }
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers",
-        description = "Allow you to limit your search to specific areas of GitHub"
+        title = "The query contains one or more search keywords and qualifiers.",
+        description = "Allow you to limit your search to specific areas of GitHub."
     )
     @PluginProperty(dynamic = true)
     private String query;
 
     @Schema(
-        title = "The GitHub repository"
+        title = "The GitHub repository."
     )
     @PluginProperty(dynamic = true)
     private String repository;
 
     @Schema(
-        title = "Search commits in all repositories owned by a certain user"
+        title = "Search commits in all repositories owned by a certain user."
     )
     @PluginProperty(dynamic = true)
     private String user;
@@ -109,45 +109,46 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     private String in;
 
     @Schema(
-        title = "The language"
+        title = "The language."
     )
     @PluginProperty(dynamic = true)
     private String language;
 
     @Schema(
-        title = "The file extension"
+        title = "The file extension."
     )
     @PluginProperty(dynamic = true)
     private String extension;
 
     @Schema(
-        name = "Whether to include forks"
+        description = "Whether to include forks."
     )
     @PluginProperty
     private Fork fork;
 
     @Schema(
-        title = "The file name"
+        title = "The file name."
     )
     @PluginProperty(dynamic = true)
     private String filename;
 
     @Schema(
-        title = "The file path"
+        title = "The file path."
     )
     @PluginProperty(dynamic = true)
     private String path;
 
     @Schema(
-        title = "The file path"
+        title = "The file size."
     )
     @PluginProperty(dynamic = true)
     private String size;
 
     @Schema(
-        name = "Order output",
+        name = "order",
+        title = "Order of the output.",
         description = """
-                      ASC - the results will be in ascending order
+                      ASC - the results will be in ascending order\n
                       DESC - the results will be in descending order
                       """
     )
@@ -156,9 +157,10 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     private Order order = Order.ASC;
 
     @Schema(
-        name = "Sort output",
+        name = "sort",
+        title = "Sort condition for the output.",
         description = """
-                      BEST_MATCH - the results will be sorted by best match results
+                      BEST_MATCH - the results will be sorted by best match results\n
                       INDEXED - the results will be sorted by the index
                       """
     )

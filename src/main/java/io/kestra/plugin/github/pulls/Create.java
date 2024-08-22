@@ -45,44 +45,44 @@ public class Create extends GithubConnector implements RunnableTask<Create.Outpu
     private String repository;
 
     @Schema(
-        title = "Source/Head branch",
-        description = "Required. The name of the branch where your changes are implemented. For cross-repository pull requests in the same network, namespace head with a user like this: username:branch"
+        title = "Source/Head branch.",
+        description = "Required. The name of the branch where your changes are implemented. For cross-repository pull requests in the same network, namespace head with a user like this: `username:branch`."
     )
     @PluginProperty(dynamic = true)
     private String sourceBranch;
 
     @Schema(
-        title = "Target/Base branch",
-        description = "Required. The name of the branch you want your changes pulled into. This should be an existing branch on the current repository"
+        title = "Target/Base branch.",
+        description = "Required. The name of the branch you want your changes pulled into. This should be an existing branch on the current repository."
     )
     @PluginProperty(dynamic = true)
     private String targetBranch;
 
     @Schema(
-        title = "Ticket title",
-        description = "Required. The title of the pull request"
+        title = "Ticket title.",
+        description = "Required. The title of the pull request."
     )
     @PluginProperty(dynamic = true)
     private String title;
 
     @Schema(
-        title = "Ticket body",
-        description = "The contents of the pull request. This is the markdown description of a pull request"
+        title = "Ticket body.",
+        description = "The contents of the pull request. This is the markdown description of a pull request."
     )
     @PluginProperty(dynamic = true)
     private String body;
 
     @Schema(
-        title = "Whether maintainers can modify the pull request",
-        description = "Boolean value indicating whether maintainers can modify the pull request. Default is false"
+        title = "Whether maintainers can modify the pull request.",
+        description = "Boolean value indicating whether maintainers can modify the pull request. Default is false."
     )
     @PluginProperty
     @Builder.Default
     private Boolean maintainerCanModify = Boolean.FALSE;
 
     @Schema(
-        title = "Whether to create a draft pull request",
-        description = "Boolean value indicates whether to create a draft pull request or not. Default is false"
+        title = "Whether to create a draft pull request.",
+        description = "Boolean value indicates whether to create a draft pull request or not. Default is false."
     )
     @PluginProperty
     @Builder.Default
