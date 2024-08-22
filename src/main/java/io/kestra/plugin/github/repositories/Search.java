@@ -17,47 +17,71 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for GitHub repositories",
-    description = "If no authentication is provided, anonymous authentication will be used. Anonymous authentication can't retrieve full information"
+    title = "Search for GitHub repositories.",
+    description = "If no authentication is provided, anonymous authentication will be used. Anonymous authentication can't retrieve full information."
 )
 @Plugin(
     examples = {
         @Example(
+            title = "Search for Github repositories using query.",
+            full = true,
             code = """
-                   id: repos
-                   type: io.kestra.plugin.github.repositories.Search
-                   oauthToken: your_github_token
-                   query: "repo:kestra-io/plugin-github"
+                   id: github_repo_search_flow
+                   namespace: company.team
+
+                   tasks:
+                     - id: search_repositories
+                       type: io.kestra.plugin.github.repositories.Search
+                       oauthToken: your_github_token
+                       query: "repo:kestra-io/plugin-github"
                    """
         ),
         @Example(
+            title = "Search for Github repositories using repository.",
+            full = true,
             code = """
-                   id: repos
-                   type: io.kestra.plugin.github.repositories.Search
-                   oauthToken: your_github_token
-                   repository: kestra-io/plugin-github
+                   id: github_repo_search_flow
+                   namespace: company.team
+                   
+                   tasks:
+                     - id: search_repositories
+                       type: io.kestra.plugin.github.repositories.Search
+                       oauthToken: your_github_token
+                       repository: kestra-io/plugin-github
                    """
         ),
         @Example(
+            title = "Search for Github repositories and order the results.",
+            full = true,
             code = """
-                   id: repos
-                   type: io.kestra.plugin.github.repositories.Search
-                   oauthToken: your_github_token
-                   query: "user:kestra-io language:java is:public"
-                   sort: STARS
-                   order: DESC
+                   id: github_repo_search_flow
+                   namespace: company.team
+                   
+                   tasks:
+                     - id: search_repositories
+                       type: io.kestra.plugin.github.repositories.Search
+                       oauthToken: your_github_token
+                       query: "user:kestra-io language:java is:public"
+                       sort: STARS
+                       order: DESC
                    """
         ),
         @Example(
+            title = "Search for Github repositories with filters like language and visibility, and order the results.",
+            full = true,
             code = """
-                   id: repos
-                   type: io.kestra.plugin.github.repositories.Search
-                   oauthToken: your_github_token
-                   user: kestra-io
-                   language: java
-                   visibility: PUBLIC
-                   sort: STARS
-                   order: DESC
+                   id: github_repo_search_flow
+                   namespace: company.team
+                   
+                   tasks:
+                     - id: search_repositories
+                       type: io.kestra.plugin.github.repositories.Search
+                       oauthToken: your_github_token
+                       user: kestra-io
+                       language: java
+                       visibility: PUBLIC
+                       sort: STARS
+                       order: DESC
                    """
         )
     }

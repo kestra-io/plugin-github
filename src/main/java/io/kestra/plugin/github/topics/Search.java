@@ -33,21 +33,33 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
 @Plugin(
     examples = {
         @Example(
+            title = "Search for topics.",
+            full = true,
             code = """
-                   id: search
-                   type: io.kestra.plugin.github.topics.Search
-                   oauthToken: your_github_token
-                   query: "micronaut framework is:not-curated repositories:>100"
+                   id: github_topic_search_flow
+                   namespace: company.team
+
+                   tasks:
+                     - id: search_topics
+                       type: io.kestra.plugin.github.topics.Search
+                       oauthToken: your_github_token
+                       query: "micronaut framework is:not-curated repositories:>100"
                    """
         ),
         @Example(
+            title = "Search for topics with conditions.",
+            full = true,
             code = """
-                   id: search
-                   type: io.kestra.plugin.github.topics.Search
-                   oauthToken: your_github_token
-                   query: "micronaut framework"
-                   is: NOT_CURATED
-                   repositories: >100
+                   id: github_topic_search_flow
+                   namespace: company.team
+                   
+                   tasks:
+                     - id: search_topics
+                       type: io.kestra.plugin.github.topics.Search
+                       oauthToken: your_github_token
+                       query: "micronaut framework"
+                       is: NOT_CURATED
+                       repositories: >100
                    """
         )
     }

@@ -36,22 +36,34 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @Plugin(
     examples = {
         @Example(
+            title = "Search for code in a repository.",
+            full = true,
             code = """
-                   id: search
-                   type: io.kestra.plugin.github.code.Search
-                   oauthToken: your_github_token
-                   query: "addClass in:file language:js repo:jquery/jquery"
+                   id: github_code_search_flow
+                   namespace: company.team
+
+                   tasks:
+                     - id: search_code
+                       type: io.kestra.plugin.github.code.Search
+                       oauthToken: your_github_token
+                       query: "addClass in:file language:js repo:jquery/jquery"
                    """
         ),
         @Example(
+            title = "Search for code in a repository.",
+            full = true,
             code = """
-                   id: search
-                   type: io.kestra.plugin.github.code.Search
-                   oauthToken: your_github_token
-                   query: addClass
-                   in: file
-                   language: js
-                   repository: jquery/jquery
+                   id: github_code_search_flow
+                   namespace: company.team
+                   
+                   tasks:
+                     - id: search_code
+                       type: io.kestra.plugin.github.code.Search
+                       oauthToken: your_github_token
+                       query: addClass
+                       in: file
+                       language: js
+                       repository: jquery/jquery
                    """
         )
     }

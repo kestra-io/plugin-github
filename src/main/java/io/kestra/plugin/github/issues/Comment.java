@@ -27,13 +27,19 @@ import java.net.URL;
 @Plugin(
     examples = {
         @Example(
+            title = "Put a comment on an issue in a repository.",
+            full = true,
             code = """
-                   id: comment
-                   type: io.kestra.plugin.github.issues.Comment
-                   oauthToken: your_github_token
-                   repository: kestra-io/kestra
-                   issueNumber: 1347
-                   body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
+                   id: github_comment_on_issue_flow
+                   namespace: company.team
+                   
+                   tasks:
+                     - id: comment_on_issue
+                       type: io.kestra.plugin.github.issues.Comment
+                       oauthToken: your_github_token
+                       repository: kestra-io/kestra
+                       issueNumber: 1347
+                       body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
                    """
         )
     }
