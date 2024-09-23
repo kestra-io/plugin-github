@@ -31,7 +31,7 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .query("repo:kestra-io/plugin-github is:open")
+            .query("repo:kestra-io/plugin-github is:closed")
             .sort(Search.Sort.UPDATED)
             .build();
 
@@ -43,7 +43,7 @@ public class SearchTest {
 
         assertThat(result.size(), greaterThanOrEqualTo(1));
 
-        assertThat(result.getFirst().get("state"), is("OPEN"));
+        assertThat(result.getFirst().get("state"), is("CLOSED"));
     }
 
     @Test
@@ -52,7 +52,7 @@ public class SearchTest {
 
         Search task = Search.builder()
             .query("repo:kestra-io/plugin-github")
-            .open(Boolean.TRUE)
+            .open(Boolean.FALSE)
             .sort(Search.Sort.UPDATED)
             .build();
 
@@ -64,7 +64,7 @@ public class SearchTest {
 
         assertThat(result.size(), greaterThanOrEqualTo(1));
 
-        assertThat(result.getFirst().get("state"), is("OPEN"));
+        assertThat(result.getFirst().get("state"), is("CLOSED"));
     }
 
     private List<Map<String, Object>> getResult(Search.FileOutput run) throws IOException {
