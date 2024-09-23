@@ -51,7 +51,7 @@ dependencies {
     api group: 'com.google.code.gson', name: 'gson', version: '2.11.0'
 
     // github api
-    implementation 'org.kohsuke:github-api:1.325'
+    implementation 'org.kohsuke:github-api:1.326'
 }
 
 
