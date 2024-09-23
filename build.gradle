@@ -98,15 +98,15 @@ dependencies {
 
     // test
     testImplementation "org.junit.jupiter:junit-jupiter-engine"
-    testImplementation "org.hamcrest:hamcrest:2.2"
-    testImplementation "org.hamcrest:hamcrest-library:2.2"
+    testImplementation "org.hamcrest:hamcrest"
+    testImplementation "org.hamcrest:hamcrest-library"
 }
 
 /**********************************************************************************************************************\
  * Allure Reports
  **********************************************************************************************************************/
 dependencies {
-    testImplementation platform("io.qameta.allure:allure-bom:2.27.0")
+    testImplementation enforcedPlatform("io.kestra:platform:$kestraVersion")
     testImplementation "io.qameta.allure:allure-junit5"
 }
 
