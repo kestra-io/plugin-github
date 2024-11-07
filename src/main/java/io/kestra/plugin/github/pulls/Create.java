@@ -40,8 +40,8 @@ import java.net.URL;
                        repository: kestra-io/kestra
                        sourceBranch: develop
                        targetBranch: main
-                       title: Workflow failed
-                       body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
+                       title: Merge develop to main
+                       body: "Request to merge changes from develop into main"
                    """
         )
     }
