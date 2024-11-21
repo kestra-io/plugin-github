@@ -67,7 +67,7 @@ public class SearchTest {
     }
 
     private List<Map<String, Object>> getResult(Search.FileOutput run) throws IOException {
-        BufferedReader inputStream = new BufferedReader(new InputStreamReader(storageInterface.get(null, run.getUri())));
+        BufferedReader inputStream = new BufferedReader(new InputStreamReader(storageInterface.get(null, null, run.getUri())));
         List<Map<String, Object>> result = new ArrayList<>();
         FileSerde.reader(inputStream, r -> result.add((Map<String, Object>) r));
         return result;
