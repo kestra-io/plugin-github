@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
-import org.kohsuke.github.GHObject;
 import org.kohsuke.github.GitHub;
 
 import java.io.BufferedReader;

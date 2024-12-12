@@ -2,11 +2,12 @@ package io.kestra.plugin.github.issues;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.github.GithubConnector;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.kohsuke.github.GHIssue;
@@ -32,7 +33,7 @@ import java.net.URL;
             code = """
                    id: github_comment_on_issue_flow
                    namespace: company.team
-                   
+
                    tasks:
                      - id: comment_on_issue
                        type: io.kestra.plugin.github.issues.Comment
@@ -46,29 +47,28 @@ import java.net.URL;
 )
 public class Comment extends GithubConnector implements RunnableTask<Comment.Output> {
 
-    private String repository;
+    private Property<String> repository;
 
     @Schema(
         title = "Ticket number."
     )
-    @PluginProperty
-    private Integer issueNumber;
+    @NotNull
+    private Property<Integer> issueNumber;
 
     @Schema(
         title = "Ticket body."
     )
-    @PluginProperty(dynamic = true)
-    private String body;
+    private Property<String> body;
 
     @Override
     public Comment.Output run(RunContext runContext) throws Exception {
         GitHub gitHub = connect(runContext);
 
         GHIssue issue = gitHub
-            .getRepository(runContext.render(this.repository))
-            .getIssue(this.issueNumber);
+            .getRepository(runContext.render(this.repository).as(String.class).orElse(null))
+            .getIssue(runContext.render(this.issueNumber).as(Integer.class).orElseThrow());
 
-        GHIssueComment comment = issue.comment(runContext.render(this.body));
+        GHIssueComment comment = issue.comment(runContext.render(this.body).as(String.class).orElse(null));
 
         return Output
             .builder()

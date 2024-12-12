@@ -1,6 +1,7 @@
 package io.kestra.plugin.github.users;
 
 import io.kestra.core.junit.annotations.KestraTest;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.FileSerde;
@@ -31,7 +32,7 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .query("kestra-io in:login language:java")
+            .query(Property.of("kestra-io in:login language:java"))
             .build();
 
         Search.FileOutput run = task.run(runContext);
@@ -50,9 +51,9 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .query("kestra-io")
-            .in("login")
-            .language("java")
+            .query(Property.of("kestra-io"))
+            .in(Property.of("login"))
+            .language(Property.of("java"))
             .build();
 
         Search.FileOutput run = task.run(runContext);

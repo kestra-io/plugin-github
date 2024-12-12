@@ -11,7 +11,6 @@ import org.kohsuke.github.GHPullRequest;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Date;
-import java.util.Objects;
 import java.util.Optional;
 
 @Getter

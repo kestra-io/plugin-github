@@ -1,6 +1,7 @@
 package io.kestra.plugin.github.pulls;
 
 import io.kestra.core.junit.annotations.KestraTest;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.FileSerde;
@@ -31,8 +32,8 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .query("repo:kestra-io/plugin-github is:closed")
-            .sort(Search.Sort.UPDATED)
+            .query(Property.of("repo:kestra-io/plugin-github is:closed"))
+            .sort(Property.of(Search.Sort.UPDATED))
             .build();
 
         Search.FileOutput run = task.run(runContext);
@@ -51,9 +52,9 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .query("repo:kestra-io/plugin-github")
-            .open(Boolean.FALSE)
-            .sort(Search.Sort.UPDATED)
+            .query(Property.of("repo:kestra-io/plugin-github"))
+            .open(Property.of(Boolean.FALSE))
+            .sort(Property.of(Search.Sort.UPDATED))
             .build();
 
         Search.FileOutput run = task.run(runContext);

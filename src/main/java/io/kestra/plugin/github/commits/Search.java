@@ -2,7 +2,7 @@ package io.kestra.plugin.github.commits;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
@@ -57,7 +57,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
             code = """
                    id: github_commit_search_flow
                    namespace: company.team
-                   
+
                    tasks:
                      - id: search_commit
                        type: io.kestra.plugin.github.commits.Search
@@ -90,105 +90,88 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
         title = "The query contains one or more search keywords and qualifiers.",
         description = "Allows you to limit your search to specific areas of GitHub."
     )
-    @PluginProperty(dynamic = true)
-    private String query;
+    private Property<String> query;
 
     @Schema(
         title = "Search in specified repository."
     )
-    @PluginProperty(dynamic = true)
-    private String repository;
+    private Property<String> repository;
 
     @Schema(
         title = "Matches commits from repositories with the specified visibility."
     )
-    @PluginProperty(dynamic = true)
-    private String is;
+    private Property<String> is;
 
     @Schema(
         title = "Matches commits with the specified SHA-1 hash."
     )
-    @PluginProperty(dynamic = true)
-    private String hash;
+    private Property<String> hash;
 
     @Schema(
         title = "Matches commits whose parent has the specified SHA-1 hash."
     )
-    @PluginProperty(dynamic = true)
-    private String parent;
+    private Property<String> parent;
 
     @Schema(
         title = "Matches commits with the specified SHA-1 git tree hash."
     )
-    @PluginProperty(dynamic = true)
-    private String tree;
+    private Property<String> tree;
 
     @Schema(
         title = "Search commits in all repositories owned by a certain user"
     )
-    @PluginProperty(dynamic = true)
-    private String user;
+    private Property<String> user;
 
     @Schema(
         title = "Search commits in all repositories owned by a certain organization."
     )
-    @PluginProperty(dynamic = true)
-    private String org;
+    private Property<String> org;
 
     @Schema(
         title = "Find commits by a particular user."
     )
-    @PluginProperty(dynamic = true)
-    private String author;
+    private Property<String> author;
 
     @Schema(
         title = "Match commits authored within the specified date range. When you search for a date, you can use greater than, less than, and range qualifiers to further filter results."
     )
-    @PluginProperty(dynamic = true)
-    private String authorDate;
+    private Property<String> authorDate;
 
     @Schema(
         title = "Match commits by the author's full email address."
     )
-    @PluginProperty(dynamic = true)
-    private String authorEmail;
+    private Property<String> authorEmail;
 
     @Schema(
         title = "Match commits by the name of the author"
     )
-    @PluginProperty(dynamic = true)
-    private String authorName;
+    private Property<String> authorName;
 
     @Schema(
         title = "Find commits by a particular user"
     )
-    @PluginProperty(dynamic = true)
-    private String committer;
+    private Property<String> committer;
 
     @Schema(
         title = "Match commits committed within the specified date range.",
         description = "When you search for a date, you can use greater than, less than, and range qualifiers to further filter results."
     )
-    @PluginProperty(dynamic = true)
-    private String committerDate;
+    private Property<String> committerDate;
 
     @Schema(
         title = "Match commits by the committer's full email address."
     )
-    @PluginProperty(dynamic = true)
-    private String committerEmail;
+    private Property<String> committerEmail;
 
     @Schema(
         title = "Match commits by the name of the committer"
     )
-    @PluginProperty(dynamic = true)
-    private String committerName;
+    private Property<String> committerName;
 
     @Schema(
         title = "Whether to filter merge commits."
     )
-    @PluginProperty
-    private Boolean merge;
+    private Property<Boolean> merge;
 
     @Schema(
         title = "Order of the output.",
@@ -198,8 +181,7 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
                       """
     )
     @Builder.Default
-    @PluginProperty
-    private Order order = Order.ASC;
+    private Property<Order> order = Property.of(Order.ASC);
 
     @Schema(
         title = "Sort condition for the output.",
@@ -209,8 +191,7 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
                       """
     )
     @Builder.Default
-    @PluginProperty
-    private Sort sort = Sort.COMMITTER_DATE;
+    private Property<Sort> sort = Property.of(Sort.COMMITTER_DATE);
 
     @Override
     public Output run(RunContext runContext) throws Exception {
@@ -251,75 +232,75 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
         GHCommitSearchBuilder searchBuilder = gitHub.searchCommits();
 
         searchBuilder
-            .sort(this.sort.value)
-            .order(this.order.direction);
+            .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
+            .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
 
         if (this.query != null) {
-            searchBuilder.q(runContext.render(this.query));
+            searchBuilder.q(runContext.render(this.query).as(String.class).orElseThrow());
         }
 
         if (this.repository != null) {
-            searchBuilder.repo(runContext.render(this.repository));
+            searchBuilder.repo(runContext.render(this.repository).as(String.class).orElseThrow());
         }
 
         if (this.is != null) {
-            searchBuilder.is(runContext.render(this.is));
+            searchBuilder.is(runContext.render(this.is).as(String.class).orElseThrow());
         }
 
         if (this.hash != null) {
-            searchBuilder.hash(runContext.render(this.hash));
+            searchBuilder.hash(runContext.render(this.hash).as(String.class).orElseThrow());
         }
 
         if (this.parent != null) {
-            searchBuilder.parent(runContext.render(this.parent));
+            searchBuilder.parent(runContext.render(this.parent).as(String.class).orElseThrow());
         }
 
         if (this.tree != null) {
-            searchBuilder.tree(runContext.render(this.tree));
+            searchBuilder.tree(runContext.render(this.tree).as(String.class).orElseThrow());
         }
 
         if (this.user != null) {
-            searchBuilder.user(runContext.render(this.user));
+            searchBuilder.user(runContext.render(this.user).as(String.class).orElseThrow());
         }
 
         if (this.org != null) {
-            searchBuilder.org(runContext.render(this.org));
+            searchBuilder.org(runContext.render(this.org).as(String.class).orElseThrow());
         }
 
         if (this.author != null) {
-            searchBuilder.author(runContext.render(this.author));
+            searchBuilder.author(runContext.render(this.author).as(String.class).orElseThrow());
         }
 
         if (this.authorDate != null) {
-            searchBuilder.authorDate(runContext.render(this.authorDate));
+            searchBuilder.authorDate(runContext.render(this.authorDate).as(String.class).orElseThrow());
         }
 
         if (this.authorEmail != null) {
-            searchBuilder.authorEmail(runContext.render(this.authorEmail));
+            searchBuilder.authorEmail(runContext.render(this.authorEmail).as(String.class).orElseThrow());
         }
 
         if (this.authorName != null) {
-            searchBuilder.authorName(runContext.render(this.authorName));
+            searchBuilder.authorName(runContext.render(this.authorName).as(String.class).orElseThrow());
         }
 
         if (this.committer != null) {
-            searchBuilder.committer(runContext.render(this.committer));
+            searchBuilder.committer(runContext.render(this.committer).as(String.class).orElseThrow());
         }
 
         if (this.committerDate != null) {
-            searchBuilder.committerDate(runContext.render(this.committerDate));
+            searchBuilder.committerDate(runContext.render(this.committerDate).as(String.class).orElseThrow());
         }
 
         if (this.committerEmail != null) {
-            searchBuilder.committerEmail(runContext.render(this.committerEmail));
+            searchBuilder.committerEmail(runContext.render(this.committerEmail).as(String.class).orElseThrow());
         }
 
         if (this.committerName != null) {
-            searchBuilder.committerName(runContext.render(this.committerName));
+            searchBuilder.committerName(runContext.render(this.committerName).as(String.class).orElseThrow());
         }
 
         if (this.merge != null) {
-            searchBuilder.merge(this.merge);
+            searchBuilder.merge(runContext.render(this.merge).as(Boolean.class).orElseThrow());
         }
         return searchBuilder;
     }
