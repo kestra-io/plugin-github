@@ -2,7 +2,7 @@ package io.kestra.plugin.github.code;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
@@ -55,7 +55,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
             code = """
                    id: github_code_search_flow
                    namespace: company.team
-                   
+
                    tasks:
                      - id: search_code
                        type: io.kestra.plugin.github.code.Search
@@ -99,62 +99,52 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
         title = "The query contains one or more search keywords and qualifiers.",
         description = "Allow you to limit your search to specific areas of GitHub."
     )
-    @PluginProperty(dynamic = true)
-    private String query;
+    private Property<String> query;
 
     @Schema(
         title = "The GitHub repository."
     )
-    @PluginProperty(dynamic = true)
-    private String repository;
+    private Property<String> repository;
 
     @Schema(
         title = "Search commits in all repositories owned by a certain user."
     )
-    @PluginProperty(dynamic = true)
-    private String user;
+    private Property<String> user;
 
     @Schema(
         title = "In"
     )
-    @PluginProperty(dynamic = true)
-    private String in;
+    private Property<String> in;
 
     @Schema(
         title = "The language."
     )
-    @PluginProperty(dynamic = true)
-    private String language;
+    private Property<String> language;
 
     @Schema(
         title = "The file extension."
     )
-    @PluginProperty(dynamic = true)
-    private String extension;
+    private Property<String> extension;
 
     @Schema(
         description = "Whether to include forks."
     )
-    @PluginProperty
-    private Fork fork;
+    private Property<Fork> fork;
 
     @Schema(
         title = "The file name."
     )
-    @PluginProperty(dynamic = true)
-    private String filename;
+    private Property<String> filename;
 
     @Schema(
         title = "The file path."
     )
-    @PluginProperty(dynamic = true)
-    private String path;
+    private Property<String> path;
 
     @Schema(
         title = "The file size."
     )
-    @PluginProperty(dynamic = true)
-    private String size;
+    private Property<String> size;
 
     @Schema(
         name = "order",
@@ -165,8 +155,7 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
                       """
     )
     @Builder.Default
-    @PluginProperty
-    private Order order = Order.ASC;
+    private Property<Order> order = Property.of(Order.ASC);
 
     @Schema(
         name = "sort",
@@ -177,8 +166,7 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
                       """
     )
     @Builder.Default
-    @PluginProperty
-    private Sort sort = Sort.BEST_MATCH;
+    private Property<Sort> sort = Property.of(Sort.BEST_MATCH);
 
     @Override
     public Output run(RunContext runContext) throws Exception {
@@ -215,47 +203,47 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
         GHContentSearchBuilder searchBuilder = gitHub.searchContent();
 
         searchBuilder
-            .sort(this.sort.value)
-            .order(this.order.direction);
+            .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
+            .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
 
         if (this.query != null) {
-            searchBuilder.q(runContext.render(this.query));
+            searchBuilder.q(runContext.render(this.query).as(String.class).orElseThrow());
         }
 
         if (this.repository != null) {
-            searchBuilder.repo(runContext.render(this.repository));
+            searchBuilder.repo(runContext.render(this.repository).as(String.class).orElseThrow());
         }
 
         if (this.user != null) {
-            searchBuilder.user(runContext.render(this.user));
+            searchBuilder.user(runContext.render(this.user).as(String.class).orElseThrow());
         }
 
         if (this.in != null) {
-            searchBuilder.in(runContext.render(this.in));
+            searchBuilder.in(runContext.render(this.in).as(String.class).orElseThrow());
         }
 
         if (this.language != null) {
-            searchBuilder.language(runContext.render(this.language));
+            searchBuilder.language(runContext.render(this.language).as(String.class).orElseThrow());
         }
 
         if (this.extension != null) {
-            searchBuilder.extension(runContext.render(this.extension));
+            searchBuilder.extension(runContext.render(this.extension).as(String.class).orElseThrow());
         }
 
         if (this.fork != null) {
-            searchBuilder.fork(this.fork.value);
+            searchBuilder.fork(runContext.render(this.fork).as(Fork.class).orElseThrow().value);
         }
 
         if (this.filename != null) {
-            searchBuilder.filename(runContext.render(this.filename));
+            searchBuilder.filename(runContext.render(this.filename).as(String.class).orElseThrow());
         }
 
         if (this.path != null) {
-            searchBuilder.path(runContext.render(this.path));
+            searchBuilder.path(runContext.render(this.path).as(String.class).orElseThrow());
         }
 
         if (this.size != null) {
-            searchBuilder.size(runContext.render(this.size));
+            searchBuilder.size(runContext.render(this.size).as(String.class).orElseThrow());
         }
         return searchBuilder;
     }

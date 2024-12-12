@@ -1,6 +1,7 @@
 package io.kestra.plugin.github.code;
 
 import io.kestra.core.junit.annotations.KestraTest;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.FileSerde;
@@ -33,8 +34,8 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .oauthToken("")
-            .query("run in:file language:java repo:kestra-io/plugin-github")
+            .oauthToken(Property.of(""))
+            .query(Property.of("run in:file language:java repo:kestra-io/plugin-github"))
             .build();
 
         Search.Output run = task.run(runContext);
@@ -53,11 +54,11 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .oauthToken("")
-            .query("run")
-            .in("file")
-            .language("java")
-            .repository("kestra-io/plugin-github")
+            .oauthToken(Property.of(""))
+            .query(Property.of("run"))
+            .in(Property.of("file"))
+            .language(Property.of("java"))
+            .repository(Property.of("kestra-io/plugin-github"))
             .build();
 
         Search.Output run = task.run(runContext);

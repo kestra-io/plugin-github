@@ -1,6 +1,7 @@
 package io.kestra.plugin.github.issues;
 
 import io.kestra.core.junit.annotations.KestraTest;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
 import jakarta.inject.Inject;
@@ -23,12 +24,12 @@ public class CommentTest {
         RunContext runContext = runContextFactory.of();
 
         Create createTask = Create.builder()
-            .oauthToken("")
-            .repository("kestra-io/plugin-github")
-            .title("Test Kestra Github plugin")
-            .body("This is a test for creating a new issue in repository by oauth token")
-            .labels(List.of("kestra", "test"))
-            .assignees(List.of("iNikitaGricenko"))
+            .oauthToken(Property.of(""))
+            .repository(Property.of("kestra-io/plugin-github"))
+            .title(Property.of("Test Kestra Github plugin"))
+            .body(Property.of("This is a test for creating a new issue in repository by oauth token"))
+            .labels(Property.of(List.of("kestra", "test")))
+            .assignees(Property.of(List.of("iNikitaGricenko")))
             .build();
 
         Create.Output createOutput = createTask.run(runContext);
@@ -39,10 +40,10 @@ public class CommentTest {
         int issueNumber = createOutput.getIssueNumber();
 
         Comment commentTask = Comment.builder()
-            .oauthToken("")
-            .repository("kestra-io/plugin-github")
-            .issueNumber(issueNumber)
-            .body("This comment is a test for creating a new comment in repository issue by oauth token")
+            .oauthToken(Property.of(""))
+            .repository(Property.of("kestra-io/plugin-github"))
+            .issueNumber(Property.of(issueNumber))
+            .body(Property.of("This comment is a test for creating a new comment in repository issue by oauth token"))
             .build();
 
         Comment.Output commentOutput = commentTask.run(runContext);

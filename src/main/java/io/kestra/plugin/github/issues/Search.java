@@ -2,7 +2,7 @@ package io.kestra.plugin.github.issues;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.github.GithubSearchTask;
@@ -41,7 +41,7 @@ import org.kohsuke.github.*;
             code = """
                    id: github_issue_search_flow
                    namespace: company.team
-                   
+
                    tasks:
                      - id: search_open_issues
                        type: io.kestra.plugin.github.issues.Search
@@ -74,32 +74,27 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     @Schema(
         title = "The query contains one or more search keywords and qualifiers. Allows you to limit your search to specific areas of GitHub."
     )
-    @PluginProperty(dynamic = true)
-    private String query;
+    private Property<String> query;
 
     @Schema(
         title = "Searched issues mentions by specified user."
     )
-    @PluginProperty(dynamic = true)
-    private String mentions;
+    private Property<String> mentions;
 
     @Schema(
         title = "Whether the issue is open."
     )
-    @PluginProperty
-    private Boolean open;
+    private Property<Boolean> open;
 
     @Schema(
         title = "Whether issue is closed."
     )
-    @PluginProperty
-    private Boolean closed;
+    private Property<Boolean> closed;
 
     @Schema(
         title = "Whether issue is merged."
     )
-    @PluginProperty
-    private Boolean merged;
+    private Property<Boolean> merged;
 
     @Schema(
         title = "Order of the output.",
@@ -109,8 +104,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
                       """
     )
     @Builder.Default
-    @PluginProperty
-    private Order order = Order.ASC;
+    private Property<Order> order = Property.of(Order.ASC);
 
     @Schema(
         title = "Sort condition for the output.",
@@ -121,8 +115,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
                       """
     )
     @Builder.Default
-    @PluginProperty
-    private Sort sort = Sort.CREATED;
+    private Property<Sort> sort = Property.of(Sort.CREATED);
 
     @Override
     public FileOutput run(RunContext runContext) throws Exception {
@@ -139,26 +132,26 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
         GHIssueSearchBuilder searchBuilder = gitHub.searchIssues();
 
         searchBuilder
-            .sort(this.sort.value)
-            .order(this.order.direction);
+            .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
+            .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
 
         if (this.query != null) {
-            searchBuilder.q(runContext.render(this.query));
+            searchBuilder.q(runContext.render(this.query).as(String.class).orElseThrow());
         }
 
         if (this.mentions != null) {
-            searchBuilder.mentions(runContext.render(this.mentions));
+            searchBuilder.mentions(runContext.render(this.mentions).as(String.class).orElseThrow());
         }
 
-        if (this.open != null && this.open.equals(Boolean.TRUE)) {
+        if (runContext.render(this.open).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
             searchBuilder.isOpen();
         }
 
-        if (this.closed != null && this.closed.equals(Boolean.TRUE)) {
+        if (runContext.render(this.closed).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
             searchBuilder.isClosed();
         }
 
-        if (this.merged != null && this.merged.equals(Boolean.TRUE)) {
+        if (runContext.render(this.merged).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
             searchBuilder.isMerged();
         }
         return searchBuilder;

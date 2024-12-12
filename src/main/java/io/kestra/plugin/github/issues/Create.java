@@ -2,7 +2,7 @@ package io.kestra.plugin.github.issues;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.github.GithubConnector;
@@ -33,7 +33,7 @@ import java.util.List;
             code = """
                    id: github_issue_create_flow
                    namespace: company.team
-                   
+
                    tasks:
                      - id: create_issue
                        type: io.kestra.plugin.github.issues.Create
@@ -90,50 +90,46 @@ import java.util.List;
 )
 public class Create extends GithubConnector implements RunnableTask<Create.Output> {
 
-    private String repository;
+    private Property<String> repository;
 
     @Schema(
         title = "Ticket title."
     )
-    @PluginProperty(dynamic = true)
-    private String title;
+    private Property<String> title;
 
     @Schema(
         title = "Ticket body."
     )
-    @PluginProperty(dynamic = true)
-    private String body;
+    private Property<String> body;
 
     @Schema(
         title = "Ticket label.",
         description = "List of labels for ticket."
     )
-    @PluginProperty(dynamic = true)
-    private List<String> labels;
+    private Property<List<String>> labels;
 
     @Schema(
         title = "Ticket assignee.",
         description = "List of unique names of assignees."
     )
-    @PluginProperty(dynamic = true)
-    private List<String> assignees;
+    private Property<List<String>> assignees;
 
     @Override
     public Create.Output run(RunContext runContext) throws Exception {
         GitHub gitHub = connect(runContext);
 
         GHIssueBuilder issueBuilder = gitHub
-            .getRepository(runContext.render(this.repository))
-            .createIssue(runContext.render(this.title))
-            .body(runContext.render(this.body));
+            .getRepository(runContext.render(this.repository).as(String.class).orElse(null))
+            .createIssue(runContext.render(this.title).as(String.class).orElse(null))
+            .body(runContext.render(this.body).as(String.class).orElse(null));
 
         if (this.labels != null) {
-            runContext.render(labels)
+            runContext.render(labels).asList(String.class)
                 .forEach(issueBuilder::label);
         }
 
         if (this.assignees != null) {
-            runContext.render(assignees)
+            runContext.render(assignees).asList(String.class)
                 .forEach(issueBuilder::assignee);
         }
 

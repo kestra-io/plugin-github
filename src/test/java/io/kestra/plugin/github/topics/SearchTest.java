@@ -1,6 +1,7 @@
 package io.kestra.plugin.github.topics;
 
 import io.kestra.core.junit.annotations.KestraTest;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.FileSerde;
@@ -33,8 +34,8 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .oauthToken("")
-            .query("Spring Cloud is:not-curated repositories:>10")
+            .oauthToken(Property.of(""))
+            .query(Property.of("Spring Cloud is:not-curated repositories:>10"))
             .build();
 
         Search.Output run = task.run(runContext);
@@ -53,9 +54,9 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .query("Spring Cloud")
-            .is(Search.Is.NOT_CURATED)
-            .repositories(">10")
+            .query(Property.of("Spring Cloud"))
+            .is(Property.of(Search.Is.NOT_CURATED))
+            .repositories(Property.of(">10"))
             .build();
 
         Search.Output run = task.run(runContext);

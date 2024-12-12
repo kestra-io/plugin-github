@@ -1,5 +1,6 @@
 package io.kestra.plugin.github;
 
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.Task;
 import jakarta.annotation.Nullable;
 import lombok.EqualsAndHashCode;
@@ -15,11 +16,11 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 public abstract class GithubConnection extends Task implements GithubConnectionInterface {
 
-    private String login;
+    private Property<String> login;
 
-    private String oauthToken;
+    private Property<String> oauthToken;
 
-    private String jwtToken;
+    private Property<String> jwtToken;
 
     public record GithubClientConfig(
         @Nullable String login,

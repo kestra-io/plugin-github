@@ -2,11 +2,11 @@ package io.kestra.plugin.github.pulls;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
-import io.kestra.plugin.github.GithubSearchTask;
 import io.kestra.plugin.github.GHPullRequestSearchBuilderCustom;
+import io.kestra.plugin.github.GithubSearchTask;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -43,7 +43,7 @@ import org.kohsuke.github.*;
             code = """
                    id: github_pulls_search_flow
                    namespace: company.team
-                   
+
                    tasks:
                      - id: search_open_pull_requests
                        type: io.kestra.plugin.github.pulls.Search
@@ -77,110 +77,92 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
         title = "The query contains one or more search keywords and qualifiers.",
         description = "Allow you to limit your search to specific areas of GitHub."
     )
-    @PluginProperty(dynamic = true)
-    private String query;
+    private Property<String> query;
 
     @Schema(
         title = "Searched issues mentions by specified user."
     )
-    @PluginProperty(dynamic = true)
-    private String mentions;
+    private Property<String> mentions;
 
     @Schema(
         title = "Specifies whether the pull request is open."
     )
-    @PluginProperty
-    private Boolean open;
+    private Property<Boolean> open;
 
     @Schema(
         title = "Specifies whether the pull request is closed."
     )
-    @PluginProperty
-    private Boolean closed;
+    private Property<Boolean> closed;
 
     @Schema(
         title = "Specifies whether the pull request is merged."
     )
-    @PluginProperty
-    private Boolean merged;
+    private Property<Boolean> merged;
 
     @Schema(
         title = "Specifies whether the pull request is in draft."
     )
-    @PluginProperty
-    private Boolean draft;
+    private Property<Boolean> draft;
 
     @Schema(
         title = "Search pull requests that are assigned to a certain user."
     )
-    @PluginProperty
-    private String assigned;
+    private Property<String> assigned;
 
     @Schema(
         title = "Search pull requests that have title like specified."
     )
-    @PluginProperty
-    private String title;
+    private Property<String> title;
 
     @Schema(
         title = "Search for code based on when pull request was closed.",
         description = "You can use greater than, less than, and range qualifiers (`..` between two dates) to further filter results."
     )
-    @PluginProperty
-    private String closedAt;
+    private Property<String> closedAt;
 
     @Schema(
         title = "Search for code based on when the pull request was created.",
         description = "You can use greater than, less than, and range qualifiers (`..` between two dates) to further filter results."
     )
-    @PluginProperty
-    private String createdAt;
+    private Property<String> createdAt;
 
     @Schema(
         title = "Search for code based on when pull request was updated last time",
         description = "You can use greater than, less than, and range qualifiers (`..` between two dates) to further filter results"
     )
-    @PluginProperty
-    private String updatedAt;
+    private Property<String> updatedAt;
 
     @Schema(
         title = "Search for pull requests that contain that SHA.",
         description = "The SHA syntax must be at least seven characters."
     )
-    @PluginProperty
-    private String commit;
+    private Property<String> commit;
 
     @Schema(
         title = "Search pull requests in a specific repository."
     )
-    @PluginProperty
-    private String repository;
+    private Property<String> repository;
 
     @Schema(
         title = "Filter pull requests based on the branch they are merging into."
     )
-    @PluginProperty
-    private String base;
+    private Property<String> base;
 
     @Schema(
         title = "Filter pull requests based on the branch they came from."
     )
-    @PluginProperty
-    private String head;
+    private Property<String> head;
 
     @Schema(
         title = "Specifies whether pull request is created by user who logged in using token.",
         description = "Requires authentication."
     )
-    @PluginProperty
-    private Boolean createdByMe;
+    private Property<Boolean> createdByMe;
 
     @Schema(
         title = "Finds pull requests created by a certain user or integration account."
     )
-    @PluginProperty
-
-    private String author;
+    private Property<String> author;
 
     @Schema(
         title = "Order of the output.",
@@ -190,8 +172,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
                       """
     )
     @Builder.Default
-    @PluginProperty
-    private Order order = Order.ASC;
+    private Property<Order> order = Property.of(Order.ASC);
 
     @Schema(
         title = "Sort condition for the output.",
@@ -202,8 +183,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
                       """
     )
     @Builder.Default
-    @PluginProperty
-    private Sort sort = Sort.CREATED;
+    private Property<Sort> sort = Property.of(Sort.CREATED);
 
     @Override
     public FileOutput run(RunContext runContext) throws Exception {
@@ -220,71 +200,71 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
         GHPullRequestSearchBuilderCustom searchBuilder = new GHPullRequestSearchBuilderCustom(gitHub);
 
         searchBuilder
-            .sort(this.sort.value)
-            .order(this.order.direction);
+            .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
+            .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
 
         if (this.query != null) {
-            searchBuilder.q(runContext.render(this.query));
+            searchBuilder.q(runContext.render(this.query).as(String.class).orElseThrow());
         }
 
-        if (this.open != null && this.open.equals(Boolean.TRUE)) {
+        if (runContext.render(this.open).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
             searchBuilder.isOpen();
         }
 
-        if (this.closed != null && this.closed.equals(Boolean.TRUE)) {
+        if (runContext.render(this.closed).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
             searchBuilder.isClosed();
         }
 
-        if (this.merged != null && this.merged.equals(Boolean.TRUE)) {
+        if (runContext.render(this.merged).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
             searchBuilder.isMerged();
         }
 
-        if (this.draft != null && this.draft.equals(Boolean.TRUE)) {
+        if (runContext.render(this.draft).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
             searchBuilder.isDraft();
         }
 
         if (this.assigned != null) {
-            searchBuilder.assigned(runContext.render(this.assigned));
+            searchBuilder.assigned(runContext.render(this.assigned).as(String.class).orElseThrow());
         }
 
         if (this.title != null) {
-            searchBuilder.titleLike(runContext.render(this.title));
+            searchBuilder.titleLike(runContext.render(this.title).as(String.class).orElseThrow());
         }
 
         if (this.closedAt != null) {
-            searchBuilder.closed(runContext.render(this.closedAt));
+            searchBuilder.closed(runContext.render(this.closedAt).as(String.class).orElseThrow());
         }
 
         if (this.createdAt != null) {
-            searchBuilder.created(runContext.render(this.createdAt));
+            searchBuilder.created(runContext.render(this.createdAt).as(String.class).orElseThrow());
         }
 
         if (this.updatedAt != null) {
-            searchBuilder.updated(runContext.render(this.updatedAt));
+            searchBuilder.updated(runContext.render(this.updatedAt).as(String.class).orElseThrow());
         }
 
         if (this.commit != null) {
-            searchBuilder.commit(runContext.render(this.commit));
+            searchBuilder.commit(runContext.render(this.commit).as(String.class).orElseThrow());
         }
 
         if (this.repository != null) {
-            searchBuilder.repo(runContext.render(this.repository));
+            searchBuilder.repo(runContext.render(this.repository).as(String.class).orElseThrow());
         }
 
         if (this.base != null) {
-            searchBuilder.base(runContext.render(this.base));
+            searchBuilder.base(runContext.render(this.base).as(String.class).orElseThrow());
         }
 
         if (this.head != null) {
-            searchBuilder.head(runContext.render(this.head));
+            searchBuilder.head(runContext.render(this.head).as(String.class).orElseThrow());
         }
 
-        if (this.createdByMe != null && this.createdByMe.equals(Boolean.TRUE)) {
+        if (runContext.render(this.createdByMe).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
             searchBuilder.createdByMe();
         }
 
         if (this.author != null) {
-            searchBuilder.author(runContext.render(this.author));
+            searchBuilder.author(runContext.render(this.author).as(String.class).orElseThrow());
         }
 
         return searchBuilder;

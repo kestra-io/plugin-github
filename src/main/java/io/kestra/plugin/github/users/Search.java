@@ -2,7 +2,7 @@ package io.kestra.plugin.github.users;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.github.GithubSearchTask;
@@ -42,7 +42,7 @@ import org.kohsuke.github.*;
             code = """
                    id: github_user_search_flow
                    namespace: company.team
-                   
+
                    tasks:
                      - id: search_users
                        type: io.kestra.plugin.github.users.Search
@@ -85,15 +85,13 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
         title = "The query contains one or more search keywords and qualifiers.",
         description = "Qualifiers allow you to limit your search to specific areas of GitHub."
     )
-    @PluginProperty(dynamic = true)
-    private String query;
+    private Property<String> query;
 
     @Schema(
         title = "Search for users based on the languages of repositories they own.",
         description = "Can be the language name or alias."
     )
-    @PluginProperty(dynamic = true)
-    private String language;
+    private Property<String> language;
 
     @Schema(
         title = "Filter users based on when they joined GitHub.",
@@ -105,34 +103,29 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
                     - 'YYYY-MM-DD..YYYY-MM-DD' - joined in period between
                     """
     )
-    @PluginProperty(dynamic = true)
-    private String created;
+    private Property<String> created;
 
     @Schema(
         title = "You can filter users based on the number of repositories they own."
     )
-    @PluginProperty(dynamic = true)
-    private Integer repositories;
+    private Property<Integer> repositories;
 
     @Schema(
         title = "With the 'in' qualifier you can restrict your search to the username/login, full name, public email.",
         description = "Example kenya in:login matches users with the word \"kenya\" in their username. " +
             "One more case of use to search users that have sponsor profile, equivalent to query: `is:sponsorable`."
     )
-    @PluginProperty(dynamic = true)
-    private String in;
+    private Property<String> in;
 
     @Schema(
         title = "Search for users by the location indicated in their profile."
     )
-    @PluginProperty(dynamic = true)
-    private String location;
+    private Property<String> location;
 
     @Schema(
         title = "Filter users based on the number of followers that they have."
     )
-    @PluginProperty(dynamic = true)
-    private String followers;
+    private Property<String> followers;
 
     @Schema(
         title = "Restrict search results to personal accounts or organizations only.",
@@ -141,8 +134,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
                       ORGANIZATION - the results will include only organization accounts
                       """
     )
-    @PluginProperty(dynamic = true)
-    private Type accountType;
+    private Property<Type> accountType;
 
     @Schema(
         title = "Order of the output.",
@@ -152,8 +144,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
                       """
     )
     @Builder.Default
-    @PluginProperty
-    private Order order = Order.ASC;
+    private Property<Order> order = Property.of(Order.ASC);
 
     @Schema(
         title = "Sort condition of the output.",
@@ -164,8 +155,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
                       """
     )
     @Builder.Default
-    @PluginProperty
-    private Sort sort = Sort.JOINED;
+    private Property<Sort> sort = Property.of(Sort.JOINED);
 
     @Override
     public FileOutput run(RunContext runContext) throws Exception {
@@ -182,39 +172,39 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
         GHUserSearchBuilder searchBuilder = gitHub.searchUsers();
 
         searchBuilder
-            .sort(this.sort.value)
-            .order(this.order.direction);
+            .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
+            .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
 
         if (this.query != null) {
-            searchBuilder.q(runContext.render(this.query));
+            searchBuilder.q(runContext.render(this.query).as(String.class).orElseThrow());
         }
 
         if (this.language != null) {
-            searchBuilder.language(runContext.render(this.language));
+            searchBuilder.language(runContext.render(this.language).as(String.class).orElseThrow());
         }
 
         if (this.created != null) {
-            searchBuilder.created(runContext.render(this.created));
+            searchBuilder.created(runContext.render(this.created).as(String.class).orElseThrow());
         }
 
         if (this.repositories != null) {
-            searchBuilder.repos(this.repositories.toString());
+            searchBuilder.repos(runContext.render(repositories).as(Integer.class).orElseThrow().toString());
         }
 
         if (this.in != null) {
-            searchBuilder.in(runContext.render(this.in));
+            searchBuilder.in(runContext.render(this.in).as(String.class).orElseThrow());
         }
 
         if (this.location != null) {
-            searchBuilder.location(runContext.render(this.location));
+            searchBuilder.location(runContext.render(this.location).as(String.class).orElseThrow());
         }
 
         if (this.followers != null) {
-            searchBuilder.followers(runContext.render(this.followers));
+            searchBuilder.followers(runContext.render(this.followers).as(String.class).orElseThrow());
         }
 
         if (this.accountType != null) {
-            searchBuilder.type(this.accountType.value);
+            searchBuilder.type(runContext.render(this.accountType).as(Type.class).orElseThrow().value);
         }
         return searchBuilder;
     }

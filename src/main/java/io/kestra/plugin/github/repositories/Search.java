@@ -2,7 +2,7 @@ package io.kestra.plugin.github.repositories;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.github.GithubSearchTask;
@@ -42,7 +42,7 @@ import org.kohsuke.github.*;
             code = """
                    id: github_repo_search_flow
                    namespace: company.team
-                   
+
                    tasks:
                      - id: search_repositories
                        type: io.kestra.plugin.github.repositories.Search
@@ -56,7 +56,7 @@ import org.kohsuke.github.*;
             code = """
                    id: github_repo_search_flow
                    namespace: company.team
-                   
+
                    tasks:
                      - id: search_repositories
                        type: io.kestra.plugin.github.repositories.Search
@@ -72,7 +72,7 @@ import org.kohsuke.github.*;
             code = """
                    id: github_repo_search_flow
                    namespace: company.team
-                   
+
                    tasks:
                      - id: search_repositories
                        type: io.kestra.plugin.github.repositories.Search
@@ -118,47 +118,40 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
         title = "To search the code in a specific repository.",
         description = "Example string: \"myUserName/MyRepository\". query equivalent: \"repo:myUserName/MyRepository\"."
     )
-    @PluginProperty(dynamic = true)
-    private String repository;
+    private Property<String> repository;
 
     @Schema(
         title = "The query contains one or more search keywords and qualifiers.",
         description = "Qualifiers allow you to limit your search to specific areas of GitHub."
     )
-    @PluginProperty(dynamic = true)
-    private String query;
+    private Property<String> query;
 
     @Schema(
         title = "Search for code based on what language it's written in.",
         description = "Can be the language name or alias."
     )
-    @PluginProperty(dynamic = true)
-    private String language;
+    private Property<String> language;
 
     @Schema(
         title = "Search for code based on when repository was created."
     )
-    @PluginProperty(dynamic = true)
-    private String created;
+    private Property<String> created;
 
     @Schema(
         title = "Search for code based on how many starts repository has."
     )
-    @PluginProperty(dynamic = true)
-    private String stars;
+    private Property<String> stars;
 
     @Schema(
         title = "Search the code in all repositories owned by a certain user.",
         description = "To search by organization, use: \"query: org:myOrganization\"."
     )
-    @PluginProperty(dynamic = true)
-    private String user;
+    private Property<String> user;
 
     @Schema(
         title = "Search the code by topic"
     )
-    @PluginProperty(dynamic = true)
-    private String topic;
+    private Property<String> topic;
 
     @Schema(
         title = "Order of the output.",
@@ -168,8 +161,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
                       """
     )
     @Builder.Default
-    @PluginProperty
-    private Order order = Order.ASC;
+    private Property<Order> order = Property.of(Order.ASC);
 
     @Schema(
         title = "Sort condition of the output.",
@@ -180,8 +172,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
                       """
     )
     @Builder.Default
-    @PluginProperty
-    private Sort sort = Sort.UPDATED;
+    private Property<Sort> sort = Property.of(Sort.UPDATED);
 
     @Schema(
         title = "Search repository that have specified repositories. By default, it's search for all repositories.",
@@ -191,8 +182,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
                       INTERNAL - shows only internal repositories
                       """
     )
-    @PluginProperty
-    private Visibility visibility;
+    private Property<Visibility> visibility;
 
     @Override
     public FileOutput run(RunContext runContext) throws Exception {
@@ -209,39 +199,39 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
         GHRepositorySearchBuilder searchBuilder = gitHub.searchRepositories();
 
         searchBuilder
-            .sort(this.sort.value)
-            .order(this.order.direction);
+            .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
+            .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
 
         if (this.visibility != null) {
-            searchBuilder.visibility(this.visibility.value);
+            searchBuilder.visibility(runContext.render(this.visibility).as(Visibility.class).orElseThrow().value);
         }
 
         if (this.query != null) {
-            searchBuilder.q(runContext.render(this.query));
+            searchBuilder.q(runContext.render(this.query).as(String.class).orElseThrow());
         }
 
         if (this.language != null) {
-            searchBuilder.language(runContext.render(this.language));
+            searchBuilder.language(runContext.render(this.language).as(String.class).orElseThrow());
         }
 
         if (this.created != null) {
-            searchBuilder.created(runContext.render(this.created));
+            searchBuilder.created(runContext.render(this.created).as(String.class).orElseThrow());
         }
 
         if (this.repository != null) {
-            searchBuilder.repo(runContext.render(this.repository));
+            searchBuilder.repo(runContext.render(this.repository).as(String.class).orElseThrow());
         }
 
         if (this.stars != null) {
-            searchBuilder.stars(runContext.render(this.stars));
+            searchBuilder.stars(runContext.render(this.stars).as(String.class).orElseThrow());
         }
 
         if (this.user != null) {
-            searchBuilder.user(runContext.render(this.user));
+            searchBuilder.user(runContext.render(this.user).as(String.class).orElseThrow());
         }
 
         if (this.topic != null) {
-            searchBuilder.topic(runContext.render(this.topic));
+            searchBuilder.topic(runContext.render(this.topic).as(String.class).orElseThrow());
         }
         return searchBuilder;
     }

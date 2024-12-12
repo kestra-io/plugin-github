@@ -2,12 +2,12 @@ package io.kestra.plugin.github.topics;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
-import io.kestra.plugin.github.GithubConnector;
 import io.kestra.plugin.github.GHTopicSearchBuilder;
+import io.kestra.plugin.github.GithubConnector;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -52,7 +52,7 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
             code = """
                    id: github_topic_search_flow
                    namespace: company.team
-                   
+
                    tasks:
                      - id: search_topics
                        type: io.kestra.plugin.github.topics.Search
@@ -92,8 +92,7 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
         title = "The query contains one or more search keywords and qualifiers.",
         description = "Allow you to limit your search to specific areas of GitHub."
     )
-    @PluginProperty(dynamic = true)
-    private String query;
+    private Property<String> query;
 
     @Schema(
         title = "The query contains one or more search keywords and qualifiers.",
@@ -104,22 +103,19 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
                       NOT_FEATURED - Matches topics that aren't featured on `https://github.com/topics/`
                       """
     )
-    @PluginProperty(dynamic = true)
-    private Is is;
+    private Property<Is> is;
 
     @Schema(
         title = "Matches topics that have number of repositories.",
         description = "You can use greater than, less than, and range qualifiers to further filter results."
     )
-    @PluginProperty(dynamic = true)
-    private String repositories;
+    private Property<String> repositories;
 
     @Schema(
         title = "The query contains one or more search keywords and qualifiers.",
         description = "You can use greater than, less than, and range qualifiers to further filter results."
     )
-    @PluginProperty(dynamic = true)
-    private String created;
+    private Property<String> created;
 
     @Schema(
         title = "Order of the output.",
@@ -129,8 +125,7 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
                       """
     )
     @Builder.Default
-    @PluginProperty
-    private Order order = Order.ASC;
+    private Property<Order> order = Property.of(Order.ASC);
 
     @Override
     public Output run(RunContext runContext) throws Exception {
@@ -161,25 +156,25 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     }
 
     private GHTopicSearchBuilder setupSearchParameters(RunContext runContext, GitHub gitHub) throws Exception {
-        GHTopicSearchBuilder searchBuilder = new GHTopicSearchBuilder(gitHub, super.getOauthToken());
+        GHTopicSearchBuilder searchBuilder = new GHTopicSearchBuilder(gitHub, runContext.render(super.getOauthToken()).as(String.class).orElse(null));
 
         searchBuilder
-            .order(this.order.toString());
+            .order(runContext.render(this.order).as(Order.class).orElseThrow().toString());
 
         if (this.query != null) {
-            searchBuilder.query(runContext.render(this.query));
+            searchBuilder.query(runContext.render(this.query).as(String.class).orElseThrow());
         }
 
         if (this.is != null) {
-            searchBuilder.is(runContext.render(this.is.toString()));
+            searchBuilder.is(runContext.render(this.is).as(Is.class).orElseThrow().toString());
         }
 
         if (this.repositories != null) {
-            searchBuilder.repositories(runContext.render(this.repositories));
+            searchBuilder.repositories(runContext.render(this.repositories).as(String.class).orElseThrow());
         }
 
         if (this.created != null) {
-            searchBuilder.created(runContext.render(this.created));
+            searchBuilder.created(runContext.render(this.created).as(String.class).orElseThrow());
         }
         return searchBuilder;
     }
