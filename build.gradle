@@ -48,7 +48,7 @@ dependencies {
     compileOnly'org.slf4j:slf4j-api:2.0.13'
 
     // libs included in the final jar
-    api group: 'com.google.code.gson', name: 'gson', version: '2.12.1'
+    api group: 'com.google.code.gson', name: 'gson', version: '2.13.0'
 
     // github api
     implementation 'org.kohsuke:github-api:1.327'
