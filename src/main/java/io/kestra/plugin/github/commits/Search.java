@@ -33,7 +33,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @NoArgsConstructor
 @Schema(
     title = "Search for GitHub commits.",
-    description = "Requires authentication."
+    description = "This task requires authentication."
 )
 @Plugin(
     examples = {

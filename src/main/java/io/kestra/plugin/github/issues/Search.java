@@ -17,7 +17,7 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for GitHub issues",
+    title = "Search for GitHub issues.",
     description = "If no authentication is provided, anonymous authentication will be used"
 )
 @Plugin(
