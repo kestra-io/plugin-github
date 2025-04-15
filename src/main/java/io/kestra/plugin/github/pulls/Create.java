@@ -21,7 +21,7 @@ import java.net.URL;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create a pull request.",
+    title = "Create a GitHub pull request.",
     description = "If no authentication is provided, anonymous authentication will be used."
 )
 @Plugin(

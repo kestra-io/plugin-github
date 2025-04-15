@@ -22,7 +22,7 @@ import java.net.URL;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create GitHub issue comment.",
+    title = "Create a comment on a GitHub.",
     description = "If no authentication is provided, anonymous authentication will be used."
 )
 @Plugin(
