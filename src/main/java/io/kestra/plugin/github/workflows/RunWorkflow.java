@@ -28,12 +28,12 @@ import java.util.Map;
             title = "Trigger a GitHub Action workflow manually.",
             full = true,
             code = """
-                id: github_workflow_dispatch_flow
+                id: run_github_action_workflow_flow
                 namespace: company.team
 
                 tasks:
-                  - id: dispatch_workflow
-                    type: io.kestra.plugin.github.workflows.Dispatch
+                  - id: run_workflow
+                    type: io.kestra.plugin.github.workflows.RunWorkflow
                     oauthToken: your_github_token
                     repository: your_owner/your_repository
                     workflowId: your_workflow_id
@@ -44,7 +44,7 @@ import java.util.Map;
         )
     }
 )
-public class Dispatch extends GithubConnector implements RunnableTask<VoidOutput> {
+public class RunWorkflow extends GithubConnector implements RunnableTask<VoidOutput> {
 
     @Schema(
         title = "Repository where the workflow will be dispatched.",
