@@ -48,7 +48,7 @@ public class RunWorkflow extends GithubConnector implements RunnableTask<VoidOut
 
     @Schema(
         title = "Repository where the workflow will be dispatched.",
-        description = "The repository on which the workflow with be dispatched. Repository name must be in format owner/repo."
+        description = "The repository on which the workflow will be dispatched. Repository name must be in format owner/repo."
     )
     private Property<String> repository;
 
