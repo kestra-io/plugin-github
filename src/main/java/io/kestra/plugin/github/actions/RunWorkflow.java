@@ -1,4 +1,4 @@
-package io.kestra.plugin.github.workflows;
+package io.kestra.plugin.github.actions;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
@@ -33,7 +33,7 @@ import java.util.Map;
 
                 tasks:
                   - id: run_workflow
-                    type: io.kestra.plugin.github.workflows.RunWorkflow
+                    type: io.kestra.plugin.github.actions.RunWorkflow
                     oauthToken: your_github_token
                     repository: your_owner/your_repository
                     workflowId: your_workflow_id

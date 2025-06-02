@@ -1,9 +1,8 @@
-package workflows;
+package io.kestra.plugin.github.actions;
 
 import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContextFactory;
-import io.kestra.plugin.github.workflows.RunWorkflow;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
