@@ -47,7 +47,7 @@ dependencies {
     compileOnly'org.slf4j:slf4j-api:2.0.13'
 
     // github api
-    implementation 'org.kohsuke:github-api:1.327'
+    implementation 'org.kohsuke:github-api:1.329'
 }
 
 
