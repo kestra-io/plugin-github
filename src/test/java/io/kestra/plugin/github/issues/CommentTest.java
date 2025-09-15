@@ -15,6 +15,7 @@ import static org.hamcrest.Matchers.*;
 
 @KestraTest
 @EnabledIfEnvironmentVariable(named = "GITHUB_TOKEN", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "GITHUB_REF_NAME", matches = "master")
 public class CommentTest {
     private static final String GITHUB_OAUTH_TOKEN = System.getenv("GITHUB_TOKEN");
 
@@ -31,7 +32,6 @@ public class CommentTest {
             .title(Property.ofValue("Test Kestra Github plugin"))
             .body(Property.ofValue("This is a test for creating a new issue in repository by oauth token"))
             .labels(Property.ofValue(List.of("kestra", "test")))
-            .assignees(Property.ofValue(List.of("iNikitaGricenko")))
             .build();
 
         Create.Output createOutput = createTask.run(runContext);

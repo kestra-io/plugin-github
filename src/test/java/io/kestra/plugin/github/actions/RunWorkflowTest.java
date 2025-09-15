@@ -9,6 +9,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @KestraTest
 @EnabledIfEnvironmentVariable(named = "GITHUB_TOKEN", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "GITHUB_REF_NAME", matches = "master")
 public class RunWorkflowTest {
     private static final String GITHUB_OAUTH_TOKEN = System.getenv("GITHUB_TOKEN");
 
