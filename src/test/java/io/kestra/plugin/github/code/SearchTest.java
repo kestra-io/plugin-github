@@ -25,7 +25,7 @@ import static org.hamcrest.Matchers.*;
 
 @KestraTest
 @DisabledIf(
-    value = "isTokenMissing",
+    value = "isOauthTokenMissing",
     disabledReason = "Disabled: GITHUB_TOKEN not set"
 )
 public class SearchTest extends AbstractGithubTest {

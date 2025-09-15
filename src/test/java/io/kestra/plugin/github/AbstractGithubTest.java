@@ -5,7 +5,7 @@ import com.google.common.base.Strings;
 public abstract class AbstractGithubTest {
     private static final String GITHUB_OAUTH_TOKEN = System.getenv("GITHUB_OAUTH_TOKEN");
 
-    protected static boolean isTokenMissing() {
+    protected static boolean isOauthTokenMissing() {
         return Strings.isNullOrEmpty(getToken());
     }
 
