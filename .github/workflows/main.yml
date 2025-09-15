@@ -33,4 +33,6 @@ jobs:
     uses: kestra-io/actions/.github/workflows/plugins.yml@main
     with:
       skip-test: ${{ github.event.inputs.skip-test == 'true' }}
+    env:
+      GITHUB_OAUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     secrets: inherit
