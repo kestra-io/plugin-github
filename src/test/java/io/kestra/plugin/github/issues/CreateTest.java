@@ -14,7 +14,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 @KestraTest
-@Disabled("Too noisy to execute this test on every CI run")
+@Disabled("Too verbose for CI")
 public class CreateTest {
     @Inject
     private RunContextFactory runContextFactory;

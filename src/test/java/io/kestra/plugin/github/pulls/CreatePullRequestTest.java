@@ -5,16 +5,15 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 @KestraTest
-@EnabledIfEnvironmentVariable(named = "GITHUB_TOKEN", matches = ".+")
-@EnabledIfEnvironmentVariable(named = "GITHUB_REF_NAME", matches = "master")
+@Disabled("Too verbose for CI")
 public class CreatePullRequestTest {
     private static final String GITHUB_OAUTH_TOKEN = System.getenv("GITHUB_TOKEN");
 

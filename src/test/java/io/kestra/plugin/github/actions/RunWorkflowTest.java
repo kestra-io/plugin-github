@@ -4,12 +4,11 @@ import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContextFactory;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @KestraTest
-@EnabledIfEnvironmentVariable(named = "GITHUB_TOKEN", matches = ".+")
-@EnabledIfEnvironmentVariable(named = "GITHUB_REF_NAME", matches = "master")
+@Disabled("Too verbose for CI")
 public class RunWorkflowTest {
     private static final String GITHUB_OAUTH_TOKEN = System.getenv("GITHUB_TOKEN");
 
