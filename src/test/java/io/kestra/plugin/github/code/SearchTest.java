@@ -49,7 +49,7 @@ public class SearchTest {
 
         assertThat(result.size(), greaterThanOrEqualTo(1));
 
-        assertThat(result.getFirst().get("repository_name"), is("jquery"));
+        assertThat(result.getFirst().get("repository_name"), is("plugin-github"));
     }
 
     @Test
@@ -57,7 +57,7 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .oauthToken(Property.ofValue(""))
+            .oauthToken(Property.ofValue(GITHUB_OAUTH_TOKEN))
             .query(Property.ofValue("run"))
             .in(Property.ofValue("file"))
             .language(Property.ofValue("java"))
@@ -72,7 +72,7 @@ public class SearchTest {
 
         assertThat(result.size(), greaterThanOrEqualTo(1));
 
-        assertThat(result.getFirst().get("repository_name"), is("jquery"));
+        assertThat(result.getFirst().get("repository_name"), is("plugin-github"));
     }
 
     private List<Map<String, Object>> getResult(Search.Output run) throws IOException {

@@ -8,7 +8,6 @@ import io.kestra.core.serializers.FileSerde;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.tenant.TenantService;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
@@ -59,7 +58,7 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .oauthToken(Property.ofValue(""))
+            .oauthToken(Property.ofValue(GITHUB_OAUTH_TOKEN))
             .query(Property.ofValue("Initial"))
             .repository(Property.ofValue("kestra-io/plugin-github"))
             .build();

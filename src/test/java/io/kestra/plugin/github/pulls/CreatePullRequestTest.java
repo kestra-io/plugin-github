@@ -5,16 +5,18 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 @KestraTest
-@Disabled("disabled for ci/cd, as there unit tests requires secret (oauth) token")
+@EnabledIfEnvironmentVariable(named = "GITHUB_TOKEN", matches = ".+")
 public class CreatePullRequestTest {
+    private static final String GITHUB_OAUTH_TOKEN = System.getenv("GITHUB_TOKEN");
+
     @Inject
     private RunContextFactory runContextFactory;
 
@@ -23,7 +25,7 @@ public class CreatePullRequestTest {
         RunContext runContext = runContextFactory.of();
 
         io.kestra.plugin.github.pulls.Create task = io.kestra.plugin.github.pulls.Create.builder()
-            .oauthToken(Property.ofValue(""))
+            .oauthToken(Property.ofValue(GITHUB_OAUTH_TOKEN))
             .repository(Property.ofValue("kestra-io/plugin-github"))
             .sourceBranch(Property.ofValue("dev"))
             .targetBranch(Property.ofValue("test"))
