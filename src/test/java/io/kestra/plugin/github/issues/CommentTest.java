@@ -24,12 +24,12 @@ public class CommentTest {
         RunContext runContext = runContextFactory.of();
 
         Create createTask = Create.builder()
-            .oauthToken(Property.of(""))
-            .repository(Property.of("kestra-io/plugin-github"))
-            .title(Property.of("Test Kestra Github plugin"))
-            .body(Property.of("This is a test for creating a new issue in repository by oauth token"))
-            .labels(Property.of(List.of("kestra", "test")))
-            .assignees(Property.of(List.of("iNikitaGricenko")))
+            .oauthToken(Property.ofValue(""))
+            .repository(Property.ofValue("kestra-io/plugin-github"))
+            .title(Property.ofValue("Test Kestra Github plugin"))
+            .body(Property.ofValue("This is a test for creating a new issue in repository by oauth token"))
+            .labels(Property.ofValue(List.of("kestra", "test")))
+            .assignees(Property.ofValue(List.of("iNikitaGricenko")))
             .build();
 
         Create.Output createOutput = createTask.run(runContext);
@@ -40,10 +40,10 @@ public class CommentTest {
         int issueNumber = createOutput.getIssueNumber();
 
         Comment commentTask = Comment.builder()
-            .oauthToken(Property.of(""))
-            .repository(Property.of("kestra-io/plugin-github"))
-            .issueNumber(Property.of(issueNumber))
-            .body(Property.of("This comment is a test for creating a new comment in repository issue by oauth token"))
+            .oauthToken(Property.ofValue(""))
+            .repository(Property.ofValue("kestra-io/plugin-github"))
+            .issueNumber(Property.ofValue(issueNumber))
+            .body(Property.ofValue("This comment is a test for creating a new comment in repository issue by oauth token"))
             .build();
 
         Comment.Output commentOutput = commentTask.run(runContext);

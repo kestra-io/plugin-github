@@ -24,12 +24,12 @@ public class CreateTest {
         RunContext runContext = runContextFactory.of();
 
         Create task = Create.builder()
-            .oauthToken(Property.of(""))
-            .repository(Property.of("kestra-io/plugin-github"))
-            .title(Property.of("Test Kestra Github plugin"))
-            .body(Property.of("This is a test for creating a new issue in repository by oauth token"))
-            .labels(Property.of(List.of("kestra", "test")))
-            .assignees(Property.of(List.of("iNikitaGricenko")))
+            .oauthToken(Property.ofValue(""))
+            .repository(Property.ofValue("kestra-io/plugin-github"))
+            .title(Property.ofValue("Test Kestra Github plugin"))
+            .body(Property.ofValue("This is a test for creating a new issue in repository by oauth token"))
+            .labels(Property.ofValue(List.of("kestra", "test")))
+            .assignees(Property.ofValue(List.of("iNikitaGricenko")))
             .build();
 
         Create.Output run = task.run(runContext);

@@ -18,10 +18,10 @@ public class RunWorkflowTest {
         var runContext = runContextFactory.of();
 
         var runWorkflowTask = RunWorkflow.builder()
-            .oauthToken(Property.of(""))
-            .repository(Property.of("kestra-io/plugin-github"))
-            .workflowId(Property.of("105842276")) // https://api.github.com/repos/kestra-io/plugin-github/actions/workflows/105842276
-            .ref(Property.of("master"))
+            .oauthToken(Property.ofValue(""))
+            .repository(Property.ofValue("kestra-io/plugin-github"))
+            .workflowId(Property.ofValue("105842276")) // https://api.github.com/repos/kestra-io/plugin-github/actions/workflows/105842276
+            .ref(Property.ofValue("master"))
             .build();
 
         runWorkflowTask.run(runContext);

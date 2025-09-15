@@ -35,8 +35,8 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .oauthToken(Property.of(""))
-            .query(Property.of("Initial repo:kestra-io/plugin-github"))
+            .oauthToken(Property.ofValue(""))
+            .query(Property.ofValue("Initial repo:kestra-io/plugin-github"))
             .build();
 
         Search.Output run = task.run(runContext);
@@ -56,9 +56,9 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .oauthToken(Property.of(""))
-            .query(Property.of("Initial"))
-            .repository(Property.of("kestra-io/plugin-github"))
+            .oauthToken(Property.ofValue(""))
+            .query(Property.ofValue("Initial"))
+            .repository(Property.ofValue("kestra-io/plugin-github"))
             .build();
 
         Search.Output run = task.run(runContext);

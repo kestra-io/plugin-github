@@ -23,13 +23,13 @@ public class CreatePullRequestTest {
         RunContext runContext = runContextFactory.of();
 
         io.kestra.plugin.github.pulls.Create task = io.kestra.plugin.github.pulls.Create.builder()
-            .oauthToken(Property.of(""))
-            .repository(Property.of("kestra-io/plugin-github"))
-            .sourceBranch(Property.of("dev"))
-            .targetBranch(Property.of("test"))
-            .title(Property.of("Test Kestra Github plugin"))
-            .body(Property.of("This is a test for creating a new pull request in repository by oauth token"))
-            .maintainerCanModify(Property.of(true))
+            .oauthToken(Property.ofValue(""))
+            .repository(Property.ofValue("kestra-io/plugin-github"))
+            .sourceBranch(Property.ofValue("dev"))
+            .targetBranch(Property.ofValue("test"))
+            .title(Property.ofValue("Test Kestra Github plugin"))
+            .body(Property.ofValue("This is a test for creating a new pull request in repository by oauth token"))
+            .maintainerCanModify(Property.ofValue(true))
             .build();
 
         Create.Output run = task.run(runContext);

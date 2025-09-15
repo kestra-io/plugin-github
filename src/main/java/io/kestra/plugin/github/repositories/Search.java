@@ -161,7 +161,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
                       """
     )
     @Builder.Default
-    private Property<Order> order = Property.of(Order.ASC);
+    private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Schema(
         title = "Sort condition of the output.",
@@ -172,7 +172,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
                       """
     )
     @Builder.Default
-    private Property<Sort> sort = Property.of(Sort.UPDATED);
+    private Property<Sort> sort = Property.ofValue(Sort.UPDATED);
 
     @Schema(
         title = "Search repository that have specified repositories. By default, it's search for all repositories.",

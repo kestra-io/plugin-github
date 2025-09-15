@@ -155,7 +155,7 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
                       """
     )
     @Builder.Default
-    private Property<Order> order = Property.of(Order.ASC);
+    private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Schema(
         name = "sort",
@@ -166,7 +166,7 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
                       """
     )
     @Builder.Default
-    private Property<Sort> sort = Property.of(Sort.BEST_MATCH);
+    private Property<Sort> sort = Property.ofValue(Sort.BEST_MATCH);
 
     @Override
     public Output run(RunContext runContext) throws Exception {
