@@ -125,7 +125,7 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
                       """
     )
     @Builder.Default
-    private Property<Order> order = Property.of(Order.ASC);
+    private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Override
     public Output run(RunContext runContext) throws Exception {

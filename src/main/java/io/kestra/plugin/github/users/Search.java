@@ -144,7 +144,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
                       """
     )
     @Builder.Default
-    private Property<Order> order = Property.of(Order.ASC);
+    private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Schema(
         title = "Sort condition of the output.",
@@ -155,7 +155,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
                       """
     )
     @Builder.Default
-    private Property<Sort> sort = Property.of(Sort.JOINED);
+    private Property<Sort> sort = Property.ofValue(Sort.JOINED);
 
     @Override
     public FileOutput run(RunContext runContext) throws Exception {

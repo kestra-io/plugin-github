@@ -79,14 +79,14 @@ public class Create extends GithubConnector implements RunnableTask<Create.Outpu
         description = "Boolean value indicating whether maintainers can modify the pull request. Default is false."
     )
     @Builder.Default
-    private Property<Boolean> maintainerCanModify = Property.of(Boolean.FALSE);
+    private Property<Boolean> maintainerCanModify = Property.ofValue(Boolean.FALSE);
 
     @Schema(
         title = "Whether to create a draft pull request.",
         description = "Boolean value indicates whether to create a draft pull request or not. Default is false."
     )
     @Builder.Default
-    private Property<Boolean> draft = Property.of(Boolean.FALSE);
+    private Property<Boolean> draft = Property.ofValue(Boolean.FALSE);
 
     @Override
     public Output run(RunContext runContext) throws Exception {

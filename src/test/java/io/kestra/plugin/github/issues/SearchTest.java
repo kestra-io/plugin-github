@@ -33,8 +33,8 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .query(Property.of("repo:kestra-io/plugin-github is:open"))
-            .sort(Property.of(Search.Sort.UPDATED))
+            .query(Property.ofValue("repo:kestra-io/plugin-github is:open"))
+            .sort(Property.ofValue(Search.Sort.UPDATED))
             .build();
 
         Search.FileOutput run = task.run(runContext);
@@ -53,9 +53,9 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .query(Property.of("repo:kestra-io/plugin-github"))
-            .open(Property.of(Boolean.TRUE))
-            .sort(Property.of(Search.Sort.UPDATED))
+            .query(Property.ofValue("repo:kestra-io/plugin-github"))
+            .open(Property.ofValue(Boolean.TRUE))
+            .sort(Property.ofValue(Search.Sort.UPDATED))
             .build();
 
         Search.FileOutput run = task.run(runContext);

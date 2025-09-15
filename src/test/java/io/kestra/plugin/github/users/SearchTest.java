@@ -33,7 +33,7 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .query(Property.of("kestra-io in:login language:java"))
+            .query(Property.ofValue("kestra-io in:login language:java"))
             .build();
 
         Search.FileOutput run = task.run(runContext);
@@ -52,9 +52,9 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .query(Property.of("kestra-io"))
-            .in(Property.of("login"))
-            .language(Property.of("java"))
+            .query(Property.ofValue("kestra-io"))
+            .in(Property.ofValue("login"))
+            .language(Property.ofValue("java"))
             .build();
 
         Search.FileOutput run = task.run(runContext);

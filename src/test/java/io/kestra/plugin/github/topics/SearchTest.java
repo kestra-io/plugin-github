@@ -35,8 +35,8 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .oauthToken(Property.of(""))
-            .query(Property.of("Spring Cloud is:not-curated repositories:>10"))
+            .oauthToken(Property.ofValue(""))
+            .query(Property.ofValue("Spring Cloud is:not-curated repositories:>10"))
             .build();
 
         Search.Output run = task.run(runContext);
@@ -55,9 +55,9 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .query(Property.of("Spring Cloud"))
-            .is(Property.of(Search.Is.NOT_CURATED))
-            .repositories(Property.of(">10"))
+            .query(Property.ofValue("Spring Cloud"))
+            .is(Property.ofValue(Search.Is.NOT_CURATED))
+            .repositories(Property.ofValue(">10"))
             .build();
 
         Search.Output run = task.run(runContext);
