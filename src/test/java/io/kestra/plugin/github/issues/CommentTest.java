@@ -16,8 +16,6 @@ import static org.hamcrest.Matchers.*;
 @KestraTest
 @Disabled("Too verbose for CI")
 public class CommentTest {
-    private static final String GITHUB_OAUTH_TOKEN = System.getenv("GITHUB_TOKEN");
-
     @Inject
     private RunContextFactory runContextFactory;
 
@@ -26,7 +24,7 @@ public class CommentTest {
         RunContext runContext = runContextFactory.of();
 
         Create createTask = Create.builder()
-            .oauthToken(Property.ofValue(GITHUB_OAUTH_TOKEN))
+            .oauthToken(Property.ofValue(""))
             .repository(Property.ofValue("kestra-io/plugin-github"))
             .title(Property.ofValue("Test Kestra Github plugin"))
             .body(Property.ofValue("This is a test for creating a new issue in repository by oauth token"))
@@ -41,7 +39,7 @@ public class CommentTest {
         int issueNumber = createOutput.getIssueNumber();
 
         Comment commentTask = Comment.builder()
-            .oauthToken(Property.ofValue(GITHUB_OAUTH_TOKEN))
+            .oauthToken(Property.ofValue(""))
             .repository(Property.ofValue("kestra-io/plugin-github"))
             .issueNumber(Property.ofValue(issueNumber))
             .body(Property.ofValue("This comment is a test for creating a new comment in repository issue by oauth token"))

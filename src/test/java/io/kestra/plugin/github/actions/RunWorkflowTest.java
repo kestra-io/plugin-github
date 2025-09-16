@@ -10,8 +10,6 @@ import org.junit.jupiter.api.Test;
 @KestraTest
 @Disabled("Too verbose for CI")
 public class RunWorkflowTest {
-    private static final String GITHUB_OAUTH_TOKEN = System.getenv("GITHUB_TOKEN");
-
     @Inject
     private RunContextFactory runContextFactory;
 
@@ -20,7 +18,7 @@ public class RunWorkflowTest {
         var runContext = runContextFactory.of();
 
         var runWorkflowTask = RunWorkflow.builder()
-            .oauthToken(Property.ofValue(GITHUB_OAUTH_TOKEN))
+            .oauthToken(Property.ofValue(""))
             .repository(Property.ofValue("kestra-io/plugin-github"))
             .workflowId(Property.ofValue("105842276")) // https://api.github.com/repos/kestra-io/plugin-github/actions/workflows/105842276
             .ref(Property.ofValue("master"))
