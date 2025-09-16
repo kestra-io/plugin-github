@@ -14,7 +14,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 @KestraTest
-@Disabled("disabled for ci/cd, as there unit tests requires secret (oauth) token")
+@Disabled("Too verbose for CI")
 public class CreateTest {
     @Inject
     private RunContextFactory runContextFactory;

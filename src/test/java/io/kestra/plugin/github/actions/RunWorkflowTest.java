@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @KestraTest
-@Disabled("disabled for ci/cd, as there unit tests requires secret (oauth) token")
+@Disabled("Too verbose for CI")
 public class RunWorkflowTest {
     @Inject
     private RunContextFactory runContextFactory;

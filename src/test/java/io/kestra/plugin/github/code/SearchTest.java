@@ -8,8 +8,8 @@ import io.kestra.core.serializers.FileSerde;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.tenant.TenantService;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -22,8 +22,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 @KestraTest
-@Disabled("disabled for ci/cd, as there unit tests requires secret (oauth) token")
+@EnabledIfEnvironmentVariable(named = "GITHUB_TOKEN", matches = ".+")
 public class SearchTest {
+    private static final String GITHUB_OAUTH_TOKEN = System.getenv("GITHUB_TOKEN");
+
     @Inject
     private RunContextFactory runContextFactory;
 
@@ -35,7 +37,7 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .oauthToken(Property.ofValue(""))
+            .oauthToken(Property.ofValue(GITHUB_OAUTH_TOKEN))
             .query(Property.ofValue("run in:file language:java repo:kestra-io/plugin-github"))
             .build();
 
@@ -47,7 +49,7 @@ public class SearchTest {
 
         assertThat(result.size(), greaterThanOrEqualTo(1));
 
-        assertThat(result.getFirst().get("repository_name"), is("jquery"));
+        assertThat(result.getFirst().get("repository_name"), is("plugin-github"));
     }
 
     @Test
@@ -55,7 +57,7 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .oauthToken(Property.ofValue(""))
+            .oauthToken(Property.ofValue(GITHUB_OAUTH_TOKEN))
             .query(Property.ofValue("run"))
             .in(Property.ofValue("file"))
             .language(Property.ofValue("java"))
@@ -70,7 +72,7 @@ public class SearchTest {
 
         assertThat(result.size(), greaterThanOrEqualTo(1));
 
-        assertThat(result.getFirst().get("repository_name"), is("jquery"));
+        assertThat(result.getFirst().get("repository_name"), is("plugin-github"));
     }
 
     private List<Map<String, Object>> getResult(Search.Output run) throws IOException {

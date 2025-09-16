@@ -14,7 +14,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 @KestraTest
-@Disabled("disabled for ci/cd, as there unit tests requires secret (oauth) token")
+@Disabled("Too verbose for CI")
 public class CommentTest {
     @Inject
     private RunContextFactory runContextFactory;
@@ -29,7 +29,6 @@ public class CommentTest {
             .title(Property.ofValue("Test Kestra Github plugin"))
             .body(Property.ofValue("This is a test for creating a new issue in repository by oauth token"))
             .labels(Property.ofValue(List.of("kestra", "test")))
-            .assignees(Property.ofValue(List.of("iNikitaGricenko")))
             .build();
 
         Create.Output createOutput = createTask.run(runContext);
