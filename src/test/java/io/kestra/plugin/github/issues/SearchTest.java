@@ -69,6 +69,31 @@ public class SearchTest {
         assertThat(result.getFirst().get("state"), is("OPEN"));
     }
 
+    @Test
+    void testQueryAndRepository() throws Exception {
+        RunContext runContext = runContextFactory.of();
+
+        var task = Search.builder()
+            .repository(Property.ofValue("kestra-io/plugin-github"))
+            .sort(Property.ofValue(Search.Sort.UPDATED))
+            .build();
+
+        Search.FileOutput run = task.run(runContext);
+
+        assertThat(run.getUri(), is(notNullValue()));
+
+        List<Map<String, Object>> result = getResult(run);
+
+        assertThat(result.size(), greaterThanOrEqualTo(1));
+
+        Map<String, Object> first = result.getFirst();
+        assertThat(first, hasKey("repository_name"));
+        assertThat(first, hasKey("state"));
+
+        assertThat((String) first.get("url"), containsString("plugin-github"));
+    }
+
+
     private List<Map<String, Object>> getResult(Search.FileOutput run) throws IOException {
         BufferedReader inputStream = new BufferedReader(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, run.getUri())));
         List<Map<String, Object>> result = new ArrayList<>();
