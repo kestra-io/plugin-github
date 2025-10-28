@@ -117,6 +117,11 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     @Builder.Default
     private Property<Sort> sort = Property.ofValue(Sort.CREATED);
 
+    @Schema(
+        title = "The GitHub repository."
+    )
+    private Property<String> repository;
+
     @Override
     public FileOutput run(RunContext runContext) throws Exception {
         GitHub gitHub = connect(runContext);
@@ -131,12 +136,20 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private GHIssueSearchBuilder setupSearchParameters(RunContext runContext, GitHub gitHub) throws Exception {
         GHIssueSearchBuilder searchBuilder = gitHub.searchIssues();
 
+        var rQuery = runContext.render(this.query).as(String.class).orElse("");
+        var rRepo = runContext.render(this.repository).as(String.class).orElse("");
+
         searchBuilder
             .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
             .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
 
-        if (this.query != null) {
-            searchBuilder.q(runContext.render(this.query).as(String.class).orElseThrow());
+        // we append the repository property if provided
+        if (!rRepo.isEmpty()) {
+            rQuery = (rQuery + " repo:" + rRepo).trim();
+        }
+
+        if (!rQuery.isBlank()) {
+            searchBuilder.q(rQuery);
         }
 
         if (this.mentions != null) {
