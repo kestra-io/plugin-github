@@ -1,0 +1,8 @@
+group: io.kestra.plugin.github
+name: "github"
+title: "GitHub"
+description: "This sub-group of plugins contains tasks for using a GitHub API."
+body: ""
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"

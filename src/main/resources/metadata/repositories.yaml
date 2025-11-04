@@ -1,0 +1,8 @@
+group: io.kestra.plugin.github.repositories
+name: "repositories"
+title: "Repositories"
+description: ""
+body: ""
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"
