@@ -1,0 +1,8 @@
+group: io.kestra.plugin.github.pulls
+name: "pulls"
+title: "GitHub Pull Requests"
+description: "This sub-group of plugins contains tasks for managing pull requests in GitHub."
+body: ""
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"

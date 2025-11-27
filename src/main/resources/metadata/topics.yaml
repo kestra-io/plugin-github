@@ -1,0 +1,8 @@
+group: io.kestra.plugin.github.topics
+name: "topics"
+title: "GitHub Topics"
+description: "This sub-group of plugins contains tasks for managing Github topics."
+body: ""
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"

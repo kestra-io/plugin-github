@@ -1,0 +1,8 @@
+group: io.kestra.plugin.github.repositories
+name: "repositories"
+title: "GitHub Repositories"
+description: "This sub-group of plugins contains tasks for managing GitHub repositories."
+body: ""
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"
