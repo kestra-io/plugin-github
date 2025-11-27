@@ -1,0 +1,8 @@
+group: io.kestra.plugin.github.commits
+name: "commits"
+title: "GitHub Commits"
+description: "This sub-group of plugins contains to manage github commits."
+body: ""
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"

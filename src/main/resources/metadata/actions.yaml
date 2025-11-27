@@ -1,0 +1,8 @@
+group: io.kestra.plugin.github.actions
+name: "actions"
+title: "GitHub Actions"
+description: "This sub-group of plugins contains tasks for triggering and managing GitHub Actions workflows."
+body: ""
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"
