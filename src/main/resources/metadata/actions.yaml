@@ -1,8 +1,8 @@
 group: io.kestra.plugin.github.actions
 name: "actions"
 title: "GitHub Actions"
-description: "This sub-group of plugins contains tasks for triggering and managing GitHub Actions workflows."
-body: ""
+description: "Tasks that dispatch and monitor GitHub Actions workflows."
+body: "Provide a GitHub token, owner/repo, workflow file or ID, and ref/inputs to trigger workflows and retrieve run details so you can orchestrate CI/CD directly from Kestra."
 videos: []
 createdBy: "Kestra Core Team"
 managedBy: "Kestra Core Team"

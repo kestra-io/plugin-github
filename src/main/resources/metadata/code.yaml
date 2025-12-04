@@ -1,8 +1,8 @@
 group: io.kestra.plugin.github.code
 name: "code"
 title: "GitHub Code"
-description: "This sub-group of plugins contains tasks for accessing and managing source code using Github API."
-body: ""
+description: "Tasks that search GitHub source code through the API."
+body: "Use a GitHub token with search queries, languages, and repo qualifiers to retrieve matching code results and metadata you can route to review or inventory workflows."
 videos: []
 createdBy: "Kestra Core Team"
 managedBy: "Kestra Core Team"
