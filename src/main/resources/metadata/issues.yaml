@@ -1,8 +1,8 @@
 group: io.kestra.plugin.github.issues
 name: "issues"
 title: "GitHub Issues"
-description: "This sub-group of plugins contains tasks for managing GitHub issues."
-body: ""
+description: "Tasks that search, create, and comment on GitHub issues."
+body: "Authenticate with a GitHub token, set repository owner/name, and supply search terms or issue payloads (title, body, labels, assignees) to file issues, add comments, or retrieve issue metadata for triage."
 videos: []
 createdBy: "Kestra Core Team"
 managedBy: "Kestra Core Team"

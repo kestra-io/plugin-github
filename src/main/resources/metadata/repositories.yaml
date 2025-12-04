@@ -1,8 +1,8 @@
 group: io.kestra.plugin.github.repositories
 name: "repositories"
 title: "GitHub Repositories"
-description: "This sub-group of plugins contains tasks for managing GitHub repositories."
-body: ""
+description: "Tasks that search and inspect GitHub repositories."
+body: "Authenticate with a GitHub token and supply search queries, topics, owners, or visibility filters to list repositories and return metadata such as stars, forks, and languages for inventory or compliance checks."
 videos: []
 createdBy: "Kestra Core Team"
 managedBy: "Kestra Core Team"
