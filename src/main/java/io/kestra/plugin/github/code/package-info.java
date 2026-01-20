@@ -1,7 +1,6 @@
 @PluginSubGroup(
     title = "GitHub Code",
     description = "This sub-group of plugins contains tasks for accessing and managing source code using Github API.",
-    categories = PluginSubGroup.PluginCategory.OTHER,
     categories = {
         PluginSubGroup.PluginCategory.INFRASTRUCTURE,
         PluginSubGroup.PluginCategory.BUSINESS

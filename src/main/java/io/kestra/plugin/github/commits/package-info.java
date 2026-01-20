@@ -1,7 +1,6 @@
 @PluginSubGroup(
     title = "GitHub Commits",
     description = "This sub-group of plugins contains to manage github commits.",
-    categories = PluginSubGroup.PluginCategory.OTHER,
     categories = {
         PluginSubGroup.PluginCategory.INFRASTRUCTURE,
         PluginSubGroup.PluginCategory.BUSINESS

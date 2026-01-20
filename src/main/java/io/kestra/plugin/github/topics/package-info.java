@@ -1,7 +1,6 @@
 @PluginSubGroup(
     title = "GitHub Topics",
     description = "This sub-group of plugins contains tasks for managing Github topics.",
-    categories = PluginSubGroup.PluginCategory.OTHER,
     categories = {
         PluginSubGroup.PluginCategory.INFRASTRUCTURE,
         PluginSubGroup.PluginCategory.BUSINESS
