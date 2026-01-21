@@ -1,6 +1,6 @@
 group: io.kestra.plugin.github.topics
 name: "topics"
-title: "GitHub Topics"
+title: "Topics"
 description: "Tasks that search GitHub topics."
 body: "Provide a GitHub token and topic query to retrieve topic metadata and related repositories for categorization or discovery workflows."
 videos: []
