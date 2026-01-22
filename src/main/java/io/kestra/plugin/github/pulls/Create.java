@@ -36,7 +36,7 @@ import java.net.URL;
                    tasks:
                      - id: create_pull_request
                        type: io.kestra.plugin.github.pulls.Create
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        repository: kestra-io/kestra
                        sourceBranch: develop
                        targetBranch: main

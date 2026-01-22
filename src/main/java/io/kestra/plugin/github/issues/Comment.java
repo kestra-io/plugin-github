@@ -37,7 +37,7 @@ import java.net.URL;
                    tasks:
                      - id: comment_on_issue
                        type: io.kestra.plugin.github.issues.Comment
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        repository: kestra-io/kestra
                        issueNumber: 1347
                        body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"

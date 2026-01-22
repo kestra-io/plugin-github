@@ -47,7 +47,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
                    tasks:
                      - id: search_commit
                        type: io.kestra.plugin.github.commits.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: "Initial repo:kestra-io/plugin-github language:java"
                    """
         ),
@@ -61,7 +61,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
                    tasks:
                      - id: search_commit
                        type: io.kestra.plugin.github.commits.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: Initial
                        repository: kestra-io/plugin-github
                    """

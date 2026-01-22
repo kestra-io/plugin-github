@@ -32,7 +32,7 @@ import org.kohsuke.github.*;
                    tasks:
                      - id: search_issues
                        type: io.kestra.plugin.github.issues.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: "repo:kestra-io/plugin-github is:open"
                    """
         ),
@@ -45,7 +45,7 @@ import org.kohsuke.github.*;
                    tasks:
                      - id: search_open_issues
                        type: io.kestra.plugin.github.issues.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        repository: kestra-io/plugin-github
                        open: TRUE
                    """

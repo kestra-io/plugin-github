@@ -56,7 +56,7 @@ import java.util.List;
                      - id: create_issue
                        type: io.kestra.plugin.github.issues.Create
                        login: your_github_login
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        repository: kestra-io/kestra
                        title: Workflow failed
                        body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
@@ -74,7 +74,7 @@ import java.util.List;
                    tasks:
                      - id: create_issue
                        type: io.kestra.plugin.github.issues.Create
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        repository: kestra-io/kestra
                        title: Workflow failed
                        body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
