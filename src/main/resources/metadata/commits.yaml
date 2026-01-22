@@ -1,6 +1,6 @@
 group: io.kestra.plugin.github.commits
 name: "commits"
-title: "GitHub Commits"
+title: "Commits"
 description: "Tasks that search and list GitHub commits."
 body: "Provide a GitHub token with repository details and search filters (branch, author, query) to retrieve commit metadata, hashes, and messages for auditing or downstream processing."
 videos: []
