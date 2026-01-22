@@ -36,7 +36,7 @@ import java.net.URL;
                    tasks:
                      - id: create_pull_request
                        type: io.kestra.plugin.github.pulls.Create
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        repository: kestra-io/kestra
                        sourceBranch: develop
                        targetBranch: main
@@ -120,7 +120,13 @@ public class Create extends GithubConnector implements RunnableTask<Create.Outpu
     @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
+        @Schema(
+            title = "The API Response URL for the Pull Request"
+        )
         private URL issueUrl;
+        @Schema(
+            title = "The URL to the Pull Request"
+        )
         private URL pullRequestUrl;
     }
 

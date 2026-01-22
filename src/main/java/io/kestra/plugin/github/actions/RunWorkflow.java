@@ -34,7 +34,7 @@ import java.util.Map;
                 tasks:
                   - id: run_workflow
                     type: io.kestra.plugin.github.actions.RunWorkflow
-                    oauthToken: your_github_token
+                    oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                     repository: your_owner/your_repository
                     workflowId: your_workflow_id
                     ref: your_branch_or_tag_name

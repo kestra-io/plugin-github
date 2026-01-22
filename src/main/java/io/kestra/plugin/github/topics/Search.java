@@ -42,7 +42,7 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
                    tasks:
                      - id: search_topics
                        type: io.kestra.plugin.github.topics.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: "micronaut framework is:not-curated repositories:>100"
                    """
         ),
@@ -56,7 +56,7 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
                    tasks:
                      - id: search_topics
                        type: io.kestra.plugin.github.topics.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: "micronaut framework"
                        is: NOT_CURATED
                        repositories: >100

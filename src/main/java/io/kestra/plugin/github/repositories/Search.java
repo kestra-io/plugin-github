@@ -32,7 +32,7 @@ import org.kohsuke.github.*;
                    tasks:
                      - id: search_repositories
                        type: io.kestra.plugin.github.repositories.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: "repo:kestra-io/plugin-github"
                    """
         ),
@@ -46,7 +46,7 @@ import org.kohsuke.github.*;
                    tasks:
                      - id: search_repositories
                        type: io.kestra.plugin.github.repositories.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        repository: kestra-io/plugin-github
                    """
         ),
@@ -60,7 +60,7 @@ import org.kohsuke.github.*;
                    tasks:
                      - id: search_repositories
                        type: io.kestra.plugin.github.repositories.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: "user:kestra-io language:java is:public"
                        sort: STARS
                        order: DESC
@@ -76,7 +76,7 @@ import org.kohsuke.github.*;
                    tasks:
                      - id: search_repositories
                        type: io.kestra.plugin.github.repositories.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        user: kestra-io
                        language: java
                        visibility: PUBLIC

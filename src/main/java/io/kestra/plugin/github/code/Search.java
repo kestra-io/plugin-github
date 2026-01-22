@@ -45,7 +45,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
                    tasks:
                      - id: search_code
                        type: io.kestra.plugin.github.code.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: "addClass in:file language:js repo:jquery/jquery"
                    """
         ),
@@ -59,7 +59,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
                    tasks:
                      - id: search_code
                        type: io.kestra.plugin.github.code.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: addClass
                        in: file
                        language: js

@@ -32,7 +32,7 @@ import org.kohsuke.github.*;
                    tasks:
                      - id: search_users
                        type: io.kestra.plugin.github.users.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: "kestra-io in:login language:java"
                    """
         ),
@@ -46,7 +46,7 @@ import org.kohsuke.github.*;
                    tasks:
                      - id: search_users
                        type: io.kestra.plugin.github.users.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: kestra-io
                        in: login
                        language: java
