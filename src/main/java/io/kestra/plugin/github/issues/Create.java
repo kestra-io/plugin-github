@@ -37,7 +37,7 @@ import java.util.List;
                    tasks:
                      - id: create_issue
                        type: io.kestra.plugin.github.issues.Create
-                       jwtToken: your_github_jwt_token
+                       jwtToken: "{{ secret('GITHUB_JWT_TOKEN') }}"
                        repository: kestra-io/kestra
                        title: Workflow failed
                        body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
