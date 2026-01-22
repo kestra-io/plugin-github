@@ -1,6 +1,6 @@
 group: io.kestra.plugin.github.code
 name: "code"
-title: "GitHub Code"
+title: "Code"
 description: "Tasks that search GitHub source code through the API."
 body: "Use a GitHub token with search queries, languages, and repo qualifiers to retrieve matching code results and metadata you can route to review or inventory workflows."
 videos: []

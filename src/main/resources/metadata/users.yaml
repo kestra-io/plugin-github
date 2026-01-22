@@ -1,6 +1,6 @@
 group: io.kestra.plugin.github.users
 name: "users"
-title: "GitHub Users"
+title: "Users"
 description: "Tasks that search GitHub users."
 body: "Use a GitHub token with search criteria such as name, org, or location to list users and return profile metadata for audits or onboarding workflows."
 videos: []

@@ -1,6 +1,6 @@
 group: io.kestra.plugin.github.pulls
 name: "pulls"
-title: "GitHub Pull Requests"
+title: "Pull Requests"
 description: "Tasks that search and open GitHub pull requests."
 body: "Use a GitHub token with owner/repo, base/head branches, and PR metadata (title, body, reviewers) to create pull requests or search existing ones, returning PR details for review flows."
 videos: []
