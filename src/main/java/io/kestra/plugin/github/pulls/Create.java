@@ -121,7 +121,7 @@ public class Create extends GithubConnector implements RunnableTask<Create.Outpu
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "The API Response for the Pull Request"
+            title = "The API Response URL for the Pull Request"
         )
         private URL issueUrl;
         @Schema(
