@@ -97,7 +97,13 @@ public class SearchTest {
     private List<Map<String, Object>> getResult(Search.FileOutput run) throws IOException {
         BufferedReader inputStream = new BufferedReader(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, run.getUri())));
         List<Map<String, Object>> result = new ArrayList<>();
-        FileSerde.reader(inputStream, r -> result.add((Map<String, Object>) r));
+        FileSerde.reader(inputStream, r -> {
+            if (r instanceof List<?> list) {
+                list.forEach(item -> result.add((Map<String, Object>) item));
+            } else {
+                result.add((Map<String, Object>) r);
+            }
+        });
         return result;
     }
 }
