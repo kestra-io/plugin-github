@@ -4,6 +4,8 @@ import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
+import io.micronaut.context.annotation.Requires;
+import io.micronaut.context.annotation.Value;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -13,9 +15,11 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 @KestraTest
-@Disabled("Too verbose for CI")
+@Requires(property = "github.token")
+@Disabled("Disable for CI to avoid creating resources")
 public class CreatePullRequestTest {
-    private static final String GITHUB_OAUTH_TOKEN = System.getenv("GITHUB_TOKEN");
+    @Value("${github.token}")
+    private String token;
 
     @Inject
     private RunContextFactory runContextFactory;
@@ -25,7 +29,7 @@ public class CreatePullRequestTest {
         RunContext runContext = runContextFactory.of();
 
         io.kestra.plugin.github.pulls.Create task = io.kestra.plugin.github.pulls.Create.builder()
-            .oauthToken(Property.ofValue(GITHUB_OAUTH_TOKEN))
+            .oauthToken(Property.ofValue(token))
             .repository(Property.ofValue("kestra-io/plugin-github"))
             .sourceBranch(Property.ofValue("dev"))
             .targetBranch(Property.ofValue("test"))

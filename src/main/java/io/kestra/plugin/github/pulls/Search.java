@@ -5,12 +5,17 @@ import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
-import io.kestra.plugin.github.GHPullRequestSearchBuilderCustom;
-import io.kestra.plugin.github.GithubSearchTask;
+import io.kestra.plugin.github.AbstractGithubTask;
+import io.kestra.plugin.github.model.FileOutput;
+import io.kestra.plugin.github.services.SearchService;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.github.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @SuperBuilder
 @ToString
@@ -54,7 +59,7 @@ import org.kohsuke.github.*;
         )
     }
 )
-public class Search extends GithubSearchTask implements RunnableTask<GithubSearchTask.FileOutput> {
+public class Search extends AbstractGithubTask implements RunnableTask<FileOutput> {
 
     @RequiredArgsConstructor
     public enum Order {
@@ -193,85 +198,171 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     public FileOutput run(RunContext runContext) throws Exception {
         GitHub gitHub = connect(runContext);
 
-        GHPullRequestSearchBuilderCustom searchBuilder = setupSearchParameters(runContext, gitHub);
-
-        PagedSearchIterable<GHPullRequest> pullRequests = searchBuilder.list();
-
-        return this.run(runContext, pullRequests, gitHub);
-    }
-
-    private GHPullRequestSearchBuilderCustom setupSearchParameters(RunContext runContext, GitHub gitHub) throws Exception {
         GHPullRequestSearchBuilderCustom searchBuilder = new GHPullRequestSearchBuilderCustom(gitHub);
 
         searchBuilder
             .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
             .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
 
-        if (this.query != null) {
-            searchBuilder.q(runContext.render(this.query).as(String.class).orElseThrow());
+        runContext.render(this.query).as(String.class).ifPresent(searchBuilder::q);
+        runContext.render(this.open).as(Boolean.class).filter(b -> b).ifPresent(_ -> searchBuilder.isOpen());
+        runContext.render(this.closed).as(Boolean.class).filter(b -> b).ifPresent(_ -> searchBuilder.isClosed());
+        runContext.render(this.merged).as(Boolean.class).filter(b -> b).ifPresent(_ -> searchBuilder.isMerged());
+        runContext.render(this.draft).as(Boolean.class).filter(b -> b).ifPresent(_ -> searchBuilder.isDraft());
+        runContext.render(this.draft).as(Boolean.class).filter(b -> b).ifPresent(_ -> searchBuilder.isDraft());
+        runContext.render(this.assigned).as(String.class).ifPresent(searchBuilder::assigned);
+        runContext.render(this.title).as(String.class).ifPresent(searchBuilder::titleLike);
+        runContext.render(this.closedAt).as(String.class).ifPresent(searchBuilder::closed);
+        runContext.render(this.createdAt).as(String.class).ifPresent(searchBuilder::created);
+        runContext.render(this.updatedAt).as(String.class).ifPresent(searchBuilder::updated);
+        runContext.render(this.commit).as(String.class).ifPresent(searchBuilder::commit);
+        runContext.render(this.repository).as(String.class).ifPresent(searchBuilder::repo);
+        runContext.render(this.base).as(String.class).ifPresent(searchBuilder::base);
+        runContext.render(this.head).as(String.class).ifPresent(searchBuilder::head);
+        runContext.render(this.createdByMe).as(Boolean.class).filter(b -> b).ifPresent(r -> searchBuilder.createdByMe());
+        runContext.render(this.author).as(String.class).ifPresent(searchBuilder::author);
+
+        PagedSearchIterable<GHPullRequest> pullRequests = searchBuilder.list();
+
+        return SearchService.run(runContext, pullRequests, gitHub);
+    }
+
+
+    public static class GHPullRequestSearchBuilderCustom {
+        private final GHPullRequestSearchBuilder searchBuilder;
+        private final List<String> terms = new ArrayList<>();
+
+        public GHPullRequestSearchBuilderCustom(GitHub gitHub) {
+            this.searchBuilder = gitHub.searchPullRequests();
         }
 
-        if (runContext.render(this.open).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
-            searchBuilder.isOpen();
+        public GHPullRequestSearchBuilderCustom q(String qualifier, String value) {
+            if (StringUtils.isEmpty(qualifier)) {
+                throw new IllegalArgumentException("qualifier cannot be null or empty");
+            }
+            if (StringUtils.isEmpty(value)) {
+                final String removeQualifier = qualifier + ":";
+                terms.removeIf(term -> term.startsWith(removeQualifier));
+            } else {
+                terms.add(qualifier + ":" + value);
+            }
+            return this;
         }
 
-        if (runContext.render(this.closed).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
-            searchBuilder.isClosed();
+        public GHPullRequestSearchBuilderCustom q(String value) {
+            searchBuilder.q(value);
+            return this;
         }
 
-        if (runContext.render(this.merged).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
-            searchBuilder.isMerged();
+        public GHPullRequestSearchBuilderCustom repo(String repository) {
+            q("repo", repository);
+            return this;
         }
 
-        if (runContext.render(this.draft).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
-            searchBuilder.isDraft();
+        public GHPullRequestSearchBuilderCustom author(String user) {
+            q("author", user);
+            return this;
         }
 
-        if (this.assigned != null) {
-            searchBuilder.assigned(runContext.render(this.assigned).as(String.class).orElseThrow());
-        }
-
-        if (this.title != null) {
-            searchBuilder.titleLike(runContext.render(this.title).as(String.class).orElseThrow());
-        }
-
-        if (this.closedAt != null) {
-            searchBuilder.closed(runContext.render(this.closedAt).as(String.class).orElseThrow());
-        }
-
-        if (this.createdAt != null) {
-            searchBuilder.created(runContext.render(this.createdAt).as(String.class).orElseThrow());
-        }
-
-        if (this.updatedAt != null) {
-            searchBuilder.updated(runContext.render(this.updatedAt).as(String.class).orElseThrow());
-        }
-
-        if (this.commit != null) {
-            searchBuilder.commit(runContext.render(this.commit).as(String.class).orElseThrow());
-        }
-
-        if (this.repository != null) {
-            searchBuilder.repo(runContext.render(this.repository).as(String.class).orElseThrow());
-        }
-
-        if (this.base != null) {
-            searchBuilder.base(runContext.render(this.base).as(String.class).orElseThrow());
-        }
-
-        if (this.head != null) {
-            searchBuilder.head(runContext.render(this.head).as(String.class).orElseThrow());
-        }
-
-        if (runContext.render(this.createdByMe).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
+        public GHPullRequestSearchBuilderCustom createdByMe() {
             searchBuilder.createdByMe();
+            return this;
         }
 
-        if (this.author != null) {
-            searchBuilder.author(runContext.render(this.author).as(String.class).orElseThrow());
+        public GHPullRequestSearchBuilderCustom assigned(String user) {
+            q("assignee", user);
+            return this;
         }
 
-        return searchBuilder;
+        public GHPullRequestSearchBuilderCustom mentions(String user) {
+            q("mentions", user);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom isOpen() {
+            searchBuilder.isOpen();
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom isClosed() {
+            searchBuilder.isClosed();
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom isMerged() {
+            searchBuilder.isMerged();
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom isDraft() {
+            searchBuilder.isDraft();
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom head(String branch) {
+            q("head", branch);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom base(String branch) {
+            q("base", branch);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom commit(String sha) {
+            q("SHA", sha);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom created(String created) {
+            q("created", created);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom merged(String merged) {
+            q("merged", merged);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom closed(String closed) {
+            q("closed", closed);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom updated(String updated) {
+            q("updated", updated);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom label(String label) {
+            searchBuilder.label(label);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom inLabels(Iterable<String> labels) {
+            searchBuilder.inLabels(labels);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom titleLike(String title) {
+            searchBuilder.titleLike(title);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom order(GHDirection direction) {
+            searchBuilder.order(direction);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom sort(GHPullRequestSearchBuilder.Sort sort) {
+            searchBuilder.sort(sort);
+            return this;
+        }
+
+        public PagedSearchIterable<GHPullRequest> list() {
+            return searchBuilder.q(StringUtils.join(terms, " ")).list();
+        }
+
     }
 
 }

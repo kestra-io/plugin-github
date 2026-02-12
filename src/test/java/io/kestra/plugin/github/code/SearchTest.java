@@ -7,9 +7,10 @@ import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.FileSerde;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.tenant.TenantService;
+import io.micronaut.context.annotation.Requires;
+import io.micronaut.context.annotation.Value;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -22,9 +23,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 @KestraTest
-@EnabledIfEnvironmentVariable(named = "GITHUB_TOKEN", matches = ".+")
+@Requires(property = "github.token")
 public class SearchTest {
-    private static final String GITHUB_OAUTH_TOKEN = System.getenv("GITHUB_TOKEN");
+    @Value("${github.token}")
+    private String token;
 
     @Inject
     private RunContextFactory runContextFactory;
@@ -37,7 +39,7 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .oauthToken(Property.ofValue(GITHUB_OAUTH_TOKEN))
+            .oauthToken(Property.ofValue(token))
             .query(Property.ofValue("run in:file language:java repo:kestra-io/plugin-github"))
             .build();
 
@@ -57,7 +59,7 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .oauthToken(Property.ofValue(GITHUB_OAUTH_TOKEN))
+            .oauthToken(Property.ofValue(token))
             .query(Property.ofValue("run"))
             .in(Property.ofValue("file"))
             .language(Property.ofValue("java"))
