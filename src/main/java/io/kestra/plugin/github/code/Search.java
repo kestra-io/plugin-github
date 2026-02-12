@@ -6,7 +6,7 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
-import io.kestra.plugin.github.GithubConnector;
+import io.kestra.plugin.github.AbstractGithubTask;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -68,7 +68,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
         )
     }
 )
-public class Search extends GithubConnector implements RunnableTask<Search.Output> {
+public class Search extends AbstractGithubTask implements RunnableTask<Search.Output> {
 
     @RequiredArgsConstructor
     public enum Order {
@@ -175,7 +175,22 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     public Output run(RunContext runContext) throws Exception {
         GitHub gitHub = connect(runContext);
 
-        GHContentSearchBuilder searchBuilder = setupSearchParameters(runContext, gitHub);
+        GHContentSearchBuilder searchBuilder = gitHub.searchContent();
+
+        searchBuilder
+            .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
+            .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
+
+        runContext.render(this.query).as(String.class).ifPresent(searchBuilder::q);
+        runContext.render(this.repository).as(String.class).ifPresent(searchBuilder::repo);
+        runContext.render(this.user).as(String.class).ifPresent(searchBuilder::user);
+        runContext.render(this.in).as(String.class).ifPresent(searchBuilder::in);
+        runContext.render(this.language).as(String.class).ifPresent(searchBuilder::language);
+        runContext.render(this.extension).as(String.class).ifPresent(searchBuilder::extension);
+        runContext.render(this.fork).as(Fork.class).map(r -> r.value).ifPresent(searchBuilder::fork);
+        runContext.render(this.filename).as(String.class).ifPresent(searchBuilder::filename);
+        runContext.render(this.path).as(String.class).ifPresent(searchBuilder::path);
+        runContext.render(this.size).as(String.class).ifPresent(searchBuilder::size);
 
         PagedSearchIterable<GHContent> codes = searchBuilder.list();
 
@@ -184,14 +199,8 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
 
             codes.toList()
                 .stream()
-                .map(
-                    throwFunction(Search::getCodeDetails)
-                )
-                .forEachOrdered(
-                    throwConsumer(
-                        code -> FileSerde.write(output, code)
-                    )
-                );
+                .map(throwFunction(Search::getCodeDetails))
+                .forEachOrdered(throwConsumer(code -> FileSerde.write(output, code)));
 
             output.flush();
 
@@ -200,55 +209,6 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
                 .uri(runContext.storage().putFile(tempFile))
                 .build();
         }
-    }
-
-    private GHContentSearchBuilder setupSearchParameters(RunContext runContext, GitHub gitHub) throws Exception {
-        GHContentSearchBuilder searchBuilder = gitHub.searchContent();
-
-        searchBuilder
-            .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
-            .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
-
-        if (this.query != null) {
-            searchBuilder.q(runContext.render(this.query).as(String.class).orElseThrow());
-        }
-
-        if (this.repository != null) {
-            searchBuilder.repo(runContext.render(this.repository).as(String.class).orElseThrow());
-        }
-
-        if (this.user != null) {
-            searchBuilder.user(runContext.render(this.user).as(String.class).orElseThrow());
-        }
-
-        if (this.in != null) {
-            searchBuilder.in(runContext.render(this.in).as(String.class).orElseThrow());
-        }
-
-        if (this.language != null) {
-            searchBuilder.language(runContext.render(this.language).as(String.class).orElseThrow());
-        }
-
-        if (this.extension != null) {
-            searchBuilder.extension(runContext.render(this.extension).as(String.class).orElseThrow());
-        }
-
-        if (this.fork != null) {
-            searchBuilder.fork(runContext.render(this.fork).as(Fork.class).orElseThrow().value);
-        }
-
-        if (this.filename != null) {
-            searchBuilder.filename(runContext.render(this.filename).as(String.class).orElseThrow());
-        }
-
-        if (this.path != null) {
-            searchBuilder.path(runContext.render(this.path).as(String.class).orElseThrow());
-        }
-
-        if (this.size != null) {
-            searchBuilder.size(runContext.render(this.size).as(String.class).orElseThrow());
-        }
-        return searchBuilder;
     }
 
     private static Map<String, Object> getCodeDetails(GHContent code) throws IOException {
