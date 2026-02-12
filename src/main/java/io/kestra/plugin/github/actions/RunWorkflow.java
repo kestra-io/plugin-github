@@ -53,7 +53,7 @@ public class RunWorkflow extends GithubConnector implements RunnableTask<VoidOut
     private Property<String> repository;
 
     @Schema(
-        title = "Workflow id or filename",
+        title = "Workflow ID or filename",
         description = "Workflow identifier accepted by GitHub API (numeric id or `workflow.yml` filename)."
     )
     private Property<String> workflowId;
