@@ -17,8 +17,8 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for GitHub issues.",
-    description = "If no authentication is provided, anonymous authentication will be used"
+    title = "Search GitHub issues",
+    description = "Runs the GitHub issue search API and writes matches to storage. Anonymous access works but omits private repos and some fields; defaults to creation-time ascending."
 )
 @Plugin(
     examples = {
@@ -72,53 +72,52 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     }
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers. Allows you to limit your search to specific areas of GitHub."
+        title = "Search keywords and qualifiers",
+        description = "GitHub issue search syntax combining keywords with qualifiers like repo, is, label."
     )
     private Property<String> query;
 
     @Schema(
-        title = "Searched issues mentions by specified user."
+        title = "Issues mentioning user",
+        description = "Adds the `mentions:` qualifier for the GitHub username."
     )
     private Property<String> mentions;
 
     @Schema(
-        title = "Whether the issue is open."
+        title = "Filter open issues",
+        description = "Adds `is:open` when true."
     )
     private Property<Boolean> open;
 
     @Schema(
-        title = "Whether issue is closed."
+        title = "Filter closed issues",
+        description = "Adds `is:closed` when true."
     )
     private Property<Boolean> closed;
 
     @Schema(
-        title = "Whether issue is merged."
+        title = "Filter merged pull requests",
+        description = "Adds `is:merged` when true; applies to PRs returned by issue search."
     )
     private Property<Boolean> merged;
 
     @Schema(
-        title = "Order of the output.",
-        description = """
-                      ASC - the results will be in ascending order\n
-                      DESC - the results will be in descending order
-                      """
+        title = "Sort direction",
+        description = "ASC sorts ascending (default); DESC sorts descending."
     )
     @Builder.Default
     private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Schema(
-        title = "Sort condition for the output.",
-        description = """
-                      CREATED - Sorts the results of query by the time issue was created (DEFAULT)\n
-                      UPDATED - Sorts the results of query by the tome issue was last time updated\n
-                      COMMENTS - Sorts the results of query by the number of comments
-                      """
+        title = "Sort field",
+        description = "CREATED sorts by creation time (default); UPDATED by last update; COMMENTS by comment count."
     )
     @Builder.Default
     private Property<Sort> sort = Property.ofValue(Sort.CREATED);
 
     @Schema(
-        title = "The GitHub repository."
+        title = "Repository filter",
+        description = "`owner/repo` appended as `repo:` when provided."
     )
     private Property<String> repository;
 

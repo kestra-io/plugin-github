@@ -17,8 +17,8 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for GitHub repositories.",
-    description = "If no authentication is provided, anonymous authentication will be used. Anonymous authentication can't retrieve full information."
+    title = "Search GitHub repositories",
+    description = "Runs the GitHub repository search API and writes matches to storage. Defaults to updated-date ascending. Anonymous access skips private repos and some fields; provide OAuth/JWT to remove those limits."
 )
 @Plugin(
     examples = {
@@ -115,72 +115,64 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     }
 
     @Schema(
-        title = "To search the code in a specific repository.",
-        description = "Example string: \"myUserName/MyRepository\". query equivalent: \"repo:myUserName/MyRepository\"."
+        title = "Repository filter",
+        description = "`owner/repo` value for the `repo:` qualifier."
     )
     private Property<String> repository;
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers.",
-        description = "Qualifiers allow you to limit your search to specific areas of GitHub."
+        title = "Search keywords and qualifiers",
+        description = "Repository search syntax combining keywords with qualifiers like language, topic, stars."
     )
     private Property<String> query;
 
     @Schema(
-        title = "Search for code based on what language it's written in.",
-        description = "Can be the language name or alias."
+        title = "Language filter",
+        description = "Language name or alias for the `language:` qualifier."
     )
     private Property<String> language;
 
     @Schema(
-        title = "Search for code based on when repository was created."
+        title = "Created date filter",
+        description = "Supports `>`, `<`, and range (`..`) syntax."
     )
     private Property<String> created;
 
     @Schema(
-        title = "Search for code based on how many starts repository has."
+        title = "Stars filter",
+        description = "Star count qualifier; supports `>`, `<`, and range (`..`)."
     )
     private Property<String> stars;
 
     @Schema(
-        title = "Search the code in all repositories owned by a certain user.",
-        description = "To search by organization, use: \"query: org:myOrganization\"."
+        title = "User scope",
+        description = "Limits search to repositories owned by the given user; use `org:` within `query` for organizations."
     )
     private Property<String> user;
 
     @Schema(
-        title = "Search the code by topic"
+        title = "Topic filter",
+        description = "Topic name for the `topic:` qualifier."
     )
     private Property<String> topic;
 
     @Schema(
-        title = "Order of the output.",
-        description = """
-                      ASC - the results will be in ascending order\n
-                      DESC - the results will be in descending order
-                      """
+        title = "Sort direction",
+        description = "ASC sorts ascending (default); DESC sorts descending."
     )
     @Builder.Default
     private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Schema(
-        title = "Sort condition of the output.",
-        description = """
-                      UPDATED - the results will be sorted by when the repository was last updated\n
-                      STARS - the results will be sorted by the number of stars the repository has\n
-                      FORKS - the results will be sorted by the number of forks the repository has
-                      """
+        title = "Sort field",
+        description = "UPDATED sorts by last update time (default); STARS by star count; FORKS by fork count."
     )
     @Builder.Default
     private Property<Sort> sort = Property.ofValue(Sort.UPDATED);
 
     @Schema(
-        title = "Search repository that have specified repositories. By default, it's search for all repositories.",
-        description = """
-                      PUBLIC - shows only public repositories\n
-                      PRIVATE - shows only private repositories that are available for user who is searching\n
-                      INTERNAL - shows only internal repositories
-                      """
+        title = "Visibility filter",
+        description = "PUBLIC shows only public repos; PRIVATE only private repos accessible to the token; INTERNAL only internal repos."
     )
     private Property<Visibility> visibility;
 
