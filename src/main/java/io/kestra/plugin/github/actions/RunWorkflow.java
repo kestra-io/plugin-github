@@ -19,8 +19,8 @@ import java.util.Map;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Trigger a GitHub Action workflow manually.",
-    description = "Trigger a GitHub Action workflow by creating a workflow dispatch event."
+    title = "Dispatch a GitHub Actions workflow",
+    description = "Creates a workflow_dispatch event on the target repository. Requires an OAuth/JWT token with permission to run workflows; uses the provided ref (branch or tag) and optional inputs."
 )
 @Plugin(
     examples = {
@@ -47,26 +47,26 @@ import java.util.Map;
 public class RunWorkflow extends GithubConnector implements RunnableTask<VoidOutput> {
 
     @Schema(
-        title = "Repository where the workflow will be dispatched.",
-        description = "The repository on which the workflow will be dispatched. Repository name must be in format owner/repo."
+        title = "Repository to dispatch in",
+        description = "`owner/repo` where the workflow file lives; token must have access there."
     )
     private Property<String> repository;
 
     @Schema(
-        title = "Workflow id to dispatch.",
-        description = "The workflow id to be dispatched."
+        title = "Workflow ID or filename",
+        description = "Workflow identifier accepted by GitHub API (numeric id or `workflow.yml` filename)."
     )
     private Property<String> workflowId;
 
     @Schema(
-        title = "Some reference name in the repository where the dispatch will occur.",
-        description = "Can be a branch or a tag."
+        title = "Branch or tag to run on",
+        description = "Ref name where GitHub will resolve the workflow; must exist in the repository."
     )
     private Property<String> ref;
 
     @Schema(
-        title = "Optional inputs to be used for the workflow dispatch.",
-        description = "Map with optional inputs.",
+        title = "Workflow inputs map",
+        description = "Key/value payload passed to workflow `inputs`; optional, defaults to none.",
         requiredMode = Schema.RequiredMode.NOT_REQUIRED
     )
     private Property<Map<String, Object>> inputs;

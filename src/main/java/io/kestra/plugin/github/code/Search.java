@@ -30,8 +30,8 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for GitHub code.",
-    description = "This task requires authentication."
+    title = "Search GitHub code",
+    description = "Runs the GitHub code search API and writes matched files to storage. Requires OAuth/JWT auth; defaults to best-match sorting in ascending order."
 )
 @Plugin(
     examples = {
@@ -96,74 +96,77 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     }
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers.",
-        description = "Allow you to limit your search to specific areas of GitHub."
+        title = "Search keywords and qualifiers",
+        description = "GitHub code search syntax combining keywords with qualifiers like repo, path, language."
     )
     private Property<String> query;
 
     @Schema(
-        title = "The GitHub repository."
+        title = "Repository to search",
+        description = "`owner/repo` used for the `repo:` qualifier."
     )
     private Property<String> repository;
 
     @Schema(
-        title = "Search commits in all repositories owned by a certain user."
+        title = "User scope",
+        description = "Limits search to repositories owned by the given user."
     )
     private Property<String> user;
 
     @Schema(
-        title = "In"
+        title = "Fields to search",
+        description = "Comma-separated `in:` targets (e.g. `file,path`); defaults to all."
     )
     private Property<String> in;
 
     @Schema(
-        title = "The language."
+        title = "Language filter",
+        description = "Programming language qualifier."
     )
     private Property<String> language;
 
     @Schema(
-        title = "The file extension."
+        title = "File extension filter",
+        description = "Matches files with the given extension."
     )
     private Property<String> extension;
 
     @Schema(
-        description = "Whether to include forks."
+        title = "Include forks",
+        description = "Controls fork inclusion: parent only, forks only, or both."
     )
     private Property<Fork> fork;
 
     @Schema(
-        title = "The file name."
+        title = "File name filter",
+        description = "Matches files with this exact name."
     )
     private Property<String> filename;
 
     @Schema(
-        title = "The file path."
+        title = "Path prefix filter",
+        description = "Limits results to files under this path."
     )
     private Property<String> path;
 
     @Schema(
-        title = "The file size."
+        title = "File size filter",
+        description = "Supports `>`, `<`, and range syntax (`..`) in bytes."
     )
     private Property<String> size;
 
     @Schema(
         name = "order",
-        title = "Order of the output.",
-        description = """
-                      ASC - the results will be in ascending order\n
-                      DESC - the results will be in descending order
-                      """
+        title = "Sort direction",
+        description = "ASC sorts ascending (default); DESC sorts descending."
     )
     @Builder.Default
     private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Schema(
         name = "sort",
-        title = "Sort condition for the output.",
-        description = """
-                      BEST_MATCH - the results will be sorted by best match results\n
-                      INDEXED - the results will be sorted by the index
-                      """
+        title = "Sort field",
+        description = "BEST_MATCH ranks by relevance (default); INDEXED sorts by index time."
     )
     @Builder.Default
     private Property<Sort> sort = Property.ofValue(Sort.BEST_MATCH);
