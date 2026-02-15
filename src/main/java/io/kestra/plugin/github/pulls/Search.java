@@ -205,11 +205,11 @@ public class Search extends AbstractGithubTask implements RunnableTask<FileOutpu
             .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
 
         runContext.render(this.query).as(String.class).ifPresent(searchBuilder::q);
-        runContext.render(this.open).as(Boolean.class).filter(b -> b).ifPresent(_ -> searchBuilder.isOpen());
-        runContext.render(this.closed).as(Boolean.class).filter(b -> b).ifPresent(_ -> searchBuilder.isClosed());
-        runContext.render(this.merged).as(Boolean.class).filter(b -> b).ifPresent(_ -> searchBuilder.isMerged());
-        runContext.render(this.draft).as(Boolean.class).filter(b -> b).ifPresent(_ -> searchBuilder.isDraft());
-        runContext.render(this.draft).as(Boolean.class).filter(b -> b).ifPresent(_ -> searchBuilder.isDraft());
+        runContext.render(this.open).as(Boolean.class).filter(b -> b).ifPresent(ignored -> searchBuilder.isOpen());
+        runContext.render(this.closed).as(Boolean.class).filter(b -> b).ifPresent(ignored -> searchBuilder.isClosed());
+        runContext.render(this.merged).as(Boolean.class).filter(b -> b).ifPresent(ignored -> searchBuilder.isMerged());
+        runContext.render(this.draft).as(Boolean.class).filter(b -> b).ifPresent(ignored -> searchBuilder.isDraft());
+        runContext.render(this.draft).as(Boolean.class).filter(b -> b).ifPresent(ignored -> searchBuilder.isDraft());
         runContext.render(this.assigned).as(String.class).ifPresent(searchBuilder::assigned);
         runContext.render(this.title).as(String.class).ifPresent(searchBuilder::titleLike);
         runContext.render(this.closedAt).as(String.class).ifPresent(searchBuilder::closed);

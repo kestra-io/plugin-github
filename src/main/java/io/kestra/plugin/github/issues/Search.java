@@ -146,9 +146,9 @@ public class Search extends AbstractGithubTask implements RunnableTask<FileOutpu
         }
 
         runContext.render(this.mentions).as(String.class).ifPresent(searchBuilder::mentions);
-        runContext.render(this.open).as(Boolean.class).filter(r -> r).ifPresent(_ -> searchBuilder.isOpen());
-        runContext.render(this.closed).as(Boolean.class).filter(r -> r).ifPresent(_ -> searchBuilder.isClosed());
-        runContext.render(this.merged).as(Boolean.class).filter(r -> r).ifPresent(_ -> searchBuilder.isMerged());
+        runContext.render(this.open).as(Boolean.class).filter(r -> r).ifPresent(ignored -> searchBuilder.isOpen());
+        runContext.render(this.closed).as(Boolean.class).filter(r -> r).ifPresent(ignored -> searchBuilder.isClosed());
+        runContext.render(this.merged).as(Boolean.class).filter(r -> r).ifPresent(ignored -> searchBuilder.isMerged());
 
 
         PagedSearchIterable<GHIssue> issues = searchBuilder.list();
