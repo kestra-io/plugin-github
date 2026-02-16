@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.util.List;
 
 import static io.kestra.core.utils.Rethrow.throwConsumer;
 import static io.kestra.core.utils.Rethrow.throwFunction;
@@ -33,17 +34,15 @@ abstract public class GithubSearchTask extends GithubConnector {
         File tempFile = runContext.workingDir().createTempFile(".ion").toFile();
         try (BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(tempFile))) {
 
-            items
+            List<Object> results = items
                 .toList()
                 .stream()
                 .map(
                     throwFunction(ghObject -> getDetails(ghObject, gitHub.isAnonymous()))
                 )
-                .forEachOrdered(
-                    throwConsumer(
-                        user -> FileSerde.write(output, user)
-                    )
-                );
+                .toList();
+
+            FileSerde.write(output, results);
 
             output.flush();
 
