@@ -1,7 +1,10 @@
 @PluginSubGroup(
     title = "Commits",
     description = "This sub-group of plugins contains to manage github commits.",
-    categories = PluginSubGroup.PluginCategory.OTHER
+    categories = {
+        PluginSubGroup.PluginCategory.INFRASTRUCTURE,
+        PluginSubGroup.PluginCategory.BUSINESS
+    }
 )
 package io.kestra.plugin.github.commits;
 
