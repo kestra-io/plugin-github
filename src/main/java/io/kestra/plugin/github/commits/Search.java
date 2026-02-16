@@ -32,8 +32,8 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for GitHub commits.",
-    description = "This task requires authentication."
+    title = "Search GitHub commits",
+    description = "Runs the GitHub commit search API and writes matches to storage. Requires OAuth/JWT auth; anonymous runs return no data. Defaults to committer date sorted ascending."
 )
 @Plugin(
     examples = {
@@ -47,7 +47,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
                    tasks:
                      - id: search_commit
                        type: io.kestra.plugin.github.commits.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: "Initial repo:kestra-io/plugin-github language:java"
                    """
         ),
@@ -61,7 +61,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
                    tasks:
                      - id: search_commit
                        type: io.kestra.plugin.github.commits.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: Initial
                        repository: kestra-io/plugin-github
                    """
@@ -87,108 +87,117 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     }
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers.",
-        description = "Allows you to limit your search to specific areas of GitHub."
+        title = "Search keywords and qualifiers",
+        description = "Commit search syntax combining keywords with qualifiers like repo, author, path."
     )
     private Property<String> query;
 
     @Schema(
-        title = "Search in specified repository."
+        title = "Repository to search",
+        description = "`owner/repo` for the `repo:` qualifier."
     )
     private Property<String> repository;
 
     @Schema(
-        title = "Matches commits from repositories with the specified visibility."
+        title = "Repository visibility",
+        description = "Uses the `is:` qualifier (e.g. `public`, `private`)."
     )
     private Property<String> is;
 
     @Schema(
-        title = "Matches commits with the specified SHA-1 hash."
+        title = "Commit SHA filter",
+        description = "Matches commits with the specified SHA-1 hash."
     )
     private Property<String> hash;
 
     @Schema(
-        title = "Matches commits whose parent has the specified SHA-1 hash."
+        title = "Parent commit SHA",
+        description = "Filters by parent commit SHA-1."
     )
     private Property<String> parent;
 
     @Schema(
-        title = "Matches commits with the specified SHA-1 git tree hash."
+        title = "Tree SHA filter",
+        description = "Filters by git tree SHA-1."
     )
     private Property<String> tree;
 
     @Schema(
-        title = "Search commits in all repositories owned by a certain user"
+        title = "User scope",
+        description = "Limits search to repositories owned by the given user."
     )
     private Property<String> user;
 
     @Schema(
-        title = "Search commits in all repositories owned by a certain organization."
+        title = "Organization scope",
+        description = "Limits search to repositories owned by the given organization."
     )
     private Property<String> org;
 
     @Schema(
-        title = "Find commits by a particular user."
+        title = "Author login",
+        description = "Adds the `author:` qualifier for the GitHub username."
     )
     private Property<String> author;
 
     @Schema(
-        title = "Match commits authored within the specified date range. When you search for a date, you can use greater than, less than, and range qualifiers to further filter results."
+        title = "Author date filter",
+        description = "Supports `>`, `<`, and range (`..`) dates."
     )
     private Property<String> authorDate;
 
     @Schema(
-        title = "Match commits by the author's full email address."
+        title = "Author email",
+        description = "Filters by author email address."
     )
     private Property<String> authorEmail;
 
     @Schema(
-        title = "Match commits by the name of the author"
+        title = "Author name",
+        description = "Filters by author display name."
     )
     private Property<String> authorName;
 
     @Schema(
-        title = "Find commits by a particular user"
+        title = "Committer login",
+        description = "Adds the `committer:` qualifier for the GitHub username."
     )
     private Property<String> committer;
 
     @Schema(
-        title = "Match commits committed within the specified date range.",
-        description = "When you search for a date, you can use greater than, less than, and range qualifiers to further filter results."
+        title = "Committer date filter",
+        description = "Supports `>`, `<`, and range (`..`) dates."
     )
     private Property<String> committerDate;
 
     @Schema(
-        title = "Match commits by the committer's full email address."
+        title = "Committer email",
+        description = "Filters by committer email address."
     )
     private Property<String> committerEmail;
 
     @Schema(
-        title = "Match commits by the name of the committer"
+        title = "Committer name",
+        description = "Filters by committer display name."
     )
     private Property<String> committerName;
 
     @Schema(
-        title = "Whether to filter merge commits."
+        title = "Filter merge commits",
+        description = "True to include only merge commits; false to exclude them."
     )
     private Property<Boolean> merge;
 
     @Schema(
-        title = "Order of the output.",
-        description = """
-                      ASC - the results will be in ascending order\n
-                      DESC - the results will be in descending order
-                      """
+        title = "Sort direction",
+        description = "ASC sorts ascending (default); DESC sorts descending."
     )
     @Builder.Default
     private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Schema(
-        title = "Sort condition for the output.",
-        description = """
-                      COMMITTER_DATE - the results will be sorted by when user joined to Github\n
-                      AUTHOR_DATE - the results will be sorted by the number of repositories owned by user
-                      """
+        title = "Sort field",
+        description = "COMMITTER_DATE sorts by committer timestamp (default); AUTHOR_DATE by author timestamp."
     )
     @Builder.Default
     private Property<Sort> sort = Property.ofValue(Sort.COMMITTER_DATE);

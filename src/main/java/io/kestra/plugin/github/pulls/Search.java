@@ -18,8 +18,8 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for GitHub pull requests.",
-    description = "If no authentication is provided, anonymous authentication will be used. Anonymous authentication can't retrieve full information."
+    title = "Search GitHub pull requests",
+    description = "Runs a GitHub Search API query for pull requests and writes results to storage. Defaults to creation-date ascending; anonymous access omits some fields and can't reach private repositories. Provide an OAuth or JWT token to lift those limits."
 )
 @Plugin(
     examples = {
@@ -33,7 +33,7 @@ import org.kohsuke.github.*;
                    tasks:
                      - id: search_pull_requests
                        type: io.kestra.plugin.github.pulls.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: "repo:kestra-io/plugin-github is:open"
                    """
         ),
@@ -47,7 +47,7 @@ import org.kohsuke.github.*;
                    tasks:
                      - id: search_open_pull_requests
                        type: io.kestra.plugin.github.pulls.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        repository: kestra-io/plugin-github
                        open: TRUE
                    """
@@ -74,113 +74,117 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     }
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers.",
-        description = "Allow you to limit your search to specific areas of GitHub."
+        title = "Search keywords and qualifiers",
+        description = "GitHub pull request search syntax combining keywords with qualifiers like repo, is, label, etc."
     )
     private Property<String> query;
 
     @Schema(
-        title = "Searched issues mentions by specified user."
+        title = "Pull requests mentioning this user",
+        description = "Matches PRs that mention the given GitHub username."
     )
     private Property<String> mentions;
 
     @Schema(
-        title = "Specifies whether the pull request is open."
+        title = "Filter to open pull requests",
+        description = "Adds the `is:open` qualifier when true."
     )
     private Property<Boolean> open;
 
     @Schema(
-        title = "Specifies whether the pull request is closed."
+        title = "Filter to closed pull requests",
+        description = "Adds the `is:closed` qualifier when true."
     )
     private Property<Boolean> closed;
 
     @Schema(
-        title = "Specifies whether the pull request is merged."
+        title = "Filter to merged pull requests",
+        description = "Adds the `is:merged` qualifier when true."
     )
     private Property<Boolean> merged;
 
     @Schema(
-        title = "Specifies whether the pull request is in draft."
+        title = "Filter to draft pull requests",
+        description = "Adds the `is:draft` qualifier when true."
     )
     private Property<Boolean> draft;
 
     @Schema(
-        title = "Search pull requests that are assigned to a certain user."
+        title = "Pull requests assigned to user",
+        description = "Uses the `assignee:` qualifier for the given username."
     )
     private Property<String> assigned;
 
     @Schema(
-        title = "Search pull requests that have title like specified."
+        title = "Title contains text",
+        description = "Matches pull requests with titles containing the given text."
     )
     private Property<String> title;
 
     @Schema(
-        title = "Search for code based on when pull request was closed.",
-        description = "You can use greater than, less than, and range qualifiers (`..` between two dates) to further filter results."
+        title = "Filter by closed date",
+        description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates."
     )
     private Property<String> closedAt;
 
     @Schema(
-        title = "Search for code based on when the pull request was created.",
-        description = "You can use greater than, less than, and range qualifiers (`..` between two dates) to further filter results."
+        title = "Filter by created date",
+        description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates."
     )
     private Property<String> createdAt;
 
     @Schema(
-        title = "Search for code based on when pull request was updated last time",
-        description = "You can use greater than, less than, and range qualifiers (`..` between two dates) to further filter results"
+        title = "Filter by last update",
+        description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates."
     )
     private Property<String> updatedAt;
 
     @Schema(
-        title = "Search for pull requests that contain that SHA.",
-        description = "The SHA syntax must be at least seven characters."
+        title = "Filter by commit SHA",
+        description = "Requires a commit SHA of at least seven characters."
     )
     private Property<String> commit;
 
     @Schema(
-        title = "Search pull requests in a specific repository."
+        title = "Repository to search",
+        description = "`owner/repo` value used for the `repo:` qualifier."
     )
     private Property<String> repository;
 
     @Schema(
-        title = "Filter pull requests based on the branch they are merging into."
+        title = "Base branch filter",
+        description = "Adds the `base:` qualifier for the target branch name."
     )
     private Property<String> base;
 
     @Schema(
-        title = "Filter pull requests based on the branch they came from."
+        title = "Head branch filter",
+        description = "Adds the `head:` qualifier for the source branch name."
     )
     private Property<String> head;
 
     @Schema(
-        title = "Specifies whether pull request is created by user who logged in using token.",
-        description = "Requires authentication."
+        title = "Only pull requests created by the caller",
+        description = "Adds `author:@me`; requires authenticated execution."
     )
     private Property<Boolean> createdByMe;
 
     @Schema(
-        title = "Finds pull requests created by a certain user or integration account."
+        title = "Author username",
+        description = "Adds the `author:` qualifier for the given GitHub user or app."
     )
     private Property<String> author;
 
     @Schema(
-        title = "Order of the output.",
-        description = """
-                      ASC - the results will be in ascending order\n
-                      DESC - the results will be in descending order
-                      """
+        title = "Sort direction",
+        description = "ASC sorts oldest first (default); DESC sorts newest first."
     )
     @Builder.Default
     private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Schema(
-        title = "Sort condition for the output.",
-        description = """
-                      CREATED - Sorts the results of query by the time issue was created (DEFAULT)\n
-                      UPDATED - Sorts the results of query by the tome issue was last time updated\n
-                      COMMENTS - Sorts the results of query by the number of comments
-                      """
+        title = "Sort field",
+        description = "CREATED sorts by creation time (default); UPDATED by last update; COMMENTS by comment count."
     )
     @Builder.Default
     private Property<Sort> sort = Property.ofValue(Sort.CREATED);

@@ -27,8 +27,8 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for GitHub topics.",
-    description = "If no authentication is provided, anonymous authentication will be used. Anonymous authentication can't retrieve full information."
+    title = "Search GitHub topics",
+    description = "Runs the GitHub topics search API and writes matches to storage. Defaults to ascending order; anonymous access returns limited metadata and cannot see private counts."
 )
 @Plugin(
     examples = {
@@ -42,7 +42,7 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
                    tasks:
                      - id: search_topics
                        type: io.kestra.plugin.github.topics.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: "micronaut framework is:not-curated repositories:>100"
                    """
         ),
@@ -56,7 +56,7 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
                    tasks:
                      - id: search_topics
                        type: io.kestra.plugin.github.topics.Search
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: "micronaut framework"
                        is: NOT_CURATED
                        repositories: >100
@@ -89,40 +89,37 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     };
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers.",
-        description = "Allow you to limit your search to specific areas of GitHub."
+        title = "Search keywords and qualifiers",
+        description = "Topic search syntax combining keywords with qualifiers."
     )
     private Property<String> query;
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers.",
+        title = "Curation/feature flags",
         description = """
-                      CURATED - Matches topics that are curated\n
-                      FEATURED - Matches topics that are featured on `https://github.com/topics/`\n
-                      NOT_CURATED - Matches topics that don't have extra information, such as a description or logo\n
-                      NOT_FEATURED - Matches topics that aren't featured on `https://github.com/topics/`
+                      CURATED matches curated topics\n
+                      FEATURED matches topics featured on https://github.com/topics/\n
+                      NOT_CURATED excludes curated topics\n
+                      NOT_FEATURED excludes featured topics
                       """
     )
     private Property<Is> is;
 
     @Schema(
-        title = "Matches topics that have number of repositories.",
-        description = "You can use greater than, less than, and range qualifiers to further filter results."
+        title = "Repository count filter",
+        description = "Supports `>`, `<`, and range (`..`) qualifiers."
     )
     private Property<String> repositories;
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers.",
-        description = "You can use greater than, less than, and range qualifiers to further filter results."
+        title = "Created date filter",
+        description = "Supports `>`, `<`, and range (`..`) dates."
     )
     private Property<String> created;
 
     @Schema(
-        title = "Order of the output.",
-        description = """
-                      ASC - the results will be in ascending order\n
-                      DESC - the results will be in descending order
-                      """
+        title = "Sort direction",
+        description = "ASC sorts ascending (default); DESC sorts descending."
     )
     @Builder.Default
     private Property<Order> order = Property.ofValue(Order.ASC);

@@ -1,6 +1,6 @@
 group: io.kestra.plugin.github.repositories
 name: "repositories"
-title: "GitHub Repositories"
+title: "Repositories"
 description: "Tasks that search and inspect GitHub repositories."
 body: "Authenticate with a GitHub token and supply search queries, topics, owners, or visibility filters to list repositories and return metadata such as stars, forks, and languages for inventory or compliance checks."
 videos: []

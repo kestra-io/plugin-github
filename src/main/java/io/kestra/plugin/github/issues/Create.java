@@ -22,8 +22,8 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create a GitHub issue.",
-    description = "If no authentication is provided, anonymous authentication will be used."
+    title = "Create a GitHub issue",
+    description = "Creates a new issue in the target repository. Requires an authenticated token; anonymous calls fail."
 )
 @Plugin(
     examples = {
@@ -37,7 +37,7 @@ import java.util.List;
                    tasks:
                      - id: create_issue
                        type: io.kestra.plugin.github.issues.Create
-                       jwtToken: your_github_jwt_token
+                       jwtToken: "{{ secret('GITHUB_JWT_TOKEN') }}"
                        repository: kestra-io/kestra
                        title: Workflow failed
                        body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
@@ -56,7 +56,7 @@ import java.util.List;
                      - id: create_issue
                        type: io.kestra.plugin.github.issues.Create
                        login: your_github_login
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        repository: kestra-io/kestra
                        title: Workflow failed
                        body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
@@ -74,7 +74,7 @@ import java.util.List;
                    tasks:
                      - id: create_issue
                        type: io.kestra.plugin.github.issues.Create
-                       oauthToken: your_github_token
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        repository: kestra-io/kestra
                        title: Workflow failed
                        body: "{{ execution.id }} has failed on {{ taskrun.startDate }}. See the link below for more details"
@@ -90,27 +90,33 @@ import java.util.List;
 )
 public class Create extends GithubConnector implements RunnableTask<Create.Output> {
 
+    @Schema(
+        title = "Repository to file in",
+        description = "`owner/repo` where the issue will be created."
+    )
     private Property<String> repository;
 
     @Schema(
-        title = "Ticket title."
+        title = "Issue title",
+        description = "Short summary shown in GitHub."
     )
     private Property<String> title;
 
     @Schema(
-        title = "Ticket body."
+        title = "Issue body",
+        description = "Markdown body; supports Kestra templating."
     )
     private Property<String> body;
 
     @Schema(
-        title = "Ticket label.",
-        description = "List of labels for ticket."
+        title = "Issue labels",
+        description = "List of labels to apply; optional."
     )
     private Property<List<String>> labels;
 
     @Schema(
-        title = "Ticket assignee.",
-        description = "List of unique names of assignees."
+        title = "Issue assignees",
+        description = "GitHub usernames to assign; optional."
     )
     private Property<List<String>> assignees;
 
