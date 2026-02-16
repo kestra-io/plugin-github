@@ -21,8 +21,8 @@ import java.net.URL;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create a GitHub pull request.",
-    description = "If no authentication is provided, anonymous authentication will be used."
+    title = "Create a GitHub pull request",
+    description = "Creates a pull request between branches in a repository. Requires authentication with push/PR permissions; defaults to nondraft and maintainers not allowed to edit."
 )
 @Plugin(
     examples = {
@@ -48,42 +48,46 @@ import java.net.URL;
 )
 public class Create extends GithubConnector implements RunnableTask<Create.Output> {
 
+    @Schema(
+        title = "Repository containing the branches",
+        description = "`owner/repo` where the pull request will be opened."
+    )
     private Property<String> repository;
 
     @Schema(
-        title = "Source/Head branch.",
-        description = "Required. The name of the branch where your changes are implemented. For cross-repository pull requests in the same network, namespace head with a user like this: `username:branch`."
+        title = "Source (head) branch",
+        description = "Required branch with changes. For cross-repo PRs, prefix with `username:branch`."
     )
     private Property<String> sourceBranch;
 
     @Schema(
-        title = "Target/Base branch.",
-        description = "Required. The name of the branch you want your changes pulled into. This should be an existing branch on the current repository."
+        title = "Target (base) branch",
+        description = "Required branch to merge into; must exist in the target repository."
     )
     private Property<String> targetBranch;
 
     @Schema(
-        title = "Ticket title.",
-        description = "Required. The title of the pull request."
+        title = "Pull request title",
+        description = "Required short summary."
     )
     private Property<String> title;
 
     @Schema(
-        title = "Ticket body.",
-        description = "The contents of the pull request. This is the markdown description of a pull request."
+        title = "Pull request body",
+        description = "Markdown description; optional."
     )
     private Property<String> body;
 
     @Schema(
-        title = "Whether maintainers can modify the pull request.",
-        description = "Boolean value indicating whether maintainers can modify the pull request. Default is false."
+        title = "Allow maintainers to modify",
+        description = "If true, maintainers of the target repo can push to the source branch. Defaults to false."
     )
     @Builder.Default
     private Property<Boolean> maintainerCanModify = Property.ofValue(Boolean.FALSE);
 
     @Schema(
-        title = "Whether to create a draft pull request.",
-        description = "Boolean value indicates whether to create a draft pull request or not. Default is false."
+        title = "Create as draft",
+        description = "If true, opens the pull request in draft state. Defaults to false."
     )
     @Builder.Default
     private Property<Boolean> draft = Property.ofValue(Boolean.FALSE);

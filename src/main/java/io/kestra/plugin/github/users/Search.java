@@ -17,8 +17,8 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search for GitHub users.",
-    description = "If no authentication is provided, anonymous authentication will be used. Anonymous authentication can't retrieve full information."
+    title = "Search GitHub users",
+    description = "Runs the GitHub user search API and writes matches to storage. Defaults to join-date ascending. Anonymous access skips private data and some fields; provide OAuth/JWT to lift limits."
 )
 @Plugin(
     examples = {
@@ -82,77 +82,63 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     }
 
     @Schema(
-        title = "The query contains one or more search keywords and qualifiers.",
-        description = "Qualifiers allow you to limit your search to specific areas of GitHub."
+        title = "Search keywords and qualifiers",
+        description = "User search syntax combining keywords with qualifiers like location, followers, language."
     )
     private Property<String> query;
 
     @Schema(
-        title = "Search for users based on the languages of repositories they own.",
-        description = "Can be the language name or alias."
+        title = "Language filter",
+        description = "Language name or alias applied to repositories the user owns."
     )
     private Property<String> language;
 
     @Schema(
-        title = "Filter users based on when they joined GitHub.",
-        description = """
-                    Available formats:\n
-                    - '<=YYYY-MM-DD' - joined at or before\n
-                    - '>=YYYY-MM-DD' - joined at or after\n
-                    - Similar cases for above two with ">", "<"\n
-                    - 'YYYY-MM-DD..YYYY-MM-DD' - joined in period between
-                    """
+        title = "Joined date filter",
+        description = "Supports `>`, `<`, and range (`..`) syntax with YYYY-MM-DD."
     )
     private Property<String> created;
 
     @Schema(
-        title = "You can filter users based on the number of repositories they own."
+        title = "Repository count filter",
+        description = "Exact repository count to match."
     )
     private Property<Integer> repositories;
 
     @Schema(
-        title = "With the 'in' qualifier you can restrict your search to the username/login, full name, public email.",
-        description = "Example kenya in:login matches users with the word \"kenya\" in their username. " +
-            "One more case of use to search users that have sponsor profile, equivalent to query: `is:sponsorable`."
+        title = "Fields to search (`in:`)",
+        description = "Restrict search to login, full name, or public email; supports `is:sponsorable`."
     )
     private Property<String> in;
 
     @Schema(
-        title = "Search for users by the location indicated in their profile."
+        title = "Location filter",
+        description = "Matches the profile location field."
     )
     private Property<String> location;
 
     @Schema(
-        title = "Filter users based on the number of followers that they have."
+        title = "Followers filter",
+        description = "Supports `>`, `<`, and range (`..`) follower counts."
     )
     private Property<String> followers;
 
     @Schema(
-        title = "Restrict search results to personal accounts or organizations only.",
-        description = """
-                      USER - the results will include only user accounts\n
-                      ORGANIZATION - the results will include only organization accounts
-                      """
+        title = "Account type",
+        description = "USER returns individuals; ORGANIZATION returns org accounts."
     )
     private Property<Type> accountType;
 
     @Schema(
-        title = "Order of the output.",
-        description = """
-                      ASC - the results will be in ascending order (DEFAULT)\n
-                      DESC - the results will be in descending order
-                      """
+        title = "Sort direction",
+        description = "ASC sorts ascending (default); DESC sorts descending."
     )
     @Builder.Default
     private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Schema(
-        title = "Sort condition of the output.",
-        description = """
-                      JOINED - the results will be sorted by when user joined to Github (DEFAULT)\n
-                      REPOSITORIES - the results will be sorted by the number of repositories owned by user\n
-                      FOLLOWERS - the results will be sorted by the number of followers that user has
-                      """
+        title = "Sort field",
+        description = "JOINED sorts by join date (default); REPOSITORIES by public repo count; FOLLOWERS by follower count."
     )
     @Builder.Default
     private Property<Sort> sort = Property.ofValue(Sort.JOINED);
