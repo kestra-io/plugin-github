@@ -5,7 +5,9 @@ import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
-import io.kestra.plugin.github.GithubSearchTask;
+import io.kestra.plugin.github.AbstractGithubTask;
+import io.kestra.plugin.github.model.FileOutput;
+import io.kestra.plugin.github.services.SearchService;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -52,7 +54,7 @@ import org.kohsuke.github.*;
         )
     }
 )
-public class Search extends GithubSearchTask implements RunnableTask<GithubSearchTask.FileOutput> {
+public class Search extends AbstractGithubTask implements RunnableTask<FileOutput> {
 
     @RequiredArgsConstructor
     public enum Order {
@@ -125,14 +127,6 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     public FileOutput run(RunContext runContext) throws Exception {
         GitHub gitHub = connect(runContext);
 
-        GHIssueSearchBuilder searchBuilder = setupSearchParameters(runContext, gitHub);
-
-        PagedSearchIterable<GHIssue> issues = searchBuilder.list();
-
-        return this.run(runContext, issues, gitHub);
-    }
-
-    private GHIssueSearchBuilder setupSearchParameters(RunContext runContext, GitHub gitHub) throws Exception {
         GHIssueSearchBuilder searchBuilder = gitHub.searchIssues();
 
         var rQuery = runContext.render(this.query).as(String.class).orElse("");
@@ -151,22 +145,14 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
             searchBuilder.q(rQuery);
         }
 
-        if (this.mentions != null) {
-            searchBuilder.mentions(runContext.render(this.mentions).as(String.class).orElseThrow());
-        }
+        runContext.render(this.mentions).as(String.class).ifPresent(searchBuilder::mentions);
+        runContext.render(this.open).as(Boolean.class).filter(r -> r).ifPresent(ignored -> searchBuilder.isOpen());
+        runContext.render(this.closed).as(Boolean.class).filter(r -> r).ifPresent(ignored -> searchBuilder.isClosed());
+        runContext.render(this.merged).as(Boolean.class).filter(r -> r).ifPresent(ignored -> searchBuilder.isMerged());
 
-        if (runContext.render(this.open).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
-            searchBuilder.isOpen();
-        }
 
-        if (runContext.render(this.closed).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
-            searchBuilder.isClosed();
-        }
+        PagedSearchIterable<GHIssue> issues = searchBuilder.list();
 
-        if (runContext.render(this.merged).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
-            searchBuilder.isMerged();
-        }
-        return searchBuilder;
+        return SearchService.run(runContext, issues, gitHub);
     }
-
 }

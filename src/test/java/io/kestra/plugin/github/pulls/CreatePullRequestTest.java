@@ -2,31 +2,26 @@ package io.kestra.plugin.github.pulls;
 
 import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.property.Property;
-import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
+import io.kestra.plugin.github.AbstractGithubClientTest;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @KestraTest
-@Disabled("Too verbose for CI")
-public class CreatePullRequestTest {
-    private static final String GITHUB_OAUTH_TOKEN = System.getenv("GITHUB_TOKEN");
-
+public class CreatePullRequestTest extends AbstractGithubClientTest {
     @Inject
     private RunContextFactory runContextFactory;
 
     @Test
     void run() throws Exception {
-        RunContext runContext = runContextFactory.of();
+        var runContext = runContextFactory.of();
 
-        io.kestra.plugin.github.pulls.Create task = io.kestra.plugin.github.pulls.Create.builder()
-            .oauthToken(Property.ofValue(GITHUB_OAUTH_TOKEN))
-            .repository(Property.ofValue("kestra-io/plugin-github"))
+        var task = Create.builder()
+            .oauthToken(Property.ofValue(""))
+            .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
+            .repository(Property.ofValue("kestra-io/mock-kestra"))
             .sourceBranch(Property.ofValue("dev"))
             .targetBranch(Property.ofValue("test"))
             .title(Property.ofValue("Test Kestra Github plugin"))
@@ -36,7 +31,7 @@ public class CreatePullRequestTest {
 
         Create.Output run = task.run(runContext);
 
-        assertThat(run.getIssueUrl(), is(notNullValue()));
-        assertThat(run.getPullRequestUrl(), is(notNullValue()));
+        assertThat(run.getIssueUrl()).isNotNull();
+        assertThat(run.getPullRequestUrl()).isNotNull();
     }
 }

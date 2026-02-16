@@ -6,7 +6,7 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
-import io.kestra.plugin.github.GithubConnector;
+import io.kestra.plugin.github.AbstractGithubTask;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -68,7 +68,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
         )
     }
 )
-public class Search extends GithubConnector implements RunnableTask<Search.Output> {
+public class Search extends AbstractGithubTask implements RunnableTask<Search.Output> {
 
     @RequiredArgsConstructor
     public enum Order {
@@ -210,7 +210,29 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
             return Output.builder().build();
         }
 
-        GHCommitSearchBuilder searchBuilder = setupSearchParameters(runContext, gitHub);
+        GHCommitSearchBuilder searchBuilder = gitHub.searchCommits();
+
+        searchBuilder
+            .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
+            .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
+
+        runContext.render(this.query).as(String.class).ifPresent(searchBuilder::q);
+        runContext.render(this.repository).as(String.class).ifPresent(searchBuilder::repo);
+        runContext.render(this.is).as(String.class).ifPresent(searchBuilder::is);
+        runContext.render(this.hash).as(String.class).ifPresent(searchBuilder::hash);
+        runContext.render(this.parent).as(String.class).ifPresent(searchBuilder::parent);
+        runContext.render(this.tree).as(String.class).ifPresent(searchBuilder::tree);
+        runContext.render(this.user).as(String.class).ifPresent(searchBuilder::user);
+        runContext.render(this.org).as(String.class).ifPresent(searchBuilder::org);
+        runContext.render(this.author).as(String.class).ifPresent(searchBuilder::author);
+        runContext.render(this.authorDate).as(String.class).ifPresent(searchBuilder::authorDate);
+        runContext.render(this.authorEmail).as(String.class).ifPresent(searchBuilder::authorEmail);
+        runContext.render(this.authorName).as(String.class).ifPresent(searchBuilder::authorName);
+        runContext.render(this.committer).as(String.class).ifPresent(searchBuilder::committer);
+        runContext.render(this.committerDate).as(String.class).ifPresent(searchBuilder::committerDate);
+        runContext.render(this.committerEmail).as(String.class).ifPresent(searchBuilder::committerEmail);
+        runContext.render(this.committerName).as(String.class).ifPresent(searchBuilder::committerName);
+        runContext.render(this.merge).as(Boolean.class).ifPresent(searchBuilder::merge);
 
         PagedSearchIterable<GHCommit> commits = searchBuilder.list();
 
@@ -219,14 +241,8 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
 
             commits.toList()
                 .stream()
-                .map(
-                    throwFunction(ghCommit -> getCommitDetails(ghCommit, gitHub.isAnonymous()))
-                )
-                .forEachOrdered(
-                    throwConsumer(
-                        user -> FileSerde.write(output, user)
-                    )
-                );
+                .map(throwFunction(ghCommit -> getCommitDetails(ghCommit, gitHub.isAnonymous())))
+                .forEachOrdered(throwConsumer(user -> FileSerde.write(output, user)));
 
             output.flush();
 
@@ -235,83 +251,6 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
                 .uri(runContext.storage().putFile(tempFile))
                 .build();
         }
-    }
-
-    private GHCommitSearchBuilder setupSearchParameters(RunContext runContext, GitHub gitHub) throws Exception {
-        GHCommitSearchBuilder searchBuilder = gitHub.searchCommits();
-
-        searchBuilder
-            .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
-            .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
-
-        if (this.query != null) {
-            searchBuilder.q(runContext.render(this.query).as(String.class).orElseThrow());
-        }
-
-        if (this.repository != null) {
-            searchBuilder.repo(runContext.render(this.repository).as(String.class).orElseThrow());
-        }
-
-        if (this.is != null) {
-            searchBuilder.is(runContext.render(this.is).as(String.class).orElseThrow());
-        }
-
-        if (this.hash != null) {
-            searchBuilder.hash(runContext.render(this.hash).as(String.class).orElseThrow());
-        }
-
-        if (this.parent != null) {
-            searchBuilder.parent(runContext.render(this.parent).as(String.class).orElseThrow());
-        }
-
-        if (this.tree != null) {
-            searchBuilder.tree(runContext.render(this.tree).as(String.class).orElseThrow());
-        }
-
-        if (this.user != null) {
-            searchBuilder.user(runContext.render(this.user).as(String.class).orElseThrow());
-        }
-
-        if (this.org != null) {
-            searchBuilder.org(runContext.render(this.org).as(String.class).orElseThrow());
-        }
-
-        if (this.author != null) {
-            searchBuilder.author(runContext.render(this.author).as(String.class).orElseThrow());
-        }
-
-        if (this.authorDate != null) {
-            searchBuilder.authorDate(runContext.render(this.authorDate).as(String.class).orElseThrow());
-        }
-
-        if (this.authorEmail != null) {
-            searchBuilder.authorEmail(runContext.render(this.authorEmail).as(String.class).orElseThrow());
-        }
-
-        if (this.authorName != null) {
-            searchBuilder.authorName(runContext.render(this.authorName).as(String.class).orElseThrow());
-        }
-
-        if (this.committer != null) {
-            searchBuilder.committer(runContext.render(this.committer).as(String.class).orElseThrow());
-        }
-
-        if (this.committerDate != null) {
-            searchBuilder.committerDate(runContext.render(this.committerDate).as(String.class).orElseThrow());
-        }
-
-        if (this.committerEmail != null) {
-            searchBuilder.committerEmail(runContext.render(this.committerEmail).as(String.class).orElseThrow());
-        }
-
-        if (this.committerName != null) {
-            searchBuilder.committerName(runContext.render(this.committerName).as(String.class).orElseThrow());
-        }
-
-        if (this.merge != null) {
-            searchBuilder.merge(runContext.render(this.merge).as(Boolean.class).orElseThrow());
-        }
-        return searchBuilder;
     }
 
     private static Map<String, Object> getCommitDetails(GHCommit commit, boolean isAnonymous) throws IOException {

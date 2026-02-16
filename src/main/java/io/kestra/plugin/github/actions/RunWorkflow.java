@@ -6,9 +6,12 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.models.tasks.VoidOutput;
 import io.kestra.core.runners.RunContext;
-import io.kestra.plugin.github.GithubConnector;
+import io.kestra.plugin.github.AbstractGithubTask;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import java.util.Map;
@@ -44,8 +47,7 @@ import java.util.Map;
         )
     }
 )
-public class RunWorkflow extends GithubConnector implements RunnableTask<VoidOutput> {
-
+public class RunWorkflow extends AbstractGithubTask implements RunnableTask<VoidOutput> {
     @Schema(
         title = "Repository to dispatch in",
         description = "`owner/repo` where the workflow file lives; token must have access there."
@@ -74,14 +76,15 @@ public class RunWorkflow extends GithubConnector implements RunnableTask<VoidOut
     @Override
     public VoidOutput run(RunContext runContext) throws Exception {
         var gitHub = connect(runContext);
+
         var repo = gitHub.getRepository(runContext.render(repository).as(String.class).orElse(null));
         var workflow = repo.getWorkflow(runContext.render(workflowId).as(String.class).orElse(null));
-        workflow.dispatch(runContext.render(ref).as(String.class).orElse(null), runContext.render(inputs).asMap(String.class, Object.class));
-        return null;
-    }
 
-    @Builder
-    @Getter
-    public static class Output implements io.kestra.core.models.tasks.Output {
+        workflow.dispatch(
+            runContext.render(ref).as(String.class).orElse(null),
+            runContext.render(inputs).asMap(String.class, Object.class)
+        );
+
+        return null;
     }
 }

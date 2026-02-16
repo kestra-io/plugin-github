@@ -5,7 +5,7 @@ import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
-import io.kestra.plugin.github.GithubConnector;
+import io.kestra.plugin.github.AbstractGithubTask;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -46,11 +46,10 @@ import java.net.URL;
         )
     }
 )
-public class Create extends GithubConnector implements RunnableTask<Create.Output> {
-
+public class Create extends AbstractGithubTask implements RunnableTask<Create.Output> {
     @Schema(
-        title = "Repository containing the branches",
-        description = "`owner/repo` where the pull request will be opened."
+        title = "Repository where the pull request will be created.",
+        description = "Repository name must be in format owner/repo."
     )
     private Property<String> repository;
 
