@@ -237,7 +237,7 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
                 .append("?q=")
                 .append(encode(StringUtils.join(terms, " ")));
 
-            if (this.parameters.isEmpty()) {
+            if (!this.parameters.isEmpty()) {
                 url.append("&").append(StringUtils.join(parameters, "&"));
             }
 
