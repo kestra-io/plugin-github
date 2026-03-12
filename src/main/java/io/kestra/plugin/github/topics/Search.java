@@ -42,8 +42,8 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search GitHub topics",
-    description = "Runs the GitHub topics search API and writes matches to storage. Defaults to ascending order; anonymous access returns limited metadata and cannot see private counts."
+    title = "Search topics",
+    description = "Runs a GitHub topic search and writes matching topic metadata to Kestra internal storage. The task calls the REST API directly so it can honor custom endpoints and token types, and defaults to ascending order."
 )
 @Plugin(
     examples = {
@@ -104,7 +104,7 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
 
     @Schema(
         title = "Search keywords and qualifiers",
-        description = "Topic search syntax combining keywords with qualifiers."
+        description = "GitHub topic search syntax combining keywords with qualifiers"
     )
     private Property<String> query;
 
@@ -124,13 +124,13 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
 
     @Schema(
         title = "Repository count filter",
-        description = "Supports `>`, `<`, and range (`..`) qualifiers."
+        description = "Supports `>`, `<`, and range (`..`) qualifiers"
     )
     private Property<String> repositories;
 
     @Schema(
         title = "Created date filter",
-        description = "Supports `>`, `<`, and range (`..`) dates."
+        description = "Supports `>`, `<`, and range (`..`) date syntax"
     )
     private Property<String> created;
 
@@ -183,6 +183,10 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
 
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
+        @Schema(
+            title = "Output file URI",
+            description = "URI of the file written to Kestra internal storage, typically using the `kestra://` scheme"
+        )
         private URI uri;
 
         public Output(URI uri) {

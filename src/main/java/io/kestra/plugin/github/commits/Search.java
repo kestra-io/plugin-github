@@ -32,8 +32,8 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search GitHub commits",
-    description = "Runs the GitHub commit search API and writes matches to storage. Requires OAuth/JWT auth; anonymous runs return no data. Defaults to committer date sorted ascending."
+    title = "Search commits",
+    description = "Runs a GitHub commit search and writes matching commit metadata to Kestra internal storage. Anonymous execution returns an empty output, and authenticated runs default to `COMMITTER_DATE` sorted in ascending order."
 )
 @Plugin(
     examples = {
@@ -94,97 +94,97 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
 
     @Schema(
         title = "Repository to search",
-        description = "`owner/repo` for the `repo:` qualifier."
+        description = "`owner/repo` value used for the `repo:` qualifier"
     )
     private Property<String> repository;
 
     @Schema(
         title = "Repository visibility",
-        description = "Uses the `is:` qualifier (e.g. `public`, `private`)."
+        description = "Value used for the `is:` qualifier such as `public` or `private`"
     )
     private Property<String> is;
 
     @Schema(
         title = "Commit SHA filter",
-        description = "Matches commits with the specified SHA-1 hash."
+        description = "Matches commits with the specified SHA-1 hash"
     )
     private Property<String> hash;
 
     @Schema(
         title = "Parent commit SHA",
-        description = "Filters by parent commit SHA-1."
+        description = "Filters by parent commit SHA-1"
     )
     private Property<String> parent;
 
     @Schema(
         title = "Tree SHA filter",
-        description = "Filters by git tree SHA-1."
+        description = "Filters by Git tree SHA-1"
     )
     private Property<String> tree;
 
     @Schema(
         title = "User scope",
-        description = "Limits search to repositories owned by the given user."
+        description = "Limits the search to repositories owned by the given user"
     )
     private Property<String> user;
 
     @Schema(
         title = "Organization scope",
-        description = "Limits search to repositories owned by the given organization."
+        description = "Limits the search to repositories owned by the given organization"
     )
     private Property<String> org;
 
     @Schema(
         title = "Author login",
-        description = "Adds the `author:` qualifier for the GitHub username."
+        description = "Adds the `author:` qualifier for the GitHub login"
     )
     private Property<String> author;
 
     @Schema(
         title = "Author date filter",
-        description = "Supports `>`, `<`, and range (`..`) dates."
+        description = "Supports `>`, `<`, and range (`..`) date syntax"
     )
     private Property<String> authorDate;
 
     @Schema(
         title = "Author email",
-        description = "Filters by author email address."
+        description = "Filters by author email address"
     )
     private Property<String> authorEmail;
 
     @Schema(
         title = "Author name",
-        description = "Filters by author display name."
+        description = "Filters by author display name"
     )
     private Property<String> authorName;
 
     @Schema(
         title = "Committer login",
-        description = "Adds the `committer:` qualifier for the GitHub username."
+        description = "Adds the `committer:` qualifier for the GitHub login"
     )
     private Property<String> committer;
 
     @Schema(
         title = "Committer date filter",
-        description = "Supports `>`, `<`, and range (`..`) dates."
+        description = "Supports `>`, `<`, and range (`..`) date syntax"
     )
     private Property<String> committerDate;
 
     @Schema(
         title = "Committer email",
-        description = "Filters by committer email address."
+        description = "Filters by committer email address"
     )
     private Property<String> committerEmail;
 
     @Schema(
         title = "Committer name",
-        description = "Filters by committer display name."
+        description = "Filters by committer display name"
     )
     private Property<String> committerName;
 
     @Schema(
         title = "Filter merge commits",
-        description = "True to include only merge commits; false to exclude them."
+        description = "When set, includes only merge commits for `true` or excludes them for `false`"
     )
     private Property<Boolean> merge;
 
@@ -316,6 +316,10 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
     @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
+        @Schema(
+            title = "Output file URI",
+            description = "URI of the file written to Kestra internal storage, typically using the `kestra://` scheme"
+        )
         private URI uri;
     }
 
