@@ -19,8 +19,8 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search GitHub users",
-    description = "Runs the GitHub user search API and writes matches to storage. Defaults to join-date ascending. Anonymous access skips private data and some fields; provide OAuth/JWT to lift limits."
+    title = "Search users",
+    description = "Runs a GitHub user search and writes matching user metadata to Kestra internal storage. Anonymous execution skips private data and may omit fields, and authenticated runs default to `JOINED` sorted in ascending order."
 )
 @Plugin(
     examples = {
@@ -91,43 +91,43 @@ public class Search extends AbstractGithubTask implements RunnableTask<FileOutpu
 
     @Schema(
         title = "Language filter",
-        description = "Language name or alias applied to repositories the user owns."
+        description = "Language name or alias applied to repositories the user owns"
     )
     private Property<String> language;
 
     @Schema(
         title = "Joined date filter",
-        description = "Supports `>`, `<`, and range (`..`) syntax with YYYY-MM-DD."
+        description = "Supports `>`, `<`, and range (`..`) syntax with YYYY-MM-DD"
     )
     private Property<String> created;
 
     @Schema(
         title = "Repository count filter",
-        description = "Exact repository count to match."
+        description = "Exact repository count to match"
     )
     private Property<Integer> repositories;
 
     @Schema(
         title = "Fields to search (`in:`)",
-        description = "Restrict search to login, full name, or public email; supports `is:sponsorable`."
+        description = "Restricts the search to fields accepted by GitHub such as `login`, `fullname`, or `email`"
     )
     private Property<String> in;
 
     @Schema(
         title = "Location filter",
-        description = "Matches the profile location field."
+        description = "Matches the public profile location field"
     )
     private Property<String> location;
 
     @Schema(
         title = "Followers filter",
-        description = "Supports `>`, `<`, and range (`..`) follower counts."
+        description = "Supports `>`, `<`, and range (`..`) follower counts"
     )
     private Property<String> followers;
 
     @Schema(
         title = "Account type",
-        description = "USER returns individuals; ORGANIZATION returns org accounts."
+        description = "USER returns individual accounts and ORGANIZATION returns organization accounts"
     )
     private Property<Type> accountType;
 

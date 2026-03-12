@@ -30,8 +30,8 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search GitHub code",
-    description = "Runs the GitHub code search API and writes matched files to storage. Requires OAuth/JWT auth; defaults to best-match sorting in ascending order."
+    title = "Search code",
+    description = "Runs a GitHub code search and writes matching file metadata to Kestra internal storage. This task uses rendered property values and defaults to `BEST_MATCH` sorted in ascending order."
 )
 @Plugin(
     examples = {
@@ -103,55 +103,55 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
 
     @Schema(
         title = "Repository to search",
-        description = "`owner/repo` used for the `repo:` qualifier."
+        description = "`owner/repo` value used for the `repo:` qualifier"
     )
     private Property<String> repository;
 
     @Schema(
         title = "User scope",
-        description = "Limits search to repositories owned by the given user."
+        description = "Limits the search to repositories owned by the given user"
     )
     private Property<String> user;
 
     @Schema(
         title = "Fields to search",
-        description = "Comma-separated `in:` targets (e.g. `file,path`); defaults to all."
+        description = "Comma-separated `in:` targets such as `file,path`. Leave unset to search all supported fields"
     )
     private Property<String> in;
 
     @Schema(
         title = "Language filter",
-        description = "Programming language qualifier."
+        description = "Programming language qualifier"
     )
     private Property<String> language;
 
     @Schema(
         title = "File extension filter",
-        description = "Matches files with the given extension."
+        description = "Matches files with the given extension"
     )
     private Property<String> extension;
 
     @Schema(
         title = "Include forks",
-        description = "Controls fork inclusion: parent only, forks only, or both."
+        description = "Controls whether the search includes the parent repository, forks, or both"
     )
     private Property<Fork> fork;
 
     @Schema(
         title = "File name filter",
-        description = "Matches files with this exact name."
+        description = "Matches files with this exact name"
     )
     private Property<String> filename;
 
     @Schema(
         title = "Path prefix filter",
-        description = "Limits results to files under this path."
+        description = "Limits results to files under this path"
     )
     private Property<String> path;
 
     @Schema(
         title = "File size filter",
-        description = "Supports `>`, `<`, and range syntax (`..`) in bytes."
+        description = "Supports `>`, `<`, and range syntax (`..`) in bytes"
     )
     private Property<String> size;
 
@@ -237,6 +237,10 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
     @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
+        @Schema(
+            title = "Output file URI",
+            description = "URI of the file written to Kestra internal storage, typically using the `kestra://` scheme"
+        )
         private URI uri;
     }
 

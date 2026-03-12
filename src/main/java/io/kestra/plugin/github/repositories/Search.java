@@ -19,8 +19,8 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search GitHub repositories",
-    description = "Runs the GitHub repository search API and writes matches to storage. Defaults to updated-date ascending. Anonymous access skips private repos and some fields; provide OAuth/JWT to remove those limits."
+    title = "Search repositories",
+    description = "Runs a GitHub repository search and writes matching repository metadata to Kestra internal storage. Anonymous execution skips private repositories and may omit fields, and authenticated runs default to `UPDATED` sorted in ascending order."
 )
 @Plugin(
     examples = {
@@ -154,7 +154,7 @@ public class Search extends AbstractGithubTask implements RunnableTask<FileOutpu
 
     @Schema(
         title = "Topic filter",
-        description = "Topic name for the `topic:` qualifier."
+        description = "Topic name used for the `topic:` qualifier"
     )
     private Property<String> topic;
 
@@ -174,7 +174,7 @@ public class Search extends AbstractGithubTask implements RunnableTask<FileOutpu
 
     @Schema(
         title = "Visibility filter",
-        description = "PUBLIC shows only public repos; PRIVATE only private repos accessible to the token; INTERNAL only internal repos."
+        description = "PUBLIC limits results to public repositories, PRIVATE to private repositories visible to the token, and INTERNAL to internal repositories"
     )
     private Property<Visibility> visibility;
 

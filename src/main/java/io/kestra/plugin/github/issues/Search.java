@@ -19,8 +19,8 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search GitHub issues",
-    description = "Runs the GitHub issue search API and writes matches to storage. Anonymous access works but omits private repos and some fields; defaults to creation-time ascending."
+    title = "Search issues",
+    description = "Runs a GitHub issue search and writes matching issue metadata to Kestra internal storage. Anonymous execution is allowed but cannot reach private repositories and may omit fields, and authenticated runs default to `CREATED` sorted in ascending order."
 )
 @Plugin(
     examples = {
@@ -81,25 +81,25 @@ public class Search extends AbstractGithubTask implements RunnableTask<FileOutpu
 
     @Schema(
         title = "Issues mentioning user",
-        description = "Adds the `mentions:` qualifier for the GitHub username."
+        description = "Adds the `mentions:` qualifier for the GitHub login"
     )
     private Property<String> mentions;
 
     @Schema(
         title = "Filter open issues",
-        description = "Adds `is:open` when true."
+        description = "Adds `is:open` when set to `true`"
     )
     private Property<Boolean> open;
 
     @Schema(
         title = "Filter closed issues",
-        description = "Adds `is:closed` when true."
+        description = "Adds `is:closed` when set to `true`"
     )
     private Property<Boolean> closed;
 
     @Schema(
         title = "Filter merged pull requests",
-        description = "Adds `is:merged` when true; applies to PRs returned by issue search."
+        description = "Adds `is:merged` when set to `true`. This only affects pull requests returned by issue search"
     )
     private Property<Boolean> merged;
 
@@ -119,7 +119,7 @@ public class Search extends AbstractGithubTask implements RunnableTask<FileOutpu
 
     @Schema(
         title = "Repository filter",
-        description = "`owner/repo` appended as `repo:` when provided."
+        description = "`owner/repo` value appended as `repo:` when provided"
     )
     private Property<String> repository;
 

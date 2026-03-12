@@ -23,8 +23,8 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search GitHub pull requests",
-    description = "Runs a GitHub Search API query for pull requests and writes results to storage. Defaults to creation-date ascending; anonymous access omits some fields and can't reach private repositories. Provide an OAuth or JWT token to lift those limits."
+    title = "Search pull requests",
+    description = "Runs a GitHub pull request search and writes matching pull request metadata to Kestra internal storage. Anonymous execution cannot reach private repositories and may omit fields, and authenticated runs default to `CREATED` sorted in ascending order."
 )
 @Plugin(
     examples = {
@@ -80,13 +80,13 @@ public class Search extends AbstractGithubTask implements RunnableTask<FileOutpu
 
     @Schema(
         title = "Search keywords and qualifiers",
-        description = "GitHub pull request search syntax combining keywords with qualifiers like repo, is, label, etc."
+        description = "GitHub pull request search syntax combining keywords with qualifiers like `repo`, `is`, and `label`"
     )
     private Property<String> query;
 
     @Schema(
-        title = "Pull requests mentioning this user",
-        description = "Matches PRs that mention the given GitHub username."
+        title = "Mentioned user",
+        description = "GitHub login to use with the `mentions:` qualifier"
     )
     private Property<String> mentions;
 
@@ -98,91 +98,91 @@ public class Search extends AbstractGithubTask implements RunnableTask<FileOutpu
 
     @Schema(
         title = "Filter to open pull requests",
-        description = "Adds the `is:open` qualifier when true."
+        description = "Adds the `is:open` qualifier when set to `true`"
     )
     private Property<Boolean> open;
 
     @Schema(
         title = "Filter to closed pull requests",
-        description = "Adds the `is:closed` qualifier when true."
+        description = "Adds the `is:closed` qualifier when set to `true`"
     )
     private Property<Boolean> closed;
 
     @Schema(
         title = "Filter to merged pull requests",
-        description = "Adds the `is:merged` qualifier when true."
+        description = "Adds the `is:merged` qualifier when set to `true`"
     )
     private Property<Boolean> merged;
 
     @Schema(
         title = "Filter to draft pull requests",
-        description = "Adds the `is:draft` qualifier when true."
+        description = "Adds the `is:draft` qualifier when set to `true`"
     )
     private Property<Boolean> draft;
 
     @Schema(
         title = "Pull requests assigned to user",
-        description = "Uses the `assignee:` qualifier for the given username."
+        description = "Uses the `assignee:` qualifier for the given GitHub login"
     )
     private Property<String> assigned;
 
     @Schema(
         title = "Title contains text",
-        description = "Matches pull requests with titles containing the given text."
+        description = "Matches pull requests with titles containing the given text"
     )
     private Property<String> title;
 
     @Schema(
         title = "Filter by closed date",
-        description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates."
+        description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates"
     )
     private Property<String> closedAt;
 
     @Schema(
         title = "Filter by created date",
-        description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates."
+        description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates"
     )
     private Property<String> createdAt;
 
     @Schema(
         title = "Filter by last update",
-        description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates."
+        description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates"
     )
     private Property<String> updatedAt;
 
     @Schema(
         title = "Filter by commit SHA",
-        description = "Requires a commit SHA of at least seven characters."
+        description = "Matches pull requests by commit SHA and requires at least seven characters"
     )
     private Property<String> commit;
 
     @Schema(
         title = "Repository to search",
-        description = "`owner/repo` value used for the `repo:` qualifier."
+        description = "`owner/repo` value used for the `repo:` qualifier"
     )
     private Property<String> repository;
 
     @Schema(
         title = "Base branch filter",
-        description = "Adds the `base:` qualifier for the target branch name."
+        description = "Adds the `base:` qualifier for the target branch name"
     )
     private Property<String> base;
 
     @Schema(
         title = "Head branch filter",
-        description = "Adds the `head:` qualifier for the source branch name."
+        description = "Adds the `head:` qualifier for the source branch name"
     )
     private Property<String> head;
 
     @Schema(
         title = "Only pull requests created by the caller",
-        description = "Adds `author:@me`; requires authenticated execution."
+        description = "Adds `author:@me`. This option requires authenticated execution"
     )
     private Property<Boolean> createdByMe;
 
     @Schema(
         title = "Author username",
-        description = "Adds the `author:` qualifier for the given GitHub user or app."
+        description = "Adds the `author:` qualifier for the given GitHub user or app"
     )
     private Property<String> author;
 
