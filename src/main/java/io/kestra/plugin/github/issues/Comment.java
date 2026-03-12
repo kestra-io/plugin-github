@@ -22,8 +22,8 @@ import java.net.URL;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Comment on a GitHub issue",
-    description = "Adds a comment to an existing issue. Requires authentication matching repository permissions."
+    title = "Add an issue comment",
+    description = "Posts a comment on an existing GitHub issue. The authenticated token must be allowed to read the repository and comment on the issue."
 )
 @Plugin(
     examples = {
@@ -47,8 +47,8 @@ import java.net.URL;
 )
 public class Comment extends AbstractGithubTask implements RunnableTask<Comment.Output> {
     @Schema(
-        title = "Repository where the issue comment will be created.",
-        description = "Repository name must be in format owner/repo."
+        title = "Target repository",
+        description = "Repository in `owner/repo` format containing the issue"
     )
     private Property<String> repository;
 
@@ -61,7 +61,7 @@ public class Comment extends AbstractGithubTask implements RunnableTask<Comment.
 
     @Schema(
         title = "Comment body",
-        description = "Markdown content to post."
+        description = "Markdown body to post as the issue comment. This value is rendered before the request is sent"
     )
     private Property<String> body;
 
@@ -85,7 +85,16 @@ public class Comment extends AbstractGithubTask implements RunnableTask<Comment.
     @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
+        @Schema(
+            title = "Issue URL",
+            description = "GitHub URL for the issue that received the comment"
+        )
         private URL issueUrl;
+
+        @Schema(
+            title = "Comment URL",
+            description = "GitHub URL for the created comment"
+        )
         private URL commentUrl;
     }
 

@@ -21,8 +21,8 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create a GitHub pull request",
-    description = "Creates a pull request between branches in a repository. Requires authentication with push/PR permissions; defaults to nondraft and maintainers not allowed to edit."
+    title = "Create a pull request",
+    description = "Creates a GitHub pull request from a head branch to a base branch. The authenticated token must be allowed to open pull requests in the target repository."
 )
 @Plugin(
     examples = {
@@ -48,8 +48,8 @@ import java.util.List;
 )
 public class Create extends AbstractGithubTask implements RunnableTask<Create.Output> {
     @Schema(
-        title = "Repository where the pull request will be created.",
-        description = "Repository name must be in format owner/repo."
+        title = "Target repository",
+        description = "Repository in `owner/repo` format where the pull request will be opened"
     )
     private Property<String> repository;
 
@@ -73,7 +73,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
 
     @Schema(
         title = "Pull request body",
-        description = "Markdown description; optional."
+        description = "Markdown description for the pull request. This value is rendered before the request is sent"
     )
     private Property<String> body;
 
@@ -157,11 +157,14 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "The API Response URL for the Pull Request"
+            title = "Issue API URL",
+            description = "GitHub API URL for the pull request issue resource"
         )
         private URL issueUrl;
+
         @Schema(
-            title = "The URL to the Pull Request"
+            title = "Pull request URL",
+            description = "GitHub URL for the created pull request"
         )
         private URL pullRequestUrl;
     }
