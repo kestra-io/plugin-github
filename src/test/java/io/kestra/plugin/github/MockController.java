@@ -143,6 +143,164 @@ public class MockController {
             """).header("Location", "https://github.com/kestra-io/mock-kestra/pull/10");
     }
 
+    private String baseUrl(HttpRequest<?> request) {
+        var host = request.getHeaders().get("Host");
+        return "http://" + host;
+    }
+
+    @Get("/search/code")
+    public HttpResponse<String> searchCode(HttpRequest<?> request) {
+        capture(request);
+        var base = baseUrl(request);
+        return HttpResponse.ok("""
+            {
+              "total_count": 1,
+              "incomplete_results": false,
+              "items": [
+                {
+                  "name": "Search.java",
+                  "path": "src/main/java/Search.java",
+                  "sha": "abc123def456",
+                  "url": "%s/repos/kestra-io/plugin-github/contents/src/main/java/Search.java",
+                  "git_url": "%s/repos/kestra-io/plugin-github/git/blobs/abc123def456",
+                  "html_url": "https://github.com/kestra-io/plugin-github/blob/main/src/main/java/Search.java",
+                  "repository": {
+                    "id": 1,
+                    "name": "plugin-github",
+                    "full_name": "kestra-io/plugin-github",
+                    "html_url": "https://github.com/kestra-io/plugin-github",
+                    "owner": {
+                      "login": "kestra-io"
+                    }
+                  }
+                }
+              ]
+            }
+            """.formatted(base, base));
+    }
+
+    @Get("/repos/kestra-io/plugin-github/contents/{+path}")
+    public HttpResponse<String> getContent(HttpRequest<?> request, @PathVariable String path) {
+        capture(request);
+        var base = baseUrl(request);
+        return HttpResponse.ok("""
+            {
+              "name": "Search.java",
+              "path": "%s",
+              "sha": "abc123def456",
+              "size": 1024,
+              "type": "file",
+              "encoding": "base64",
+              "content": "",
+              "url": "%s/repos/kestra-io/plugin-github/contents/%s",
+              "git_url": "%s/repos/kestra-io/plugin-github/git/blobs/abc123def456",
+              "html_url": "https://github.com/kestra-io/plugin-github/blob/main/%s",
+              "download_url": "https://raw.githubusercontent.com/kestra-io/plugin-github/main/%s"
+            }
+            """.formatted(path, base, path, base, path, path));
+    }
+
+    @Get("/repos/kestra-io/plugin-github")
+    public HttpResponse<String> pluginGithubRepo(HttpRequest<?> request) {
+        capture(request);
+        return HttpResponse.ok("""
+            {
+              "id": 1,
+              "name": "plugin-github",
+              "full_name": "kestra-io/plugin-github",
+              "owner": {"login": "kestra-io"},
+              "permissions": {"admin": true, "push": true, "pull": true}
+            }
+            """);
+    }
+
+    @Get("/repos/{owner}/{repo}/statuses/{sha}")
+    public HttpResponse<String> getStatuses(HttpRequest<?> request, @PathVariable String owner, @PathVariable String repo, @PathVariable String sha) {
+        capture(request);
+        return HttpResponse.ok("[]");
+    }
+
+    @Get("/repos/{owner}/{repo}/git/trees/{sha}")
+    public HttpResponse<String> getTree(HttpRequest<?> request, @PathVariable String owner, @PathVariable String repo, @PathVariable String sha) {
+        capture(request);
+        var base = baseUrl(request);
+        return HttpResponse.ok("""
+            {
+              "sha": "%s",
+              "url": "%s/repos/%s/%s/git/trees/%s",
+              "tree": [],
+              "truncated": false
+            }
+            """.formatted(sha, base, owner, repo, sha));
+    }
+
+    @Get("/users/{login}")
+    public HttpResponse<String> getUser(HttpRequest<?> request, @PathVariable String login) {
+        capture(request);
+        return HttpResponse.ok("""
+            {
+              "login": "%s",
+              "id": 1,
+              "type": "User"
+            }
+            """.formatted(login));
+    }
+
+    @Get("/search/commits")
+    public HttpResponse<String> searchCommits(HttpRequest<?> request) {
+        capture(request);
+        return HttpResponse.ok("""
+            {
+              "total_count": 1,
+              "incomplete_results": false,
+              "items": [
+                {
+                  "sha": "abc123def456",
+                  "url": "https://api.github.com/repos/kestra-io/plugin-github/commits/abc123def456",
+                  "html_url": "https://github.com/kestra-io/plugin-github/commit/abc123def456",
+                  "commit": {
+                    "message": "Initial commit",
+                    "author": {"name": "kestra-bot", "email": "bot@kestra.io", "date": "2024-01-01T00:00:00Z"},
+                    "committer": {"name": "kestra-bot", "email": "bot@kestra.io", "date": "2024-01-01T00:00:00Z"},
+                    "tree": {"sha": "tree123", "url": "https://api.github.com/repos/kestra-io/plugin-github/git/trees/tree123"}
+                  },
+                  "author": {"login": "kestra-bot"},
+                  "committer": {"login": "kestra-bot"},
+                  "repository": {
+                    "id": 1,
+                    "name": "plugin-github",
+                    "full_name": "kestra-io/plugin-github",
+                    "owner": {"login": "kestra-io"}
+                  }
+                }
+              ]
+            }
+            """);
+    }
+
+    @Get("/repos/{owner}/{repo}/commits/{sha}")
+    public HttpResponse<String> getCommit(HttpRequest<?> request, @PathVariable String owner, @PathVariable String repo, @PathVariable String sha) {
+        capture(request);
+        var base = baseUrl(request);
+        return HttpResponse.ok("""
+            {
+              "sha": "%s",
+              "url": "%s/repos/%s/%s/commits/%s",
+              "html_url": "https://github.com/%s/%s/commit/%s",
+              "commit": {
+                "message": "Initial commit",
+                "author": {"name": "kestra-bot", "email": "bot@kestra.io", "date": "2024-01-01T00:00:00Z"},
+                "committer": {"name": "kestra-bot", "email": "bot@kestra.io", "date": "2024-01-01T00:00:00Z"},
+                "tree": {"sha": "tree123", "url": "%s/repos/%s/%s/git/trees/tree123"}
+              },
+              "author": {"login": "kestra-bot"},
+              "committer": {"login": "kestra-bot"},
+              "stats": {"total": 10, "additions": 7, "deletions": 3},
+              "files": []
+            }
+            """.formatted(sha, base, owner, repo, sha, owner, repo, sha, base, owner, repo));
+    }
+
     @Get("/search/topics")
     public HttpResponse<String> searchTopics(HttpRequest<?> request) {
         capture(request);
