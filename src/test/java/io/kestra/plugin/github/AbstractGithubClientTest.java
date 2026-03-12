@@ -34,5 +34,7 @@ public abstract class AbstractGithubClientTest {
     @BeforeEach
     void reset() {
         MockController.data = null;
+        MockController.headers.clear();
+        MockController.queryParameters.clear();
     }
 }
