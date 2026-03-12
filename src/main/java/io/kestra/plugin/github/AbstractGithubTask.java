@@ -47,6 +47,18 @@ public abstract class AbstractGithubTask extends Task {
     )
     private Property<String> endpoint;
 
+    protected Property<String> oauthTokenProperty() {
+        return oauthToken;
+    }
+
+    protected Property<String> jwtTokenProperty() {
+        return jwtToken;
+    }
+
+    protected Property<String> appInstallationTokenProperty() {
+        return appInstallationToken;
+    }
+
     protected GitHub connect(final RunContext runContext) throws Exception {
         GitHubBuilder builder = new GitHubBuilder();
 

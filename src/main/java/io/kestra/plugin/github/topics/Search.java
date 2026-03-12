@@ -2,28 +2,37 @@ package io.kestra.plugin.github.topics;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import io.kestra.core.http.HttpRequest;
+import io.kestra.core.http.client.HttpClient;
+import io.kestra.core.http.client.configurations.HttpConfiguration;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
+import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.plugin.github.AbstractGithubTask;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.github.GitHub;
 
-import java.io.*;
-import java.net.HttpURLConnection;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import static io.kestra.core.utils.Rethrow.throwConsumer;
 
@@ -71,7 +80,6 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
     }
 )
 public class Search extends AbstractGithubTask implements RunnableTask<Search.Output> {
-
     public enum Order {
         ASC(),
         DESC();
@@ -92,7 +100,7 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
         public String toString() {
             return this.name().toLowerCase(Locale.ENGLISH).replace('_', '-');
         }
-    };
+    }
 
     @Schema(
         title = "Search keywords and qualifiers",
@@ -103,9 +111,12 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
     @Schema(
         title = "Curation/feature flags",
         description = """
-                      CURATED matches curated topics\n
-                      FEATURED matches topics featured on https://github.com/topics/\n
-                      NOT_CURATED excludes curated topics\n
+                      CURATED matches curated topics
+
+                      FEATURED matches topics featured on https://github.com/topics/
+
+                      NOT_CURATED excludes curated topics
+
                       NOT_FEATURED excludes featured topics
                       """
     )
@@ -132,61 +143,67 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
 
     @Override
     public Output run(RunContext runContext) throws Exception {
-        GitHub gitHub = connect(runContext);
+        var gitHub = connect(runContext);
+        var searchBuilder = new GHTopicSearchBuilder(gitHub, runContext, resolveAuthorizationHeader(runContext));
 
-        GHTopicSearchBuilder searchBuilder = new GHTopicSearchBuilder(gitHub, runContext.render(super.getOauthToken()).as(String.class).orElse(null));
-
-        searchBuilder
-            .order(runContext.render(this.order).as(Order.class).orElseThrow().toString());
-
+        searchBuilder.order(runContext.render(this.order).as(Order.class).orElseThrow().toString());
         runContext.render(this.query).as(String.class).ifPresent(searchBuilder::query);
         runContext.render(this.is).as(Is.class).map(Is::toString).ifPresent(searchBuilder::is);
         runContext.render(this.repositories).as(String.class).ifPresent(searchBuilder::repositories);
         runContext.render(this.created).as(String.class).ifPresent(searchBuilder::created);
 
-        GHTopicSearchBuilder.GHTopicResponse topics = searchBuilder.list();
+        var topics = searchBuilder.list();
 
         File tempFile = runContext.workingDir().createTempFile(".ion").toFile();
-        try (BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(tempFile))) {
-            topics
-                .getItems()
-                .forEach(throwConsumer(code -> FileSerde.write(output, code)));
-
+        try (var output = new BufferedOutputStream(new FileOutputStream(tempFile))) {
+            topics.items.forEach(throwConsumer(topic -> FileSerde.write(output, topic)));
             output.flush();
 
-            return Output
-                .builder()
-                .uri(runContext.storage().putFile(tempFile))
-                .build();
+            return new Output(
+                runContext.storage().putFile(tempFile)
+            );
         }
     }
 
-    @Builder
+    private String resolveAuthorizationHeader(RunContext runContext) throws Exception {
+        var rAppInstallationToken = runContext.render(this.appInstallationTokenProperty()).as(String.class);
+        if (rAppInstallationToken.isPresent()) {
+            return "token " + rAppInstallationToken.orElseThrow();
+        }
+
+        var rJwtToken = runContext.render(this.jwtTokenProperty()).as(String.class);
+        if (rJwtToken.isPresent()) {
+            return "Bearer " + rJwtToken.orElseThrow();
+        }
+
+        return runContext.render(this.oauthTokenProperty()).as(String.class)
+            .map(token -> "token " + token)
+            .orElse(null);
+    }
+
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         private URI uri;
+
+        public Output(URI uri) {
+            this.uri = uri;
+        }
     }
 
-    @Data
     public static class GHTopicSearchBuilder {
-
-        public static final String ACCEPT_HEADER = "application/vnd.github+json";
-
-        public static final String API_VERSION_HEADER = "2022-11-28";
+        private static final String ACCEPT_HEADER = "application/vnd.github+json";
+        private static final String API_VERSION_HEADER = "2022-11-28";
 
         private final GitHub root;
-
-        private final String oauthToken;
-
+        private final RunContext runContext;
+        private final String authorizationHeader;
         private final List<String> terms = new ArrayList<>();
-
         private final List<String> parameters = new ArrayList<>();
 
-        private Map<String, Object> items;
-
-        public GHTopicSearchBuilder(GitHub gitHub, String oauthToken) {
+        public GHTopicSearchBuilder(GitHub gitHub, RunContext runContext, String authorizationHeader) {
             this.root = gitHub;
-            this.oauthToken = oauthToken;
+            this.runContext = runContext;
+            this.authorizationHeader = authorizationHeader;
         }
 
         public GHTopicSearchBuilder query(String query) {
@@ -216,51 +233,45 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
         }
 
         private String getUrlWithQuery() {
-            String url = getApiUrl() + "?q=" + StringUtils.join(terms, " ");
+            var url = new StringBuilder(getApiUrl())
+                .append("?q=")
+                .append(encode(StringUtils.join(terms, " ")));
 
             if (this.parameters.isEmpty()) {
-                url += "&" + StringUtils.join(parameters, "&");
+                url.append("&").append(StringUtils.join(parameters, "&"));
             }
 
-            return url;
+            return url.toString();
+        }
+
+        private String encode(String value) {
+            return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8);
         }
 
         public GHTopicResponse list() throws Exception {
-            URL url = new URL(getUrlWithQuery().replaceAll(" ", "+"));
+            var requestBuilder = HttpRequest.builder()
+                .uri(URI.create(getUrlWithQuery()))
+                .method("GET")
+                .addHeader("Accept", ACCEPT_HEADER)
+                .addHeader("X-GitHub-Api-Version", API_VERSION_HEADER);
 
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-
-            if (this.oauthToken != null) {
-                connection.setRequestProperty("Authorization", "token " + oauthToken);
+            if (this.authorizationHeader != null) {
+                requestBuilder.addHeader("Authorization", this.authorizationHeader);
             }
 
-            connection.setRequestProperty("Accept", ACCEPT_HEADER);
-            connection.setRequestProperty("X-GitHub-Api-Version", API_VERSION_HEADER);
+            try (var client = new HttpClient(runContext, HttpConfiguration.builder().build())) {
+                var response = client.request(requestBuilder.build(), String.class);
+                if (response.getStatus().getCode() != 200) {
+                    throw new IllegalStateException("GitHub topic search failed with status code: " + response.getStatus().getCode());
+                }
 
-            int responseCode = connection.getResponseCode();
-            if (responseCode != HttpURLConnection.HTTP_OK) {
-                throw new RuntimeException("HTTP GET Request Failed with Error code : " + responseCode);
+                return JacksonMapper.ofJson().readValue(response.getBody(), GHTopicResponse.class);
             }
-
-            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            String inputLine;
-            StringBuilder response = new StringBuilder();
-
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-            }
-            in.close();
-            connection.disconnect();
-
-            ObjectMapper objectMapper = new ObjectMapper();
-            return objectMapper.readValue(response.toString(), GHTopicResponse.class);
         }
 
         @Data
         @JsonIgnoreProperties(ignoreUnknown = true)
         public static class GHTopicResponse {
-
             @JsonProperty("total_count")
             private int totalCount;
 
@@ -297,9 +308,7 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
                 private String updatedAt;
 
                 private boolean featured;
-
                 private boolean curated;
-
                 private int score;
             }
         }
