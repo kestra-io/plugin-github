@@ -22,8 +22,8 @@ import java.util.Map;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Dispatch a GitHub Actions workflow",
-    description = "Creates a workflow_dispatch event on the target repository. Requires an OAuth/JWT token with permission to run workflows; uses the provided ref (branch or tag) and optional inputs."
+    title = "Dispatch a workflow run",
+    description = "Triggers a `workflow_dispatch` event for a workflow in the target repository. The authenticated token must be allowed to read the repository and run workflows on the selected ref."
 )
 @Plugin(
     examples = {
@@ -49,26 +49,26 @@ import java.util.Map;
 )
 public class RunWorkflow extends AbstractGithubTask implements RunnableTask<VoidOutput> {
     @Schema(
-        title = "Repository to dispatch in",
-        description = "`owner/repo` where the workflow file lives; token must have access there."
+        title = "Target repository",
+        description = "Repository in `owner/repo` format containing the workflow. The authenticated token must have access to this repository."
     )
     private Property<String> repository;
 
     @Schema(
         title = "Workflow ID or filename",
-        description = "Workflow identifier accepted by GitHub API (numeric id or `workflow.yml` filename)."
+        description = "Workflow identifier accepted by the GitHub API such as a numeric ID or a workflow filename like `build.yml`"
     )
     private Property<String> workflowId;
 
     @Schema(
-        title = "Branch or tag to run on",
-        description = "Ref name where GitHub will resolve the workflow; must exist in the repository."
+        title = "Workflow ref",
+        description = "Branch or tag name used to resolve the workflow file. This ref must exist in the target repository."
     )
     private Property<String> ref;
 
     @Schema(
         title = "Workflow inputs map",
-        description = "Key/value payload passed to workflow `inputs`; optional, defaults to none.",
+        description = "Key/value payload passed to workflow `inputs`. Property values are rendered before the dispatch request is sent",
         requiredMode = Schema.RequiredMode.NOT_REQUIRED
     )
     private Property<Map<String, Object>> inputs;
