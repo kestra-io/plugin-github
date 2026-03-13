@@ -6,7 +6,7 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
-import io.kestra.plugin.github.GithubConnector;
+import io.kestra.plugin.github.AbstractGithubTask;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -32,8 +32,8 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search GitHub commits",
-    description = "Runs the GitHub commit search API and writes matches to storage. Requires OAuth/JWT auth; anonymous runs return no data. Defaults to committer date sorted ascending."
+    title = "Search commits",
+    description = "Runs a GitHub commit search and writes matching commit metadata to Kestra internal storage. Anonymous execution returns an empty output, and authenticated runs default to `COMMITTER_DATE` sorted in ascending order."
 )
 @Plugin(
     examples = {
@@ -68,7 +68,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
         )
     }
 )
-public class Search extends GithubConnector implements RunnableTask<Search.Output> {
+public class Search extends AbstractGithubTask implements RunnableTask<Search.Output> {
 
     @RequiredArgsConstructor
     public enum Order {
@@ -94,97 +94,97 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
 
     @Schema(
         title = "Repository to search",
-        description = "`owner/repo` for the `repo:` qualifier."
+        description = "`owner/repo` value used for the `repo:` qualifier"
     )
     private Property<String> repository;
 
     @Schema(
         title = "Repository visibility",
-        description = "Uses the `is:` qualifier (e.g. `public`, `private`)."
+        description = "Value used for the `is:` qualifier such as `public` or `private`"
     )
     private Property<String> is;
 
     @Schema(
         title = "Commit SHA filter",
-        description = "Matches commits with the specified SHA-1 hash."
+        description = "Matches commits with the specified SHA-1 hash"
     )
     private Property<String> hash;
 
     @Schema(
         title = "Parent commit SHA",
-        description = "Filters by parent commit SHA-1."
+        description = "Filters by parent commit SHA-1"
     )
     private Property<String> parent;
 
     @Schema(
         title = "Tree SHA filter",
-        description = "Filters by git tree SHA-1."
+        description = "Filters by Git tree SHA-1"
     )
     private Property<String> tree;
 
     @Schema(
         title = "User scope",
-        description = "Limits search to repositories owned by the given user."
+        description = "Limits the search to repositories owned by the given user"
     )
     private Property<String> user;
 
     @Schema(
         title = "Organization scope",
-        description = "Limits search to repositories owned by the given organization."
+        description = "Limits the search to repositories owned by the given organization"
     )
     private Property<String> org;
 
     @Schema(
         title = "Author login",
-        description = "Adds the `author:` qualifier for the GitHub username."
+        description = "Adds the `author:` qualifier for the GitHub login"
     )
     private Property<String> author;
 
     @Schema(
         title = "Author date filter",
-        description = "Supports `>`, `<`, and range (`..`) dates."
+        description = "Supports `>`, `<`, and range (`..`) date syntax"
     )
     private Property<String> authorDate;
 
     @Schema(
         title = "Author email",
-        description = "Filters by author email address."
+        description = "Filters by author email address"
     )
     private Property<String> authorEmail;
 
     @Schema(
         title = "Author name",
-        description = "Filters by author display name."
+        description = "Filters by author display name"
     )
     private Property<String> authorName;
 
     @Schema(
         title = "Committer login",
-        description = "Adds the `committer:` qualifier for the GitHub username."
+        description = "Adds the `committer:` qualifier for the GitHub login"
     )
     private Property<String> committer;
 
     @Schema(
         title = "Committer date filter",
-        description = "Supports `>`, `<`, and range (`..`) dates."
+        description = "Supports `>`, `<`, and range (`..`) date syntax"
     )
     private Property<String> committerDate;
 
     @Schema(
         title = "Committer email",
-        description = "Filters by committer email address."
+        description = "Filters by committer email address"
     )
     private Property<String> committerEmail;
 
     @Schema(
         title = "Committer name",
-        description = "Filters by committer display name."
+        description = "Filters by committer display name"
     )
     private Property<String> committerName;
 
     @Schema(
         title = "Filter merge commits",
-        description = "True to include only merge commits; false to exclude them."
+        description = "When set, includes only merge commits for `true` or excludes them for `false`"
     )
     private Property<Boolean> merge;
 
@@ -210,7 +210,29 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
             return Output.builder().build();
         }
 
-        GHCommitSearchBuilder searchBuilder = setupSearchParameters(runContext, gitHub);
+        GHCommitSearchBuilder searchBuilder = gitHub.searchCommits();
+
+        searchBuilder
+            .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
+            .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
+
+        runContext.render(this.query).as(String.class).ifPresent(searchBuilder::q);
+        runContext.render(this.repository).as(String.class).ifPresent(searchBuilder::repo);
+        runContext.render(this.is).as(String.class).ifPresent(searchBuilder::is);
+        runContext.render(this.hash).as(String.class).ifPresent(searchBuilder::hash);
+        runContext.render(this.parent).as(String.class).ifPresent(searchBuilder::parent);
+        runContext.render(this.tree).as(String.class).ifPresent(searchBuilder::tree);
+        runContext.render(this.user).as(String.class).ifPresent(searchBuilder::user);
+        runContext.render(this.org).as(String.class).ifPresent(searchBuilder::org);
+        runContext.render(this.author).as(String.class).ifPresent(searchBuilder::author);
+        runContext.render(this.authorDate).as(String.class).ifPresent(searchBuilder::authorDate);
+        runContext.render(this.authorEmail).as(String.class).ifPresent(searchBuilder::authorEmail);
+        runContext.render(this.authorName).as(String.class).ifPresent(searchBuilder::authorName);
+        runContext.render(this.committer).as(String.class).ifPresent(searchBuilder::committer);
+        runContext.render(this.committerDate).as(String.class).ifPresent(searchBuilder::committerDate);
+        runContext.render(this.committerEmail).as(String.class).ifPresent(searchBuilder::committerEmail);
+        runContext.render(this.committerName).as(String.class).ifPresent(searchBuilder::committerName);
+        runContext.render(this.merge).as(Boolean.class).ifPresent(searchBuilder::merge);
 
         PagedSearchIterable<GHCommit> commits = searchBuilder.list();
 
@@ -219,14 +241,8 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
 
             commits.toList()
                 .stream()
-                .map(
-                    throwFunction(ghCommit -> getCommitDetails(ghCommit, gitHub.isAnonymous()))
-                )
-                .forEachOrdered(
-                    throwConsumer(
-                        user -> FileSerde.write(output, user)
-                    )
-                );
+                .map(throwFunction(ghCommit -> getCommitDetails(ghCommit, gitHub.isAnonymous())))
+                .forEachOrdered(throwConsumer(user -> FileSerde.write(output, user)));
 
             output.flush();
 
@@ -235,83 +251,6 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
                 .uri(runContext.storage().putFile(tempFile))
                 .build();
         }
-    }
-
-    private GHCommitSearchBuilder setupSearchParameters(RunContext runContext, GitHub gitHub) throws Exception {
-        GHCommitSearchBuilder searchBuilder = gitHub.searchCommits();
-
-        searchBuilder
-            .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
-            .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
-
-        if (this.query != null) {
-            searchBuilder.q(runContext.render(this.query).as(String.class).orElseThrow());
-        }
-
-        if (this.repository != null) {
-            searchBuilder.repo(runContext.render(this.repository).as(String.class).orElseThrow());
-        }
-
-        if (this.is != null) {
-            searchBuilder.is(runContext.render(this.is).as(String.class).orElseThrow());
-        }
-
-        if (this.hash != null) {
-            searchBuilder.hash(runContext.render(this.hash).as(String.class).orElseThrow());
-        }
-
-        if (this.parent != null) {
-            searchBuilder.parent(runContext.render(this.parent).as(String.class).orElseThrow());
-        }
-
-        if (this.tree != null) {
-            searchBuilder.tree(runContext.render(this.tree).as(String.class).orElseThrow());
-        }
-
-        if (this.user != null) {
-            searchBuilder.user(runContext.render(this.user).as(String.class).orElseThrow());
-        }
-
-        if (this.org != null) {
-            searchBuilder.org(runContext.render(this.org).as(String.class).orElseThrow());
-        }
-
-        if (this.author != null) {
-            searchBuilder.author(runContext.render(this.author).as(String.class).orElseThrow());
-        }
-
-        if (this.authorDate != null) {
-            searchBuilder.authorDate(runContext.render(this.authorDate).as(String.class).orElseThrow());
-        }
-
-        if (this.authorEmail != null) {
-            searchBuilder.authorEmail(runContext.render(this.authorEmail).as(String.class).orElseThrow());
-        }
-
-        if (this.authorName != null) {
-            searchBuilder.authorName(runContext.render(this.authorName).as(String.class).orElseThrow());
-        }
-
-        if (this.committer != null) {
-            searchBuilder.committer(runContext.render(this.committer).as(String.class).orElseThrow());
-        }
-
-        if (this.committerDate != null) {
-            searchBuilder.committerDate(runContext.render(this.committerDate).as(String.class).orElseThrow());
-        }
-
-        if (this.committerEmail != null) {
-            searchBuilder.committerEmail(runContext.render(this.committerEmail).as(String.class).orElseThrow());
-        }
-
-        if (this.committerName != null) {
-            searchBuilder.committerName(runContext.render(this.committerName).as(String.class).orElseThrow());
-        }
-
-        if (this.merge != null) {
-            searchBuilder.merge(runContext.render(this.merge).as(Boolean.class).orElseThrow());
-        }
-        return searchBuilder;
     }
 
     private static Map<String, Object> getCommitDetails(GHCommit commit, boolean isAnonymous) throws IOException {
@@ -377,6 +316,10 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
+        @Schema(
+            title = "Output file URI",
+            description = "URI of the file written to Kestra internal storage, typically using the `kestra://` scheme"
+        )
         private URI uri;
     }
 

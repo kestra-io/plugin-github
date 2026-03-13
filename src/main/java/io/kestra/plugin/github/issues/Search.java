@@ -5,7 +5,9 @@ import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
-import io.kestra.plugin.github.GithubSearchTask;
+import io.kestra.plugin.github.AbstractGithubTask;
+import io.kestra.plugin.github.model.FileOutput;
+import io.kestra.plugin.github.services.SearchService;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -17,8 +19,8 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search GitHub issues",
-    description = "Runs the GitHub issue search API and writes matches to storage. Anonymous access works but omits private repos and some fields; defaults to creation-time ascending."
+    title = "Search issues",
+    description = "Runs a GitHub issue search and writes matching issue metadata to Kestra internal storage. Anonymous execution is allowed but cannot reach private repositories and may omit fields, and authenticated runs default to `CREATED` sorted in ascending order."
 )
 @Plugin(
     examples = {
@@ -52,7 +54,7 @@ import org.kohsuke.github.*;
         )
     }
 )
-public class Search extends GithubSearchTask implements RunnableTask<GithubSearchTask.FileOutput> {
+public class Search extends AbstractGithubTask implements RunnableTask<FileOutput> {
 
     @RequiredArgsConstructor
     public enum Order {
@@ -79,25 +81,25 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
 
     @Schema(
         title = "Issues mentioning user",
-        description = "Adds the `mentions:` qualifier for the GitHub username."
+        description = "Adds the `mentions:` qualifier for the GitHub login"
     )
     private Property<String> mentions;
 
     @Schema(
         title = "Filter open issues",
-        description = "Adds `is:open` when true."
+        description = "Adds `is:open` when set to `true`"
     )
     private Property<Boolean> open;
 
     @Schema(
         title = "Filter closed issues",
-        description = "Adds `is:closed` when true."
+        description = "Adds `is:closed` when set to `true`"
     )
     private Property<Boolean> closed;
 
     @Schema(
         title = "Filter merged pull requests",
-        description = "Adds `is:merged` when true; applies to PRs returned by issue search."
+        description = "Adds `is:merged` when set to `true`. This only affects pull requests returned by issue search"
     )
     private Property<Boolean> merged;
 
@@ -117,7 +119,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
 
     @Schema(
         title = "Repository filter",
-        description = "`owner/repo` appended as `repo:` when provided."
+        description = "`owner/repo` value appended as `repo:` when provided"
     )
     private Property<String> repository;
 
@@ -125,14 +127,6 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     public FileOutput run(RunContext runContext) throws Exception {
         GitHub gitHub = connect(runContext);
 
-        GHIssueSearchBuilder searchBuilder = setupSearchParameters(runContext, gitHub);
-
-        PagedSearchIterable<GHIssue> issues = searchBuilder.list();
-
-        return this.run(runContext, issues, gitHub);
-    }
-
-    private GHIssueSearchBuilder setupSearchParameters(RunContext runContext, GitHub gitHub) throws Exception {
         GHIssueSearchBuilder searchBuilder = gitHub.searchIssues();
 
         var rQuery = runContext.render(this.query).as(String.class).orElse("");
@@ -151,22 +145,14 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
             searchBuilder.q(rQuery);
         }
 
-        if (this.mentions != null) {
-            searchBuilder.mentions(runContext.render(this.mentions).as(String.class).orElseThrow());
-        }
+        runContext.render(this.mentions).as(String.class).ifPresent(searchBuilder::mentions);
+        runContext.render(this.open).as(Boolean.class).filter(r -> r).ifPresent(ignored -> searchBuilder.isOpen());
+        runContext.render(this.closed).as(Boolean.class).filter(r -> r).ifPresent(ignored -> searchBuilder.isClosed());
+        runContext.render(this.merged).as(Boolean.class).filter(r -> r).ifPresent(ignored -> searchBuilder.isMerged());
 
-        if (runContext.render(this.open).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
-            searchBuilder.isOpen();
-        }
 
-        if (runContext.render(this.closed).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
-            searchBuilder.isClosed();
-        }
+        PagedSearchIterable<GHIssue> issues = searchBuilder.list();
 
-        if (runContext.render(this.merged).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
-            searchBuilder.isMerged();
-        }
-        return searchBuilder;
+        return SearchService.run(runContext, issues, gitHub);
     }
-
 }

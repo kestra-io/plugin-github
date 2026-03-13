@@ -6,7 +6,7 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
-import io.kestra.plugin.github.GithubConnector;
+import io.kestra.plugin.github.AbstractGithubTask;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -30,8 +30,8 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search GitHub code",
-    description = "Runs the GitHub code search API and writes matched files to storage. Requires OAuth/JWT auth; defaults to best-match sorting in ascending order."
+    title = "Search code",
+    description = "Runs a GitHub code search and writes matching file metadata to Kestra internal storage. This task uses rendered property values and defaults to `BEST_MATCH` sorted in ascending order."
 )
 @Plugin(
     examples = {
@@ -68,7 +68,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
         )
     }
 )
-public class Search extends GithubConnector implements RunnableTask<Search.Output> {
+public class Search extends AbstractGithubTask implements RunnableTask<Search.Output> {
 
     @RequiredArgsConstructor
     public enum Order {
@@ -103,55 +103,55 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
 
     @Schema(
         title = "Repository to search",
-        description = "`owner/repo` used for the `repo:` qualifier."
+        description = "`owner/repo` value used for the `repo:` qualifier"
     )
     private Property<String> repository;
 
     @Schema(
         title = "User scope",
-        description = "Limits search to repositories owned by the given user."
+        description = "Limits the search to repositories owned by the given user"
     )
     private Property<String> user;
 
     @Schema(
         title = "Fields to search",
-        description = "Comma-separated `in:` targets (e.g. `file,path`); defaults to all."
+        description = "Comma-separated `in:` targets such as `file,path`. Leave unset to search all supported fields"
     )
     private Property<String> in;
 
     @Schema(
         title = "Language filter",
-        description = "Programming language qualifier."
+        description = "Programming language qualifier"
     )
     private Property<String> language;
 
     @Schema(
         title = "File extension filter",
-        description = "Matches files with the given extension."
+        description = "Matches files with the given extension"
     )
     private Property<String> extension;
 
     @Schema(
         title = "Include forks",
-        description = "Controls fork inclusion: parent only, forks only, or both."
+        description = "Controls whether the search includes the parent repository, forks, or both"
     )
     private Property<Fork> fork;
 
     @Schema(
         title = "File name filter",
-        description = "Matches files with this exact name."
+        description = "Matches files with this exact name"
     )
     private Property<String> filename;
 
     @Schema(
         title = "Path prefix filter",
-        description = "Limits results to files under this path."
+        description = "Limits results to files under this path"
     )
     private Property<String> path;
 
     @Schema(
         title = "File size filter",
-        description = "Supports `>`, `<`, and range syntax (`..`) in bytes."
+        description = "Supports `>`, `<`, and range syntax (`..`) in bytes"
     )
     private Property<String> size;
 
@@ -175,7 +175,22 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     public Output run(RunContext runContext) throws Exception {
         GitHub gitHub = connect(runContext);
 
-        GHContentSearchBuilder searchBuilder = setupSearchParameters(runContext, gitHub);
+        GHContentSearchBuilder searchBuilder = gitHub.searchContent();
+
+        searchBuilder
+            .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
+            .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
+
+        runContext.render(this.query).as(String.class).ifPresent(searchBuilder::q);
+        runContext.render(this.repository).as(String.class).ifPresent(searchBuilder::repo);
+        runContext.render(this.user).as(String.class).ifPresent(searchBuilder::user);
+        runContext.render(this.in).as(String.class).ifPresent(searchBuilder::in);
+        runContext.render(this.language).as(String.class).ifPresent(searchBuilder::language);
+        runContext.render(this.extension).as(String.class).ifPresent(searchBuilder::extension);
+        runContext.render(this.fork).as(Fork.class).map(r -> r.value).ifPresent(searchBuilder::fork);
+        runContext.render(this.filename).as(String.class).ifPresent(searchBuilder::filename);
+        runContext.render(this.path).as(String.class).ifPresent(searchBuilder::path);
+        runContext.render(this.size).as(String.class).ifPresent(searchBuilder::size);
 
         PagedSearchIterable<GHContent> codes = searchBuilder.list();
 
@@ -184,14 +199,8 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
 
             codes.toList()
                 .stream()
-                .map(
-                    throwFunction(Search::getCodeDetails)
-                )
-                .forEachOrdered(
-                    throwConsumer(
-                        code -> FileSerde.write(output, code)
-                    )
-                );
+                .map(throwFunction(Search::getCodeDetails))
+                .forEachOrdered(throwConsumer(code -> FileSerde.write(output, code)));
 
             output.flush();
 
@@ -200,55 +209,6 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
                 .uri(runContext.storage().putFile(tempFile))
                 .build();
         }
-    }
-
-    private GHContentSearchBuilder setupSearchParameters(RunContext runContext, GitHub gitHub) throws Exception {
-        GHContentSearchBuilder searchBuilder = gitHub.searchContent();
-
-        searchBuilder
-            .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
-            .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
-
-        if (this.query != null) {
-            searchBuilder.q(runContext.render(this.query).as(String.class).orElseThrow());
-        }
-
-        if (this.repository != null) {
-            searchBuilder.repo(runContext.render(this.repository).as(String.class).orElseThrow());
-        }
-
-        if (this.user != null) {
-            searchBuilder.user(runContext.render(this.user).as(String.class).orElseThrow());
-        }
-
-        if (this.in != null) {
-            searchBuilder.in(runContext.render(this.in).as(String.class).orElseThrow());
-        }
-
-        if (this.language != null) {
-            searchBuilder.language(runContext.render(this.language).as(String.class).orElseThrow());
-        }
-
-        if (this.extension != null) {
-            searchBuilder.extension(runContext.render(this.extension).as(String.class).orElseThrow());
-        }
-
-        if (this.fork != null) {
-            searchBuilder.fork(runContext.render(this.fork).as(Fork.class).orElseThrow().value);
-        }
-
-        if (this.filename != null) {
-            searchBuilder.filename(runContext.render(this.filename).as(String.class).orElseThrow());
-        }
-
-        if (this.path != null) {
-            searchBuilder.path(runContext.render(this.path).as(String.class).orElseThrow());
-        }
-
-        if (this.size != null) {
-            searchBuilder.size(runContext.render(this.size).as(String.class).orElseThrow());
-        }
-        return searchBuilder;
     }
 
     private static Map<String, Object> getCodeDetails(GHContent code) throws IOException {
@@ -277,6 +237,10 @@ public class Search extends GithubConnector implements RunnableTask<Search.Outpu
     @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
+        @Schema(
+            title = "Output file URI",
+            description = "URI of the file written to Kestra internal storage, typically using the `kestra://` scheme"
+        )
         private URI uri;
     }
 

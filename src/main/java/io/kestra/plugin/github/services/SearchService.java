@@ -1,34 +1,23 @@
-package io.kestra.plugin.github;
+package io.kestra.plugin.github.services;
 
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
-import io.kestra.plugin.github.model.IssueDetails;
-import io.kestra.plugin.github.model.PullRequestDetails;
-import io.kestra.plugin.github.model.RepositoryDetails;
-import io.kestra.plugin.github.model.UserDetails;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
+import io.kestra.plugin.github.model.*;
 import org.kohsuke.github.*;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URI;
 
 import static io.kestra.core.utils.Rethrow.throwConsumer;
 import static io.kestra.core.utils.Rethrow.throwFunction;
 
-@SuperBuilder
-@ToString
-@EqualsAndHashCode
-@Getter
-@NoArgsConstructor
-abstract public class GithubSearchTask extends GithubConnector {
-
-    protected FileOutput run(RunContext runContext,
-                             PagedSearchIterable<? extends GHObject> items,
-                             GitHub gitHub
+abstract public class SearchService {
+    static public FileOutput run(
+        RunContext runContext,
+        PagedSearchIterable<? extends GHObject> items,
+        GitHub gitHub
     ) throws IOException {
         File tempFile = runContext.workingDir().createTempFile(".ion").toFile();
         try (BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(tempFile))) {
@@ -36,14 +25,8 @@ abstract public class GithubSearchTask extends GithubConnector {
             items
                 .toList()
                 .stream()
-                .map(
-                    throwFunction(ghObject -> getDetails(ghObject, gitHub.isAnonymous()))
-                )
-                .forEachOrdered(
-                    throwConsumer(
-                        user -> FileSerde.write(output, user)
-                    )
-                );
+                .map(throwFunction(ghObject -> getDetails(ghObject, gitHub.isAnonymous())))
+                .forEachOrdered(throwConsumer(user -> FileSerde.write(output, user)));
 
             output.flush();
 
@@ -63,11 +46,4 @@ abstract public class GithubSearchTask extends GithubConnector {
             default -> null;
         };
     }
-
-    @Builder
-    @Getter
-    public static class FileOutput implements io.kestra.core.models.tasks.Output {
-        private URI uri;
-    }
-
 }

@@ -5,7 +5,7 @@ import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
-import io.kestra.plugin.github.GithubConnector;
+import io.kestra.plugin.github.AbstractGithubTask;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -22,8 +22,8 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create a GitHub issue",
-    description = "Creates a new issue in the target repository. Requires an authenticated token; anonymous calls fail."
+    title = "Create an issue",
+    description = "Creates a new GitHub issue in the target repository. The authenticated token must be allowed to open issues, and property values are rendered before the issue is created."
 )
 @Plugin(
     examples = {
@@ -88,11 +88,10 @@ import java.util.List;
         )
     }
 )
-public class Create extends GithubConnector implements RunnableTask<Create.Output> {
-
+public class Create extends AbstractGithubTask implements RunnableTask<Create.Output> {
     @Schema(
-        title = "Repository to file in",
-        description = "`owner/repo` where the issue will be created."
+        title = "Target repository",
+        description = "Repository in `owner/repo` format where the issue will be created"
     )
     private Property<String> repository;
 
@@ -104,19 +103,19 @@ public class Create extends GithubConnector implements RunnableTask<Create.Outpu
 
     @Schema(
         title = "Issue body",
-        description = "Markdown body; supports Kestra templating."
+        description = "Markdown body for the issue. This value is rendered before the request is sent"
     )
     private Property<String> body;
 
     @Schema(
         title = "Issue labels",
-        description = "List of labels to apply; optional."
+        description = "Labels to apply to the issue when it is created"
     )
     private Property<List<String>> labels;
 
     @Schema(
         title = "Issue assignees",
-        description = "GitHub usernames to assign; optional."
+        description = "GitHub logins to assign when the issue is created"
     )
     private Property<List<String>> assignees;
 
@@ -151,7 +150,16 @@ public class Create extends GithubConnector implements RunnableTask<Create.Outpu
     @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
+        @Schema(
+            title = "Issue URL",
+            description = "GitHub URL for the created issue"
+        )
         private URL issueUrl;
+
+        @Schema(
+            title = "Issue number",
+            description = "Numeric issue number assigned by GitHub"
+        )
         private Integer issueNumber;
     }
 
