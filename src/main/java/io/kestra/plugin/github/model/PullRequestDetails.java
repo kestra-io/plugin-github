@@ -11,6 +11,7 @@ import org.kohsuke.github.GHPullRequest;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 @Getter
@@ -55,6 +56,9 @@ public class PullRequestDetails {
 
     private final String head;
 
+    @JsonProperty("requested_reviewers")
+    private final List<String> requestedReviewers;
+
     private final URL url;
 
     public PullRequestDetails(GHPullRequest pullRequest, boolean isAnonymous) throws IOException {
@@ -72,6 +76,7 @@ public class PullRequestDetails {
         this.labels = pullRequest.getLabels().stream().map(GHLabel::getName).toArray();
         this.base = Optional.ofNullable(pullRequest.getBase()).map(GHCommitPointer::getRef).orElse(null);
         this.head = Optional.ofNullable(pullRequest.getHead()).map(GHCommitPointer::getRef).orElse(null);
+        this.requestedReviewers = pullRequest.getRequestedReviewers().stream().map(GHPerson::getLogin).toList();
         this.url = pullRequest.getHtmlUrl();
 
         if (!isAnonymous) {

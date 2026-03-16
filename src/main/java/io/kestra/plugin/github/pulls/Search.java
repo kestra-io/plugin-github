@@ -86,6 +86,12 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     private Property<String> mentions;
 
     @Schema(
+        title = "Review requested from user",
+        description = "Matches pull requests where a review has been requested from the given GitHub username."
+    )
+    private Property<String> reviewRequested;
+
+    @Schema(
         title = "Filter to open pull requests",
         description = "Adds the `is:open` qualifier when true."
     )
@@ -269,6 +275,10 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
 
         if (this.author != null) {
             searchBuilder.author(runContext.render(this.author).as(String.class).orElseThrow());
+        }
+
+        if (this.reviewRequested != null) {
+            searchBuilder.reviewRequested(runContext.render(this.reviewRequested).as(String.class).orElseThrow());
         }
 
         return searchBuilder;
