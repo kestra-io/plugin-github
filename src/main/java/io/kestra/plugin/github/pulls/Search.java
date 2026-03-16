@@ -341,6 +341,11 @@ public class Search extends AbstractGithubTask implements RunnableTask<FileOutpu
             return this;
         }
 
+        public GHPullRequestSearchBuilderCustom reviewRequested(String user) {
+            q("review-requested", user);
+            return this;
+        }
+
         public GHPullRequestSearchBuilderCustom label(String label) {
             searchBuilder.label(label);
             return this;
@@ -369,8 +374,6 @@ public class Search extends AbstractGithubTask implements RunnableTask<FileOutpu
         public PagedSearchIterable<GHPullRequest> list() {
             return searchBuilder.q(StringUtils.join(terms, " ")).list();
         }
-
-        return searchBuilder;
     }
 
 }
