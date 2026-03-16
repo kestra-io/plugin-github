@@ -102,7 +102,8 @@ public class Create extends GithubConnector implements RunnableTask<Create.Outpu
     public Output run(RunContext runContext) throws Exception {
         GitHub gitHub = connect(runContext);
 
-        GHRepository repo = gitHub.getRepository(runContext.render(this.repository).as(String.class).orElse(null));
+        String rRepository = runContext.render(this.repository).as(String.class).orElse(null);
+        GHRepository repo = gitHub.getRepository(rRepository);
 
         if (!repo.hasPullAccess()) {
             return Output.builder().build();
@@ -120,28 +121,29 @@ public class Create extends GithubConnector implements RunnableTask<Create.Outpu
             runContext.render(this.draft).as(Boolean.class).orElseThrow()
         );
 
-        var renderedReviewers = runContext.render(this.reviewers).asList(String.class);
-        if (!renderedReviewers.isEmpty()) {
-            var users = new ArrayList<GHUser>();
-            var teamSlugs = new ArrayList<String>();
-            for (var entry : renderedReviewers) {
-                if (entry.startsWith("team:")) {
-                    teamSlugs.add(entry.substring("team:".length()));
-                } else {
-                    users.add(gitHub.getUser(entry));
+        if (this.reviewers != null) {
+            var rReviewers = runContext.render(this.reviewers).asList(String.class);
+            if (!rReviewers.isEmpty()) {
+                var users = new ArrayList<GHUser>();
+                var teamSlugs = new ArrayList<String>();
+                for (var entry : rReviewers) {
+                    if (entry.startsWith("team:")) {
+                        teamSlugs.add(entry.substring("team:".length()));
+                    } else {
+                        users.add(gitHub.getUser(entry));
+                    }
                 }
-            }
-            if (!users.isEmpty()) {
-                pullRequest.requestReviewers(users);
-            }
-            if (!teamSlugs.isEmpty()) {
-                var rRepository = runContext.render(this.repository).as(String.class).orElse(null);
-                var org = gitHub.getOrganization(rRepository.split("/")[0]);
-                var teams = new ArrayList<GHTeam>();
-                for (var slug : teamSlugs) {
-                    teams.add(org.getTeamBySlug(slug));
+                if (!users.isEmpty()) {
+                    pullRequest.requestReviewers(users);
                 }
-                pullRequest.requestTeamReviewers(teams);
+                if (!teamSlugs.isEmpty()) {
+                    var org = gitHub.getOrganization(rRepository.split("/")[0]);
+                    var teams = new ArrayList<GHTeam>();
+                    for (var slug : teamSlugs) {
+                        teams.add(org.getTeamBySlug(slug));
+                    }
+                    pullRequest.requestTeamReviewers(teams);
+                }
             }
         }
 
