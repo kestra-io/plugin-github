@@ -8,6 +8,8 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -32,6 +34,7 @@ public class CreatePullRequestTest {
             .title(Property.ofValue("Test Kestra Github plugin"))
             .body(Property.ofValue("This is a test for creating a new pull request in repository by oauth token"))
             .maintainerCanModify(Property.ofValue(true))
+            .reviewers(Property.ofValue(List.of("test-reviewer", "team:test-team")))
             .build();
 
         Create.Output run = task.run(runContext);

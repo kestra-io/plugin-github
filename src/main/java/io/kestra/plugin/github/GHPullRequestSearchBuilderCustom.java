@@ -59,6 +59,11 @@ public class GHPullRequestSearchBuilderCustom {
         return this;
     }
 
+    public GHPullRequestSearchBuilderCustom reviewRequested(String user) {
+        q("review-requested", user);
+        return this;
+    }
+
     public GHPullRequestSearchBuilderCustom isOpen() {
         searchBuilder.isOpen();
         return this;

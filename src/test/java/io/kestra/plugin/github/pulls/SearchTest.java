@@ -69,6 +69,28 @@ public class SearchTest {
         assertThat(result.getFirst().get("state"), is("CLOSED"));
     }
 
+    @Test
+    void testReviewRequested() throws Exception {
+        RunContext runContext = runContextFactory.of();
+
+        Search task = Search.builder()
+            .query(Property.ofValue("repo:kestra-io/kestra"))
+            .reviewRequested(Property.ofValue("brian-mulier-p"))
+            .closed(Property.ofValue(Boolean.TRUE))
+            .sort(Property.ofValue(Search.Sort.UPDATED))
+            .build();
+
+        Search.FileOutput run = task.run(runContext);
+
+        assertThat(run.getUri(), is(notNullValue()));
+
+        List<Map<String, Object>> result = getResult(run);
+
+        assertThat(result.size(), greaterThanOrEqualTo(1));
+
+        assertThat(result.getFirst().get("state"), is("CLOSED"));
+    }
+
     private List<Map<String, Object>> getResult(Search.FileOutput run) throws IOException {
         BufferedReader inputStream = new BufferedReader(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, run.getUri())));
         List<Map<String, Object>> result = new ArrayList<>();

@@ -9,11 +9,11 @@ import io.kestra.plugin.github.GithubConnector;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.kohsuke.github.GHPullRequest;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GitHub;
+import org.kohsuke.github.*;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 @SuperBuilder
 @ToString
@@ -92,11 +92,18 @@ public class Create extends GithubConnector implements RunnableTask<Create.Outpu
     @Builder.Default
     private Property<Boolean> draft = Property.ofValue(Boolean.FALSE);
 
+    @Schema(
+        title = "Reviewers",
+        description = "GitHub usernames or team slugs to request as pull request reviewers. Prefix team slugs with `team:` (e.g. `team:backend`)."
+    )
+    private Property<List<String>> reviewers;
+
     @Override
     public Output run(RunContext runContext) throws Exception {
         GitHub gitHub = connect(runContext);
 
-        GHRepository repo = gitHub.getRepository(runContext.render(this.repository).as(String.class).orElse(null));
+        String rRepository = runContext.render(this.repository).as(String.class).orElse(null);
+        GHRepository repo = gitHub.getRepository(rRepository);
 
         if (!repo.hasPullAccess()) {
             return Output.builder().build();
@@ -105,7 +112,7 @@ public class Create extends GithubConnector implements RunnableTask<Create.Outpu
         String head = runContext.render(this.sourceBranch).as(String.class).orElse(null);
         String base = runContext.render(this.targetBranch).as(String.class).orElse(null);
 
-        GHPullRequest pullRequest = repo.createPullRequest(
+        var pullRequest = repo.createPullRequest(
             runContext.render(this.title).as(String.class).orElse(null),
             head,
             base,
@@ -113,6 +120,32 @@ public class Create extends GithubConnector implements RunnableTask<Create.Outpu
             runContext.render(this.maintainerCanModify).as(Boolean.class).orElseThrow(),
             runContext.render(this.draft).as(Boolean.class).orElseThrow()
         );
+
+        if (this.reviewers != null) {
+            var rReviewers = runContext.render(this.reviewers).asList(String.class);
+            if (!rReviewers.isEmpty()) {
+                var users = new ArrayList<GHUser>();
+                var teamSlugs = new ArrayList<String>();
+                for (var entry : rReviewers) {
+                    if (entry.startsWith("team:")) {
+                        teamSlugs.add(entry.substring("team:".length()));
+                    } else {
+                        users.add(gitHub.getUser(entry));
+                    }
+                }
+                if (!users.isEmpty()) {
+                    pullRequest.requestReviewers(users);
+                }
+                if (!teamSlugs.isEmpty()) {
+                    var org = gitHub.getOrganization(rRepository.split("/")[0]);
+                    var teams = new ArrayList<GHTeam>();
+                    for (var slug : teamSlugs) {
+                        teams.add(org.getTeamBySlug(slug));
+                    }
+                    pullRequest.requestTeamReviewers(teams);
+                }
+            }
+        }
 
         return Output
             .builder()
