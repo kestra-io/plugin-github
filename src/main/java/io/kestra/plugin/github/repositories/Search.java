@@ -184,6 +184,10 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
 
         PagedSearchIterable<GHRepository> repositories = searchBuilder.list();
 
+        repositories.forEach(item -> {
+            runContext.logger().info("item {}", item);
+        });
+
         return this.run(runContext, repositories, gitHub);
     }
 
