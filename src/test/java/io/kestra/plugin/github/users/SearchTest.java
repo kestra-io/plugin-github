@@ -7,6 +7,8 @@ import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.FileSerde;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.tenant.TenantService;
+import io.kestra.plugin.github.AbstractGithubClientTest;
+import io.kestra.plugin.github.model.FileOutput;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 @KestraTest
-public class SearchTest {
+public class SearchTest extends AbstractGithubClientTest {
     @Inject
     private RunContextFactory runContextFactory;
 
@@ -33,10 +35,12 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
+            .oauthToken(Property.ofValue(""))
+            .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
             .query(Property.ofValue("kestra-io in:login language:java"))
             .build();
 
-        Search.FileOutput run = task.run(runContext);
+        FileOutput run = task.run(runContext);
 
         assertThat(run.getUri(), is(notNullValue()));
 
@@ -52,12 +56,14 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
+            .oauthToken(Property.ofValue(""))
+            .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
             .query(Property.ofValue("kestra-io"))
             .in(Property.ofValue("login"))
             .language(Property.ofValue("java"))
             .build();
 
-        Search.FileOutput run = task.run(runContext);
+        FileOutput run = task.run(runContext);
 
         assertThat(run.getUri(), is(notNullValue()));
 
@@ -68,7 +74,8 @@ public class SearchTest {
         assertThat(result.getFirst().get("username"), is("kestra-io"));
     }
 
-    private List<Map<String, Object>> getResult(Search.FileOutput run) throws IOException {
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> getResult(FileOutput run) throws IOException {
         BufferedReader inputStream = new BufferedReader(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, run.getUri())));
         List<Map<String, Object>> result = new ArrayList<>();
         FileSerde.reader(inputStream, r -> result.add((Map<String, Object>) r));

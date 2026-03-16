@@ -5,7 +5,7 @@ import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
-import io.kestra.plugin.github.GithubConnector;
+import io.kestra.plugin.github.AbstractGithubTask;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -22,8 +22,8 @@ import java.net.URL;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Comment on a GitHub issue",
-    description = "Adds a comment to an existing issue. Requires authentication matching repository permissions."
+    title = "Add an issue comment",
+    description = "Posts a comment on an existing GitHub issue. The authenticated token must be allowed to read the repository and comment on the issue."
 )
 @Plugin(
     examples = {
@@ -45,11 +45,10 @@ import java.net.URL;
         )
     }
 )
-public class Comment extends GithubConnector implements RunnableTask<Comment.Output> {
-
+public class Comment extends AbstractGithubTask implements RunnableTask<Comment.Output> {
     @Schema(
-        title = "Repository containing the issue",
-        description = "`owner/repo` of the target issue."
+        title = "Target repository",
+        description = "Repository in `owner/repo` format containing the issue"
     )
     private Property<String> repository;
 
@@ -62,7 +61,7 @@ public class Comment extends GithubConnector implements RunnableTask<Comment.Out
 
     @Schema(
         title = "Comment body",
-        description = "Markdown content to post."
+        description = "Markdown body to post as the issue comment. This value is rendered before the request is sent"
     )
     private Property<String> body;
 
@@ -86,7 +85,16 @@ public class Comment extends GithubConnector implements RunnableTask<Comment.Out
     @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
+        @Schema(
+            title = "Issue URL",
+            description = "GitHub URL for the issue that received the comment"
+        )
         private URL issueUrl;
+
+        @Schema(
+            title = "Comment URL",
+            description = "GitHub URL for the created comment"
+        )
         private URL commentUrl;
     }
 

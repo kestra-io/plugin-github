@@ -5,7 +5,9 @@ import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
-import io.kestra.plugin.github.GithubSearchTask;
+import io.kestra.plugin.github.AbstractGithubTask;
+import io.kestra.plugin.github.model.FileOutput;
+import io.kestra.plugin.github.services.SearchService;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -17,8 +19,8 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search GitHub repositories",
-    description = "Runs the GitHub repository search API and writes matches to storage. Defaults to updated-date ascending. Anonymous access skips private repos and some fields; provide OAuth/JWT to remove those limits."
+    title = "Search repositories",
+    description = "Runs a GitHub repository search and writes matching repository metadata to Kestra internal storage. Anonymous execution skips private repositories and may omit fields, and authenticated runs default to `UPDATED` sorted in ascending order."
 )
 @Plugin(
     examples = {
@@ -86,7 +88,7 @@ import org.kohsuke.github.*;
         )
     }
 )
-public class Search extends GithubSearchTask implements RunnableTask<GithubSearchTask.FileOutput> {
+public class Search extends AbstractGithubTask implements RunnableTask<FileOutput> {
 
     @RequiredArgsConstructor
     public enum Order {
@@ -152,7 +154,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
 
     @Schema(
         title = "Topic filter",
-        description = "Topic name for the `topic:` qualifier."
+        description = "Topic name used for the `topic:` qualifier"
     )
     private Property<String> topic;
 
@@ -172,7 +174,7 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
 
     @Schema(
         title = "Visibility filter",
-        description = "PUBLIC shows only public repos; PRIVATE only private repos accessible to the token; INTERNAL only internal repos."
+        description = "PUBLIC limits results to public repositories, PRIVATE to private repositories visible to the token, and INTERNAL to internal repositories"
     )
     private Property<Visibility> visibility;
 
@@ -180,52 +182,23 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     public FileOutput run(RunContext runContext) throws Exception {
         GitHub gitHub = connect(runContext);
 
-        GHRepositorySearchBuilder searchBuilder = setupSearchParameters(runContext, gitHub);
-
-        PagedSearchIterable<GHRepository> repositories = searchBuilder.list();
-
-        return this.run(runContext, repositories, gitHub);
-    }
-
-    private GHRepositorySearchBuilder setupSearchParameters(RunContext runContext, GitHub gitHub) throws Exception {
         GHRepositorySearchBuilder searchBuilder = gitHub.searchRepositories();
 
         searchBuilder
             .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
             .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
 
-        if (this.visibility != null) {
-            searchBuilder.visibility(runContext.render(this.visibility).as(Visibility.class).orElseThrow().value);
-        }
+        runContext.render(this.visibility).as(Visibility.class).map(r -> r.value).ifPresent(searchBuilder::visibility);
+        runContext.render(this.query).as(String.class).ifPresent(searchBuilder::q);
+        runContext.render(this.language).as(String.class).ifPresent(searchBuilder::language);
+        runContext.render(this.created).as(String.class).ifPresent(searchBuilder::created);
+        runContext.render(this.repository).as(String.class).ifPresent(searchBuilder::repo);
+        runContext.render(this.stars).as(String.class).ifPresent(searchBuilder::stars);
+        runContext.render(this.user).as(String.class).ifPresent(searchBuilder::user);
+        runContext.render(this.topic).as(String.class).ifPresent(searchBuilder::topic);
 
-        if (this.query != null) {
-            searchBuilder.q(runContext.render(this.query).as(String.class).orElseThrow());
-        }
+        PagedSearchIterable<GHRepository> repositories = searchBuilder.list();
 
-        if (this.language != null) {
-            searchBuilder.language(runContext.render(this.language).as(String.class).orElseThrow());
-        }
-
-        if (this.created != null) {
-            searchBuilder.created(runContext.render(this.created).as(String.class).orElseThrow());
-        }
-
-        if (this.repository != null) {
-            searchBuilder.repo(runContext.render(this.repository).as(String.class).orElseThrow());
-        }
-
-        if (this.stars != null) {
-            searchBuilder.stars(runContext.render(this.stars).as(String.class).orElseThrow());
-        }
-
-        if (this.user != null) {
-            searchBuilder.user(runContext.render(this.user).as(String.class).orElseThrow());
-        }
-
-        if (this.topic != null) {
-            searchBuilder.topic(runContext.render(this.topic).as(String.class).orElseThrow());
-        }
-        return searchBuilder;
+        return SearchService.run(runContext, repositories, gitHub);
     }
-
 }

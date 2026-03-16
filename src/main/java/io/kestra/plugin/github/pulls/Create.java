@@ -5,7 +5,7 @@ import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
-import io.kestra.plugin.github.GithubConnector;
+import io.kestra.plugin.github.AbstractGithubTask;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -21,8 +21,8 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create a GitHub pull request",
-    description = "Creates a pull request between branches in a repository. Requires authentication with push/PR permissions; defaults to nondraft and maintainers not allowed to edit."
+    title = "Create a pull request",
+    description = "Creates a GitHub pull request from a head branch to a base branch. The authenticated token must be allowed to open pull requests in the target repository."
 )
 @Plugin(
     examples = {
@@ -46,11 +46,10 @@ import java.util.List;
         )
     }
 )
-public class Create extends GithubConnector implements RunnableTask<Create.Output> {
-
+public class Create extends AbstractGithubTask implements RunnableTask<Create.Output> {
     @Schema(
-        title = "Repository containing the branches",
-        description = "`owner/repo` where the pull request will be opened."
+        title = "Target repository",
+        description = "Repository in `owner/repo` format where the pull request will be opened"
     )
     private Property<String> repository;
 
@@ -74,7 +73,7 @@ public class Create extends GithubConnector implements RunnableTask<Create.Outpu
 
     @Schema(
         title = "Pull request body",
-        description = "Markdown description; optional."
+        description = "Markdown description for the pull request. This value is rendered before the request is sent"
     )
     private Property<String> body;
 
@@ -158,11 +157,14 @@ public class Create extends GithubConnector implements RunnableTask<Create.Outpu
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "The API Response URL for the Pull Request"
+            title = "Issue API URL",
+            description = "GitHub API URL for the pull request issue resource"
         )
         private URL issueUrl;
+
         @Schema(
-            title = "The URL to the Pull Request"
+            title = "Pull request URL",
+            description = "GitHub URL for the created pull request"
         )
         private URL pullRequestUrl;
     }

@@ -5,12 +5,17 @@ import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
-import io.kestra.plugin.github.GHPullRequestSearchBuilderCustom;
-import io.kestra.plugin.github.GithubSearchTask;
+import io.kestra.plugin.github.AbstractGithubTask;
+import io.kestra.plugin.github.model.FileOutput;
+import io.kestra.plugin.github.services.SearchService;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.github.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @SuperBuilder
 @ToString
@@ -18,8 +23,8 @@ import org.kohsuke.github.*;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Search GitHub pull requests",
-    description = "Runs a GitHub Search API query for pull requests and writes results to storage. Defaults to creation-date ascending; anonymous access omits some fields and can't reach private repositories. Provide an OAuth or JWT token to lift those limits."
+    title = "Search pull requests",
+    description = "Runs a GitHub pull request search and writes matching pull request metadata to Kestra internal storage. Anonymous execution cannot reach private repositories and may omit fields, and authenticated runs default to `CREATED` sorted in ascending order."
 )
 @Plugin(
     examples = {
@@ -54,7 +59,7 @@ import org.kohsuke.github.*;
         )
     }
 )
-public class Search extends GithubSearchTask implements RunnableTask<GithubSearchTask.FileOutput> {
+public class Search extends AbstractGithubTask implements RunnableTask<FileOutput> {
 
     @RequiredArgsConstructor
     public enum Order {
@@ -75,13 +80,13 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
 
     @Schema(
         title = "Search keywords and qualifiers",
-        description = "GitHub pull request search syntax combining keywords with qualifiers like repo, is, label, etc."
+        description = "GitHub pull request search syntax combining keywords with qualifiers like `repo`, `is`, and `label`"
     )
     private Property<String> query;
 
     @Schema(
-        title = "Pull requests mentioning this user",
-        description = "Matches PRs that mention the given GitHub username."
+        title = "Mentioned user",
+        description = "GitHub login to use with the `mentions:` qualifier"
     )
     private Property<String> mentions;
 
@@ -93,91 +98,91 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
 
     @Schema(
         title = "Filter to open pull requests",
-        description = "Adds the `is:open` qualifier when true."
+        description = "Adds the `is:open` qualifier when set to `true`"
     )
     private Property<Boolean> open;
 
     @Schema(
         title = "Filter to closed pull requests",
-        description = "Adds the `is:closed` qualifier when true."
+        description = "Adds the `is:closed` qualifier when set to `true`"
     )
     private Property<Boolean> closed;
 
     @Schema(
         title = "Filter to merged pull requests",
-        description = "Adds the `is:merged` qualifier when true."
+        description = "Adds the `is:merged` qualifier when set to `true`"
     )
     private Property<Boolean> merged;
 
     @Schema(
         title = "Filter to draft pull requests",
-        description = "Adds the `is:draft` qualifier when true."
+        description = "Adds the `is:draft` qualifier when set to `true`"
     )
     private Property<Boolean> draft;
 
     @Schema(
         title = "Pull requests assigned to user",
-        description = "Uses the `assignee:` qualifier for the given username."
+        description = "Uses the `assignee:` qualifier for the given GitHub login"
     )
     private Property<String> assigned;
 
     @Schema(
         title = "Title contains text",
-        description = "Matches pull requests with titles containing the given text."
+        description = "Matches pull requests with titles containing the given text"
     )
     private Property<String> title;
 
     @Schema(
         title = "Filter by closed date",
-        description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates."
+        description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates"
     )
     private Property<String> closedAt;
 
     @Schema(
         title = "Filter by created date",
-        description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates."
+        description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates"
     )
     private Property<String> createdAt;
 
     @Schema(
         title = "Filter by last update",
-        description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates."
+        description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates"
     )
     private Property<String> updatedAt;
 
     @Schema(
         title = "Filter by commit SHA",
-        description = "Requires a commit SHA of at least seven characters."
+        description = "Matches pull requests by commit SHA and requires at least seven characters"
     )
     private Property<String> commit;
 
     @Schema(
         title = "Repository to search",
-        description = "`owner/repo` value used for the `repo:` qualifier."
+        description = "`owner/repo` value used for the `repo:` qualifier"
     )
     private Property<String> repository;
 
     @Schema(
         title = "Base branch filter",
-        description = "Adds the `base:` qualifier for the target branch name."
+        description = "Adds the `base:` qualifier for the target branch name"
     )
     private Property<String> base;
 
     @Schema(
         title = "Head branch filter",
-        description = "Adds the `head:` qualifier for the source branch name."
+        description = "Adds the `head:` qualifier for the source branch name"
     )
     private Property<String> head;
 
     @Schema(
         title = "Only pull requests created by the caller",
-        description = "Adds `author:@me`; requires authenticated execution."
+        description = "Adds `author:@me`. This option requires authenticated execution"
     )
     private Property<Boolean> createdByMe;
 
     @Schema(
         title = "Author username",
-        description = "Adds the `author:` qualifier for the given GitHub user or app."
+        description = "Adds the `author:` qualifier for the given GitHub user or app"
     )
     private Property<String> author;
 
@@ -199,89 +204,175 @@ public class Search extends GithubSearchTask implements RunnableTask<GithubSearc
     public FileOutput run(RunContext runContext) throws Exception {
         GitHub gitHub = connect(runContext);
 
-        GHPullRequestSearchBuilderCustom searchBuilder = setupSearchParameters(runContext, gitHub);
-
-        PagedSearchIterable<GHPullRequest> pullRequests = searchBuilder.list();
-
-        return this.run(runContext, pullRequests, gitHub);
-    }
-
-    private GHPullRequestSearchBuilderCustom setupSearchParameters(RunContext runContext, GitHub gitHub) throws Exception {
         GHPullRequestSearchBuilderCustom searchBuilder = new GHPullRequestSearchBuilderCustom(gitHub);
 
         searchBuilder
             .sort(runContext.render(this.sort).as(Sort.class).orElseThrow().value)
             .order(runContext.render(this.order).as(Order.class).orElseThrow().direction);
 
-        if (this.query != null) {
-            searchBuilder.q(runContext.render(this.query).as(String.class).orElseThrow());
+        runContext.render(this.query).as(String.class).ifPresent(searchBuilder::q);
+        runContext.render(this.open).as(Boolean.class).filter(b -> b).ifPresent(ignored -> searchBuilder.isOpen());
+        runContext.render(this.closed).as(Boolean.class).filter(b -> b).ifPresent(ignored -> searchBuilder.isClosed());
+        runContext.render(this.merged).as(Boolean.class).filter(b -> b).ifPresent(ignored -> searchBuilder.isMerged());
+        runContext.render(this.draft).as(Boolean.class).filter(b -> b).ifPresent(ignored -> searchBuilder.isDraft());
+        runContext.render(this.draft).as(Boolean.class).filter(b -> b).ifPresent(ignored -> searchBuilder.isDraft());
+        runContext.render(this.assigned).as(String.class).ifPresent(searchBuilder::assigned);
+        runContext.render(this.title).as(String.class).ifPresent(searchBuilder::titleLike);
+        runContext.render(this.closedAt).as(String.class).ifPresent(searchBuilder::closed);
+        runContext.render(this.createdAt).as(String.class).ifPresent(searchBuilder::created);
+        runContext.render(this.updatedAt).as(String.class).ifPresent(searchBuilder::updated);
+        runContext.render(this.commit).as(String.class).ifPresent(searchBuilder::commit);
+        runContext.render(this.repository).as(String.class).ifPresent(searchBuilder::repo);
+        runContext.render(this.base).as(String.class).ifPresent(searchBuilder::base);
+        runContext.render(this.head).as(String.class).ifPresent(searchBuilder::head);
+        runContext.render(this.createdByMe).as(Boolean.class).filter(b -> b).ifPresent(r -> searchBuilder.createdByMe());
+        runContext.render(this.author).as(String.class).ifPresent(searchBuilder::author);
+        runContext.render(this.reviewRequested).as(String.class).ifPresent(searchBuilder::reviewRequested);
+
+        PagedSearchIterable<GHPullRequest> pullRequests = searchBuilder.list();
+
+        return SearchService.run(runContext, pullRequests, gitHub);
+    }
+
+    public static class GHPullRequestSearchBuilderCustom {
+        private final GHPullRequestSearchBuilder searchBuilder;
+        private final List<String> terms = new ArrayList<>();
+
+        public GHPullRequestSearchBuilderCustom(GitHub gitHub) {
+            this.searchBuilder = gitHub.searchPullRequests();
         }
 
-        if (runContext.render(this.open).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
-            searchBuilder.isOpen();
+        public GHPullRequestSearchBuilderCustom q(String qualifier, String value) {
+            if (StringUtils.isEmpty(qualifier)) {
+                throw new IllegalArgumentException("qualifier cannot be null or empty");
+            }
+            if (StringUtils.isEmpty(value)) {
+                final String removeQualifier = qualifier + ":";
+                terms.removeIf(term -> term.startsWith(removeQualifier));
+            } else {
+                terms.add(qualifier + ":" + value);
+            }
+            return this;
         }
 
-        if (runContext.render(this.closed).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
-            searchBuilder.isClosed();
+        public GHPullRequestSearchBuilderCustom q(String value) {
+            searchBuilder.q(value);
+            return this;
         }
 
-        if (runContext.render(this.merged).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
-            searchBuilder.isMerged();
+        public GHPullRequestSearchBuilderCustom repo(String repository) {
+            q("repo", repository);
+            return this;
         }
 
-        if (runContext.render(this.draft).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
-            searchBuilder.isDraft();
+        public GHPullRequestSearchBuilderCustom author(String user) {
+            q("author", user);
+            return this;
         }
 
-        if (this.assigned != null) {
-            searchBuilder.assigned(runContext.render(this.assigned).as(String.class).orElseThrow());
-        }
-
-        if (this.title != null) {
-            searchBuilder.titleLike(runContext.render(this.title).as(String.class).orElseThrow());
-        }
-
-        if (this.closedAt != null) {
-            searchBuilder.closed(runContext.render(this.closedAt).as(String.class).orElseThrow());
-        }
-
-        if (this.createdAt != null) {
-            searchBuilder.created(runContext.render(this.createdAt).as(String.class).orElseThrow());
-        }
-
-        if (this.updatedAt != null) {
-            searchBuilder.updated(runContext.render(this.updatedAt).as(String.class).orElseThrow());
-        }
-
-        if (this.commit != null) {
-            searchBuilder.commit(runContext.render(this.commit).as(String.class).orElseThrow());
-        }
-
-        if (this.repository != null) {
-            searchBuilder.repo(runContext.render(this.repository).as(String.class).orElseThrow());
-        }
-
-        if (this.base != null) {
-            searchBuilder.base(runContext.render(this.base).as(String.class).orElseThrow());
-        }
-
-        if (this.head != null) {
-            searchBuilder.head(runContext.render(this.head).as(String.class).orElseThrow());
-        }
-
-        if (runContext.render(this.createdByMe).as(Boolean.class).orElse(false).equals(Boolean.TRUE)) {
+        public GHPullRequestSearchBuilderCustom createdByMe() {
             searchBuilder.createdByMe();
+            return this;
         }
 
-        if (this.author != null) {
-            searchBuilder.author(runContext.render(this.author).as(String.class).orElseThrow());
+        public GHPullRequestSearchBuilderCustom assigned(String user) {
+            q("assignee", user);
+            return this;
         }
 
-        if (this.reviewRequested != null) {
-            searchBuilder.reviewRequested(runContext.render(this.reviewRequested).as(String.class).orElseThrow());
+        public GHPullRequestSearchBuilderCustom mentions(String user) {
+            q("mentions", user);
+            return this;
         }
 
-        return searchBuilder;
+        public GHPullRequestSearchBuilderCustom isOpen() {
+            searchBuilder.isOpen();
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom isClosed() {
+            searchBuilder.isClosed();
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom isMerged() {
+            searchBuilder.isMerged();
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom isDraft() {
+            searchBuilder.isDraft();
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom head(String branch) {
+            q("head", branch);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom base(String branch) {
+            q("base", branch);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom commit(String sha) {
+            q("SHA", sha);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom created(String created) {
+            q("created", created);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom merged(String merged) {
+            q("merged", merged);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom closed(String closed) {
+            q("closed", closed);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom updated(String updated) {
+            q("updated", updated);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom reviewRequested(String user) {
+            q("review-requested", user);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom label(String label) {
+            searchBuilder.label(label);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom inLabels(Iterable<String> labels) {
+            searchBuilder.inLabels(labels);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom titleLike(String title) {
+            searchBuilder.titleLike(title);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom order(GHDirection direction) {
+            searchBuilder.order(direction);
+            return this;
+        }
+
+        public GHPullRequestSearchBuilderCustom sort(GHPullRequestSearchBuilder.Sort sort) {
+            searchBuilder.sort(sort);
+            return this;
+        }
+
+        public PagedSearchIterable<GHPullRequest> list() {
+            return searchBuilder.q(StringUtils.join(terms, " ")).list();
+        }
     }
 
 }

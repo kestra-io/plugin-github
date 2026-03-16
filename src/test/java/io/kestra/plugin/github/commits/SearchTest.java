@@ -2,14 +2,13 @@ package io.kestra.plugin.github.commits;
 
 import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.property.Property;
-import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.FileSerde;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.tenant.TenantService;
+import io.kestra.plugin.github.AbstractGithubClientTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -22,10 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 @KestraTest
-@EnabledIfEnvironmentVariable(named = "GITHUB_TOKEN", matches = ".+")
-public class SearchTest {
-    private static final String GITHUB_OAUTH_TOKEN = System.getenv("GITHUB_TOKEN");
-
+public class SearchTest extends AbstractGithubClientTest {
     @Inject
     private RunContextFactory runContextFactory;
 
@@ -34,10 +30,11 @@ public class SearchTest {
 
     @Test
     void testQuery() throws Exception {
-        RunContext runContext = runContextFactory.of();
+        var runContext = runContextFactory.of();
 
-        Search task = Search.builder()
-            .oauthToken(Property.ofValue(GITHUB_OAUTH_TOKEN))
+        var task = Search.builder()
+            .oauthToken(Property.ofValue("oauth-token"))
+            .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
             .query(Property.ofValue("Initial repo:kestra-io/plugin-github"))
             .build();
 
@@ -48,17 +45,17 @@ public class SearchTest {
         List<Map<String, Object>> result = getResult(run);
 
         assertThat(result.size(), greaterThanOrEqualTo(1));
-
         assertThat(result.getFirst().get("repository"), is("plugin-github"));
         assertThat(result.getFirst().get("message"), is("Initial commit"));
     }
 
     @Test
     void testParameters() throws Exception {
-        RunContext runContext = runContextFactory.of();
+        var runContext = runContextFactory.of();
 
-        Search task = Search.builder()
-            .oauthToken(Property.ofValue(GITHUB_OAUTH_TOKEN))
+        var task = Search.builder()
+            .oauthToken(Property.ofValue("oauth-token"))
+            .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
             .query(Property.ofValue("Initial"))
             .repository(Property.ofValue("kestra-io/plugin-github"))
             .build();
@@ -70,7 +67,6 @@ public class SearchTest {
         List<Map<String, Object>> result = getResult(run);
 
         assertThat(result.size(), greaterThanOrEqualTo(1));
-
         assertThat(result.getFirst().get("repository"), is("plugin-github"));
         assertThat(result.getFirst().get("message"), is("Initial commit"));
     }
