@@ -44,6 +44,19 @@ public class RepositoryDetails {
 
     private final String language;
 
+    private final boolean archived;
+
+    private final boolean fork;
+
+    private final boolean disabled;
+
+    private final boolean template;
+
+    @JsonProperty("default_branch")
+    private final String defaultBranch;
+
+    private final String visibility;
+
     public RepositoryDetails(GHRepository repository, boolean isAnonymous) throws IOException {
         this.name = repository.getName();
         this.fullName = repository.getFullName();
@@ -55,6 +68,12 @@ public class RepositoryDetails {
         this.updated = repository.getUpdatedAt();
         this.created = repository.getCreatedAt();
         this.language = repository.getLanguage();
+        this.archived = repository.isArchived();
+        this.fork = repository.isFork();
+        this.disabled = repository.isDisabled();
+        this.template = repository.isTemplate();
+        this.defaultBranch = repository.getDefaultBranch();
+        this.visibility = repository.getVisibility().name();
 
         if (!isAnonymous) {
             this.owner = repository.getOwner().getLogin();
