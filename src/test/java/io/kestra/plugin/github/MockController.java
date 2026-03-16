@@ -241,7 +241,15 @@ public class MockController {
             {
               "login": "%s",
               "id": 1,
-              "type": "User"
+              "type": "User",
+              "name": "Test User",
+              "company": "kestra-io",
+              "location": "Paris",
+              "followers": 10,
+              "following": 5,
+              "public_repos": 20,
+              "created_at": "2020-01-01T00:00:00Z",
+              "updated_at": "2024-01-01T00:00:00Z"
             }
             """.formatted(login));
     }
@@ -325,6 +333,140 @@ public class MockController {
               ]
             }
             """).contentType(MediaType.of("application/json"));
+    }
+
+    @Get("/search/issues")
+    public HttpResponse<String> searchIssues(HttpRequest<?> request) {
+        capture(request);
+        var base = baseUrl(request);
+        var q = request.getParameters().getFirst("q").orElse("");
+        if (q.contains("is:pr")) {
+            return HttpResponse.ok("""
+                {
+                  "total_count": 1,
+                  "incomplete_results": false,
+                  "items": [
+                    {
+                      "id": 1, "number": 10, "title": "Test PR", "state": "closed",
+                      "url": "%s/repos/kestra-io/plugin-github/pulls/10",
+                      "html_url": "https://github.com/kestra-io/plugin-github/pull/10",
+                      "pull_request": {"url": "%s/repos/kestra-io/plugin-github/pulls/10"},
+                      "user": {"login": "kestra-io", "id": 1, "type": "User"},
+                      "assignee": null, "assignees": [], "labels": [], "comments": 0,
+                      "created_at": "2024-01-01T00:00:00Z",
+                      "closed_at": "2024-01-02T00:00:00Z",
+                      "updated_at": "2024-01-02T00:00:00Z",
+                      "repository": {
+                        "id": 1, "name": "plugin-github", "full_name": "kestra-io/plugin-github",
+                        "owner": {"login": "kestra-io"},
+                        "html_url": "https://github.com/kestra-io/plugin-github"
+                      }
+                    }
+                  ]
+                }
+                """.formatted(base, base));
+        } else {
+            return HttpResponse.ok("""
+                {
+                  "total_count": 1,
+                  "incomplete_results": false,
+                  "items": [
+                    {
+                      "id": 1, "number": 42, "title": "Test Issue", "state": "open",
+                      "url": "%s/repos/kestra-io/plugin-github/issues/42",
+                      "html_url": "https://github.com/kestra-io/plugin-github/issues/42",
+                      "user": {"login": "kestra-io", "id": 1, "type": "User"},
+                      "assignee": null, "assignees": [], "labels": [], "comments": 0,
+                      "created_at": "2024-01-01T00:00:00Z",
+                      "updated_at": "2024-01-01T00:00:00Z",
+                      "repository": {
+                        "id": 1, "name": "plugin-github", "full_name": "kestra-io/plugin-github",
+                        "owner": {"login": "kestra-io"},
+                        "html_url": "https://github.com/kestra-io/plugin-github"
+                      }
+                    }
+                  ]
+                }
+                """.formatted(base));
+        }
+    }
+
+    @Get("/repos/{owner}/{repo}/pulls/{number}")
+    public HttpResponse<String> getPullRequest(HttpRequest<?> request, @PathVariable String owner, @PathVariable String repo, @PathVariable String number) {
+        capture(request);
+        var base = baseUrl(request);
+        return HttpResponse.ok("""
+            {
+              "id": 1, "number": %s, "title": "Test PR", "state": "closed",
+              "url": "%s/repos/%s/%s/pulls/%s",
+              "html_url": "https://github.com/%s/%s/pull/%s",
+              "user": {"login": "kestra-io", "id": 1, "type": "User"},
+              "assignee": null, "assignees": [], "labels": [], "comments": 0,
+              "created_at": "2024-01-01T00:00:00Z",
+              "closed_at": "2024-01-02T00:00:00Z",
+              "updated_at": "2024-01-02T00:00:00Z",
+              "requested_reviewers": [],
+              "requested_teams": [],
+              "head": {"ref": "dev", "label": "kestra-io:dev", "sha": "abc123"},
+              "base": {"ref": "main", "label": "kestra-io:main", "sha": "def456"},
+              "merged": true
+            }
+            """.formatted(number, base, owner, repo, number, owner, repo, number));
+    }
+
+    @Get("/repos/{owner}/{repo}/pulls/{number}/requested_reviewers")
+    public HttpResponse<String> getRequestedReviewers(HttpRequest<?> request, @PathVariable String owner, @PathVariable String repo, @PathVariable String number) {
+        capture(request);
+        return HttpResponse.ok("""
+            {"users": [], "teams": []}
+            """);
+    }
+
+    @Get("/repos/kestra-io/plugin-github/pulls")
+    public HttpResponse<String> pluginGithubPulls(HttpRequest<?> request) {
+        capture(request);
+        return HttpResponse.ok("[]");
+    }
+
+    @Get("/search/repositories")
+    public HttpResponse<String> searchRepositories(HttpRequest<?> request) {
+        capture(request);
+        return HttpResponse.ok("""
+            {
+              "total_count": 1,
+              "incomplete_results": false,
+              "items": [
+                {
+                  "id": 1, "name": "plugin-github", "full_name": "kestra-io/plugin-github",
+                  "html_url": "https://github.com/kestra-io/plugin-github",
+                  "description": "GitHub plugin for Kestra",
+                  "owner": {"login": "kestra-io", "id": 1, "type": "Organization"},
+                  "forks_count": 5, "stargazers_count": 100, "open_issues_count": 3,
+                  "updated_at": "2024-01-02T00:00:00Z", "created_at": "2024-01-01T00:00:00Z",
+                  "language": "Java", "archived": false, "fork": false, "disabled": false,
+                  "is_template": false, "default_branch": "main", "visibility": "public",
+                  "permissions": {"admin": true, "push": true, "pull": true}
+                }
+              ]
+            }
+            """);
+    }
+
+    @Get("/search/users")
+    public HttpResponse<String> searchUsers(HttpRequest<?> request) {
+        capture(request);
+        return HttpResponse.ok("""
+            {
+              "total_count": 1,
+              "incomplete_results": false,
+              "items": [
+                {
+                  "login": "kestra-io", "id": 1, "type": "Organization",
+                  "html_url": "https://github.com/kestra-io"
+                }
+              ]
+            }
+            """);
     }
 
 }

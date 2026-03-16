@@ -234,7 +234,6 @@ public class Search extends AbstractGithubTask implements RunnableTask<FileOutpu
         return SearchService.run(runContext, pullRequests, gitHub);
     }
 
-
     public static class GHPullRequestSearchBuilderCustom {
         private final GHPullRequestSearchBuilder searchBuilder;
         private final List<String> terms = new ArrayList<>();

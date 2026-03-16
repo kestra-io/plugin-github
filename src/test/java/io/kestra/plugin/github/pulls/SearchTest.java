@@ -7,6 +7,7 @@ import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.FileSerde;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.tenant.TenantService;
+import io.kestra.plugin.github.AbstractGithubClientTest;
 import io.kestra.plugin.github.model.FileOutput;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -22,7 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 @KestraTest
-public class SearchTest {
+public class SearchTest extends AbstractGithubClientTest {
     @Inject
     private RunContextFactory runContextFactory;
 
@@ -34,6 +35,8 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
+            .oauthToken(Property.ofValue("oauth-token"))
+            .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
             .query(Property.ofValue("repo:kestra-io/plugin-github is:closed"))
             .sort(Property.ofValue(Search.Sort.UPDATED))
             .build();
@@ -54,6 +57,8 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
+            .oauthToken(Property.ofValue("oauth-token"))
+            .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
             .query(Property.ofValue("repo:kestra-io/plugin-github"))
             .open(Property.ofValue(Boolean.FALSE))
             .sort(Property.ofValue(Search.Sort.UPDATED))
@@ -75,8 +80,10 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .query(Property.ofValue("repo:kestra-io/kestra"))
-            .reviewRequested(Property.ofValue("brian-mulier-p"))
+            .oauthToken(Property.ofValue("oauth-token"))
+            .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
+            .query(Property.ofValue("repo:kestra-io/plugin-github"))
+            .reviewRequested(Property.ofValue("copilot"))
             .closed(Property.ofValue(Boolean.TRUE))
             .sort(Property.ofValue(Search.Sort.UPDATED))
             .build();
