@@ -52,7 +52,7 @@ public class SearchTest extends AbstractGithubClientTest {
     }
 
     @Test
-    void testParametersUsesAppInstallationTokenAndOrder() throws Exception {
+    void testParametersUsesAppInstallationToken() throws Exception {
         var runContext = runContextFactory.of();
 
         var task = io.kestra.plugin.github.topics.Search.builder()
@@ -61,7 +61,6 @@ public class SearchTest extends AbstractGithubClientTest {
             .query(Property.ofValue("Spring Cloud"))
             .is(Property.ofValue(Search.Is.NOT_CURATED))
             .repositories(Property.ofValue(">10"))
-            .order(Property.ofValue(Search.Order.DESC))
             .build();
 
         var run = task.run(runContext);
@@ -69,7 +68,6 @@ public class SearchTest extends AbstractGithubClientTest {
         assertThat(run.getUri(), is(notNullValue()));
         assertThat(MockController.headers.get("authorization"), is("token app-installation-token"));
         assertThat(MockController.queryParameters.get("q"), is("Spring Cloud is:not-curated repositories:>10"));
-        assertThat(MockController.queryParameters.get("order"), is("desc"));
 
         var result = getResult(run);
 

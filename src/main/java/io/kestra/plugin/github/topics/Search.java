@@ -104,7 +104,7 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
 
     @Schema(
         title = "Search keywords and qualifiers",
-        description = "GitHub topic search syntax combining keywords with qualifiers"
+        description = "GitHub topic search syntax combining keywords with qualifiers. Note: GitHub's topic search API does not support sorting - results are always returned in best match order."
     )
     private Property<String> query;
 
@@ -134,9 +134,10 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
     )
     private Property<String> created;
 
+    @Deprecated
     @Schema(
         title = "Sort direction",
-        description = "ASC sorts ascending (default); DESC sorts descending."
+        description = "DEPRECATED: GitHub's topic search API does not support sorting. This property will be removed in a future version."
     )
     @Builder.Default
     private Property<Order> order = Property.ofValue(Order.ASC);
@@ -146,7 +147,6 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
         var gitHub = connect(runContext);
         var searchBuilder = new GHTopicSearchBuilder(gitHub, runContext, resolveAuthorizationHeader(runContext));
 
-        searchBuilder.order(runContext.render(this.order).as(Order.class).orElseThrow().toString());
         runContext.render(this.query).as(String.class).ifPresent(searchBuilder::query);
         runContext.render(this.is).as(Is.class).map(Is::toString).ifPresent(searchBuilder::is);
         runContext.render(this.repositories).as(String.class).ifPresent(searchBuilder::repositories);
@@ -227,11 +227,6 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
             return query("created:" + value);
         }
 
-        public GHTopicSearchBuilder order(String value) {
-            parameters.add("order=" + value);
-            return this;
-        }
-
         private String getApiUrl() {
             return root.getApiUrl() + "/search/topics";
         }
@@ -253,8 +248,9 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
         }
 
         public GHTopicResponse list() throws Exception {
+            var urlWithQuery = getUrlWithQuery();
             var requestBuilder = HttpRequest.builder()
-                .uri(URI.create(getUrlWithQuery()))
+                .uri(URI.create(urlWithQuery))
                 .method("GET")
                 .addHeader("Accept", ACCEPT_HEADER)
                 .addHeader("X-GitHub-Api-Version", API_VERSION_HEADER);
