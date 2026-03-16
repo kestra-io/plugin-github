@@ -79,7 +79,7 @@ public class SearchTest {
             .sort(Property.ofValue(Search.Sort.STARS))
             .build();
 
-        Search.FileOutput run = task.run(runContext);
+        FileOutput run = task.run(runContext);
 
         assertThat(run.getUri(), is(notNullValue()));
 
