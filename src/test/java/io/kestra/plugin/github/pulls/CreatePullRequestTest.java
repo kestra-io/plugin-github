@@ -28,7 +28,6 @@ public class CreatePullRequestTest extends AbstractGithubClientTest {
             .title(Property.ofValue("Test Kestra Github plugin"))
             .body(Property.ofValue("This is a test for creating a new pull request in repository by oauth token"))
             .maintainerCanModify(Property.ofValue(true))
-            .reviewers(Property.ofValue(List.of("test-reviewer", "team:test-team")))
             .build();
 
         Create.Output run = task.run(runContext);
