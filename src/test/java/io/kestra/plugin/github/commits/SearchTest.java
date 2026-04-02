@@ -7,6 +7,7 @@ import io.kestra.core.serializers.FileSerde;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.tenant.TenantService;
 import io.kestra.plugin.github.AbstractGithubClientTest;
+import io.kestra.plugin.github.AbstractGithubSearchTask;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +39,7 @@ public class SearchTest extends AbstractGithubClientTest {
             .query(Property.ofValue("Initial repo:kestra-io/plugin-github"))
             .build();
 
-        Search.Output run = task.run(runContext);
+        AbstractGithubSearchTask.Output run = task.run(runContext);
 
         assertThat(run.getUri(), is(notNullValue()));
 
@@ -60,7 +61,7 @@ public class SearchTest extends AbstractGithubClientTest {
             .repository(Property.ofValue("kestra-io/plugin-github"))
             .build();
 
-        Search.Output run = task.run(runContext);
+        AbstractGithubSearchTask.Output run = task.run(runContext);
 
         assertThat(run.getUri(), is(notNullValue()));
 
@@ -71,7 +72,7 @@ public class SearchTest extends AbstractGithubClientTest {
         assertThat(result.getFirst().get("message"), is("Initial commit"));
     }
 
-    private List<Map<String, Object>> getResult(Search.Output run) throws IOException {
+    private List<Map<String, Object>> getResult(AbstractGithubSearchTask.Output run) throws IOException {
         BufferedReader inputStream = new BufferedReader(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, run.getUri())));
         List<Map<String, Object>> result = new ArrayList<>();
         FileSerde.reader(inputStream, r -> result.add((Map<String, Object>) r));

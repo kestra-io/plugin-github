@@ -4,14 +4,16 @@ import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
+import io.kestra.core.models.tasks.common.FetchType;
 import io.kestra.core.runners.RunContext;
-import io.kestra.plugin.github.AbstractGithubTask;
-import io.kestra.plugin.github.model.FileOutput;
-import io.kestra.plugin.github.services.SearchService;
+import io.kestra.plugin.github.AbstractGithubSearchTask;
+import io.kestra.plugin.github.model.UserDetails;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.kohsuke.github.*;
+
+import static io.kestra.core.utils.Rethrow.throwFunction;
 
 @SuperBuilder
 @ToString
@@ -56,7 +58,7 @@ import org.kohsuke.github.*;
         )
     }
 )
-public class Search extends AbstractGithubTask implements RunnableTask<FileOutput> {
+public class Search extends AbstractGithubSearchTask implements RunnableTask<AbstractGithubSearchTask.Output> {
 
     @RequiredArgsConstructor
     public enum Order {
@@ -146,7 +148,7 @@ public class Search extends AbstractGithubTask implements RunnableTask<FileOutpu
     private Property<Sort> sort = Property.ofValue(Sort.JOINED);
 
     @Override
-    public FileOutput run(RunContext runContext) throws Exception {
+    public Output run(RunContext runContext) throws Exception {
         GitHub gitHub = connect(runContext);
 
         GHUserSearchBuilder searchBuilder = gitHub.searchUsers();
@@ -166,6 +168,11 @@ public class Search extends AbstractGithubTask implements RunnableTask<FileOutpu
 
         PagedSearchIterable<GHUser> users = searchBuilder.list();
 
-        return SearchService.run(runContext, users, gitHub);
+        return handleFetch(
+            runContext,
+            users.toList(),
+            throwFunction(user -> new UserDetails(user, gitHub.isAnonymous()).toMap()),
+            runContext.render(fetchType).as(FetchType.class).orElseThrow()
+        );
     }
 }

@@ -9,32 +9,23 @@ import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
+import io.kestra.core.models.tasks.common.FetchType;
 import io.kestra.core.runners.RunContext;
-import io.kestra.core.serializers.FileSerde;
 import io.kestra.core.serializers.JacksonMapper;
-import io.kestra.plugin.github.AbstractGithubTask;
+import io.kestra.plugin.github.AbstractGithubSearchTask;
+import io.kestra.plugin.github.model.TopicDetails;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.github.GitHub;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-
-import static io.kestra.core.utils.Rethrow.throwConsumer;
 
 @SuperBuilder
 @ToString
@@ -79,7 +70,7 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
         )
     }
 )
-public class Search extends AbstractGithubTask implements RunnableTask<Search.Output> {
+public class Search extends AbstractGithubSearchTask implements RunnableTask<AbstractGithubSearchTask.Output> {
     public enum Order {
         ASC(),
         DESC();
@@ -143,7 +134,7 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
     private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Override
-    public Output run(RunContext runContext) throws Exception {
+    public AbstractGithubSearchTask.Output run(RunContext runContext) throws Exception {
         var gitHub = connect(runContext);
         var searchBuilder = new GHTopicSearchBuilder(gitHub, runContext, resolveAuthorizationHeader(runContext));
 
@@ -153,16 +144,12 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
         runContext.render(this.created).as(String.class).ifPresent(searchBuilder::created);
 
         var topics = searchBuilder.list();
-
-        File tempFile = runContext.workingDir().createTempFile(".ion").toFile();
-        try (var output = new BufferedOutputStream(new FileOutputStream(tempFile))) {
-            topics.items.forEach(throwConsumer(topic -> FileSerde.write(output, topic)));
-            output.flush();
-
-            return new Output(
-                runContext.storage().putFile(tempFile)
-            );
-        }
+        return handleFetch(
+            runContext,
+            topics.items,
+            topic -> new TopicDetails(topic).toMap(),
+            runContext.render(fetchType).as(FetchType.class).orElseThrow()
+        );
     }
 
     private String resolveAuthorizationHeader(RunContext runContext) throws Exception {

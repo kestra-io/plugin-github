@@ -9,6 +9,8 @@ import org.kohsuke.github.GHRepository;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Getter
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -79,6 +81,31 @@ public class RepositoryDetails {
             this.owner = repository.getOwner().getLogin();
             this.pullRequestsCount = repository.getPullRequests(GHIssueState.OPEN).size();
         }
+    }
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new LinkedHashMap<>();
+
+        map.put("name", name);
+        map.put("full_name", fullName);
+        map.put("url", htmlUrl);
+        map.put("description", description);
+        map.put("owner", owner);
+        map.put("forks_count", forksCount);
+        map.put("stars_count", starsCount);
+        map.put("pull_request_count", pullRequestsCount);
+        map.put("issues_count", issuesCount);
+        map.put("updated", updated);
+        map.put("created", created);
+        map.put("language", language);
+        map.put("archived", archived);
+        map.put("fork", fork);
+        map.put("disabled", disabled);
+        map.put("template", template);
+        map.put("default_branch", defaultBranch);
+        map.put("visibility", visibility);
+
+        return map;
     }
 
 }
