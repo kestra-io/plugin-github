@@ -8,7 +8,6 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import java.util.List;
 
 @KestraTest
 public class CreatePullRequestTest extends AbstractGithubClientTest {

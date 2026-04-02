@@ -5,9 +5,7 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.plugin.github.AbstractGithubClientTest;
 import io.kestra.plugin.github.MockController;
-import io.micronaut.context.annotation.Requires;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

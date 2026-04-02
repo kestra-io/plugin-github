@@ -7,7 +7,6 @@ import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.FileSerde;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.tenant.TenantService;
-
 import io.kestra.plugin.github.AbstractGithubSearchTask;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
