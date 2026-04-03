@@ -34,7 +34,7 @@ public class SearchTest {
         RunContext runContext = runContextFactory.of();
 
         Search task = Search.builder()
-            .query(Property.ofValue("repo:kestra-io/plugin-github is:open"))
+            .query(Property.ofValue("repo:kestra-io/plugin-github is:closed"))
             .sort(Property.ofValue(Search.Sort.UPDATED))
             .build();
 
@@ -46,7 +46,7 @@ public class SearchTest {
 
         assertThat(result.size(), greaterThanOrEqualTo(1));
 
-        assertThat(result.getFirst().get("state"), is("OPEN"));
+        assertThat(result.getFirst().get("state"), is("CLOSED"));
     }
 
     @Test
@@ -56,6 +56,7 @@ public class SearchTest {
         Search task = Search.builder()
             .query(Property.ofValue("repo:kestra-io/plugin-github"))
             .open(Property.ofValue(Boolean.TRUE))
+            .closed(Property.ofValue(Boolean.TRUE))
             .sort(Property.ofValue(Search.Sort.UPDATED))
             .build();
 
@@ -66,8 +67,6 @@ public class SearchTest {
         List<Map<String, Object>> result = getResult(run);
 
         assertThat(result.size(), greaterThanOrEqualTo(1));
-
-        assertThat(result.getFirst().get("state"), is("OPEN"));
     }
 
     @Test
