@@ -7,7 +7,7 @@ import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.FileSerde;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.tenant.TenantService;
-import io.kestra.plugin.github.model.FileOutput;
+import io.kestra.plugin.github.AbstractGithubSearchTask;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +38,7 @@ public class SearchTest {
             .sort(Property.ofValue(Search.Sort.STARS))
             .build();
 
-        FileOutput run = task.run(runContext);
+        AbstractGithubSearchTask.Output run = task.run(runContext);
 
         assertThat(run.getUri(), is(notNullValue()));
 
@@ -58,7 +58,7 @@ public class SearchTest {
             .sort(Property.ofValue(Search.Sort.STARS))
             .build();
 
-        FileOutput run = task.run(runContext);
+        AbstractGithubSearchTask.Output run = task.run(runContext);
 
         assertThat(run.getUri(), is(notNullValue()));
 
@@ -79,7 +79,7 @@ public class SearchTest {
             .sort(Property.ofValue(Search.Sort.STARS))
             .build();
 
-        FileOutput run = task.run(runContext);
+        AbstractGithubSearchTask.Output run = task.run(runContext);
 
         assertThat(run.getUri(), is(notNullValue()));
 
@@ -96,7 +96,7 @@ public class SearchTest {
     }
 
     @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> getResult(FileOutput run) throws IOException {
+    private List<Map<String, Object>> getResult(AbstractGithubSearchTask.Output run) throws IOException {
         BufferedReader inputStream = new BufferedReader(new InputStreamReader(storageInterface.get(TenantService.MAIN_TENANT, null, run.getUri())));
         List<Map<String, Object>> result = new ArrayList<>();
         FileSerde.reader(inputStream, r -> result.add((Map<String, Object>) r));

@@ -4,26 +4,21 @@ import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
+import io.kestra.core.models.tasks.common.FetchType;
 import io.kestra.core.runners.RunContext;
-import io.kestra.core.serializers.FileSerde;
-import io.kestra.plugin.github.AbstractGithubTask;
+import io.kestra.plugin.github.AbstractGithubSearchTask;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.kohsuke.github.*;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import static io.kestra.core.utils.Rethrow.throwConsumer;
 import static io.kestra.core.utils.Rethrow.throwFunction;
 
 @SuperBuilder
@@ -68,7 +63,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
         )
     }
 )
-public class Search extends AbstractGithubTask implements RunnableTask<Search.Output> {
+public class Search extends AbstractGithubSearchTask implements RunnableTask<AbstractGithubSearchTask.Output> {
 
     @RequiredArgsConstructor
     public enum Order {
@@ -236,21 +231,12 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
 
         PagedSearchIterable<GHCommit> commits = searchBuilder.list();
 
-        File tempFile = runContext.workingDir().createTempFile(".ion").toFile();
-        try (BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(tempFile))) {
-
-            commits.toList()
-                .stream()
-                .map(throwFunction(ghCommit -> getCommitDetails(ghCommit, gitHub.isAnonymous())))
-                .forEachOrdered(throwConsumer(user -> FileSerde.write(output, user)));
-
-            output.flush();
-
-            return Output
-                .builder()
-                .uri(runContext.storage().putFile(tempFile))
-                .build();
-        }
+        return handleFetch(
+            runContext,
+            commits.toList(),
+            throwFunction(commit -> getCommitDetails(commit, gitHub.isAnonymous())),
+            runContext.render(fetchType).as(FetchType.class).orElseThrow()
+        );
     }
 
     private static Map<String, Object> getCommitDetails(GHCommit commit, boolean isAnonymous) throws IOException {
@@ -312,15 +298,4 @@ public class Search extends AbstractGithubTask implements RunnableTask<Search.Ou
 
         return body;
     }
-
-    @Builder
-    @Getter
-    public static class Output implements io.kestra.core.models.tasks.Output {
-        @Schema(
-            title = "Output file URI",
-            description = "URI of the file written to Kestra internal storage, typically using the `kestra://` scheme"
-        )
-        private URI uri;
-    }
-
 }

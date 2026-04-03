@@ -11,6 +11,8 @@ import org.kohsuke.github.GHPerson;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Getter
@@ -72,7 +74,28 @@ public class IssueDetails {
             this.repositoryName = issue.getRepository().getName();
             this.repositoryUrl = issue.getRepository().getHtmlUrl();
         }
+    }
 
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new LinkedHashMap<>();
+
+        map.put("number", number);
+        map.put("title", title);
+        map.put("state", state);
+        map.put("state_reason", stateReason);
+        map.put("owner", owner);
+        map.put("assignee", assignee);
+        map.put("assignees", assignees);
+        map.put("created_at", createdAt);
+        map.put("closed_at", closedAt);
+        map.put("closed_by", closedBy);
+        map.put("comments", comments);
+        map.put("labels", labels);
+        map.put("repository_name", repositoryName);
+        map.put("repository_url", repositoryUrl);
+        map.put("url", url);
+
+        return map;
     }
 
 }

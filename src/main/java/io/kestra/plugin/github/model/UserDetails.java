@@ -8,6 +8,8 @@ import org.kohsuke.github.GHUser;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Getter
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -57,4 +59,22 @@ public class UserDetails {
         }
     }
 
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new LinkedHashMap<>();
+
+        map.put("username", username);
+        map.put("url", url);
+        map.put("name", name);
+        map.put("followers", followers);
+        map.put("following", following);
+        map.put("location", location);
+        map.put("company", company);
+        map.put("public_repositories", publicRepositories);
+        map.put("private_repositories", privateRepositories);
+        map.put("updated", updated);
+        map.put("created", created);
+        map.put("type", type);
+
+        return map;
+    }
 }

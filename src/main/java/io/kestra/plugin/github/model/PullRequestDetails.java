@@ -10,9 +10,7 @@ import org.kohsuke.github.GHPullRequest;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Getter
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -83,6 +81,31 @@ public class PullRequestDetails {
             this.repositoryName = pullRequest.getRepository().getName();
             this.repositoryUrl = pullRequest.getRepository().getHtmlUrl();
         }
+    }
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new LinkedHashMap<>();
+
+        map.put("number", number);
+        map.put("title", title);
+        map.put("state", state);
+        map.put("state_reason", stateReason);
+        map.put("owner", owner);
+        map.put("assignee", assignee);
+        map.put("assignees", assignees);
+        map.put("created_at", createdAt);
+        map.put("closed_at", closedAt);
+        map.put("closed_by", closedBy);
+        map.put("comments", comments);
+        map.put("labels", labels);
+        map.put("repository_name", repositoryName);
+        map.put("repository_url", repositoryUrl);
+        map.put("base", base);
+        map.put("head", head);
+        map.put("requested_reviewers", requestedReviewers);
+        map.put("url", url);
+
+        return map;
     }
 
 }
