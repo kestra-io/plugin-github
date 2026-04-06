@@ -15,6 +15,7 @@ import org.kohsuke.github.GHIssueComment;
 import org.kohsuke.github.GitHub;
 
 import java.net.URL;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -50,6 +51,7 @@ public class Comment extends AbstractGithubTask implements RunnableTask<Comment.
         title = "Target repository",
         description = "Repository in `owner/repo` format containing the issue"
     )
+    @PluginProperty(group = "destination")
     private Property<String> repository;
 
     @Schema(
@@ -57,12 +59,14 @@ public class Comment extends AbstractGithubTask implements RunnableTask<Comment.
         description = "Numeric issue identifier within the repository."
     )
     @NotNull
+    @PluginProperty(group = "main")
     private Property<Integer> issueNumber;
 
     @Schema(
         title = "Comment body",
         description = "Markdown body to post as the issue comment. This value is rendered before the request is sent"
     )
+    @PluginProperty(group = "main")
     private Property<String> body;
 
     @Override

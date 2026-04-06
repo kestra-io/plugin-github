@@ -15,6 +15,7 @@ import org.kohsuke.github.GitHub;
 
 import java.net.URL;
 import java.util.List;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -93,30 +94,35 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
         title = "Target repository",
         description = "Repository in `owner/repo` format where the issue will be created"
     )
+    @PluginProperty(group = "destination")
     private Property<String> repository;
 
     @Schema(
         title = "Issue title",
         description = "Short summary shown in GitHub."
     )
+    @PluginProperty(group = "advanced")
     private Property<String> title;
 
     @Schema(
         title = "Issue body",
         description = "Markdown body for the issue. This value is rendered before the request is sent"
     )
+    @PluginProperty(group = "main")
     private Property<String> body;
 
     @Schema(
         title = "Issue labels",
         description = "Labels to apply to the issue when it is created"
     )
+    @PluginProperty(group = "advanced")
     private Property<List<String>> labels;
 
     @Schema(
         title = "Issue assignees",
         description = "GitHub logins to assign when the issue is created"
     )
+    @PluginProperty(group = "advanced")
     private Property<List<String>> assignees;
 
     @Override

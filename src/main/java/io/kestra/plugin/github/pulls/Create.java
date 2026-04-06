@@ -17,6 +17,7 @@ import org.kohsuke.github.GitHub;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -54,30 +55,35 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
         title = "Target repository",
         description = "Repository in `owner/repo` format where the pull request will be opened"
     )
+    @PluginProperty(group = "destination")
     private Property<String> repository;
 
     @Schema(
         title = "Source (head) branch",
         description = "Required branch with changes. For cross-repo PRs, prefix with `username:branch`."
     )
+    @PluginProperty(group = "source")
     private Property<String> sourceBranch;
 
     @Schema(
         title = "Target (base) branch",
         description = "Required branch to merge into; must exist in the target repository."
     )
+    @PluginProperty(group = "destination")
     private Property<String> targetBranch;
 
     @Schema(
         title = "Pull request title",
         description = "Required short summary."
     )
+    @PluginProperty(group = "advanced")
     private Property<String> title;
 
     @Schema(
         title = "Pull request body",
         description = "Markdown description for the pull request. This value is rendered before the request is sent"
     )
+    @PluginProperty(group = "main")
     private Property<String> body;
 
     @Schema(
@@ -85,6 +91,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
         description = "If true, maintainers of the target repo can push to the source branch. Defaults to false."
     )
     @Builder.Default
+    @PluginProperty(group = "advanced")
     private Property<Boolean> maintainerCanModify = Property.ofValue(Boolean.FALSE);
 
     @Schema(
@@ -92,6 +99,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
         description = "If true, opens the pull request in draft state. Defaults to false."
     )
     @Builder.Default
+    @PluginProperty(group = "advanced")
     private Property<Boolean> draft = Property.ofValue(Boolean.FALSE);
 
     @Schema(

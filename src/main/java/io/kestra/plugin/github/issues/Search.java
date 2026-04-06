@@ -14,6 +14,7 @@ import lombok.experimental.SuperBuilder;
 import org.kohsuke.github.*;
 
 import static io.kestra.core.utils.Rethrow.throwFunction;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -79,30 +80,35 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         title = "Search keywords and qualifiers",
         description = "GitHub issue search syntax combining keywords with qualifiers like repo, is, label."
     )
+    @PluginProperty(group = "main")
     private Property<String> query;
 
     @Schema(
         title = "Issues mentioning user",
         description = "Adds the `mentions:` qualifier for the GitHub login"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> mentions;
 
     @Schema(
         title = "Filter open issues",
         description = "Adds `is:open` when set to `true`"
     )
+    @PluginProperty(group = "advanced")
     private Property<Boolean> open;
 
     @Schema(
         title = "Filter closed issues",
         description = "Adds `is:closed` when set to `true`"
     )
+    @PluginProperty(group = "advanced")
     private Property<Boolean> closed;
 
     @Schema(
         title = "Filter merged pull requests",
         description = "Adds `is:merged` when set to `true`. This only affects pull requests returned by issue search"
     )
+    @PluginProperty(group = "advanced")
     private Property<Boolean> merged;
 
     @Schema(
@@ -110,6 +116,7 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         description = "ASC sorts ascending (default); DESC sorts descending."
     )
     @Builder.Default
+    @PluginProperty(group = "processing")
     private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Schema(
@@ -117,12 +124,14 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         description = "CREATED sorts by creation time (default); UPDATED by last update; COMMENTS by comment count."
     )
     @Builder.Default
+    @PluginProperty(group = "processing")
     private Property<Sort> sort = Property.ofValue(Sort.CREATED);
 
     @Schema(
         title = "Repository filter",
         description = "`owner/repo` value appended as `repo:` when provided"
     )
+    @PluginProperty(group = "destination")
     private Property<String> repository;
 
     @Override
