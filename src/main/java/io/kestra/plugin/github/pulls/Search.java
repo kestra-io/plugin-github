@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.kestra.core.utils.Rethrow.throwFunction;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -84,12 +85,14 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         title = "Search keywords and qualifiers",
         description = "GitHub pull request search syntax combining keywords with qualifiers like `repo`, `is`, and `label`"
     )
+    @PluginProperty(group = "main")
     private Property<String> query;
 
     @Schema(
         title = "Mentioned user",
         description = "GitHub login to use with the `mentions:` qualifier"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> mentions;
 
     @Schema(
@@ -102,90 +105,105 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         title = "Filter to open pull requests",
         description = "Adds the `is:open` qualifier when set to `true`"
     )
+    @PluginProperty(group = "advanced")
     private Property<Boolean> open;
 
     @Schema(
         title = "Filter to closed pull requests",
         description = "Adds the `is:closed` qualifier when set to `true`"
     )
+    @PluginProperty(group = "advanced")
     private Property<Boolean> closed;
 
     @Schema(
         title = "Filter to merged pull requests",
         description = "Adds the `is:merged` qualifier when set to `true`"
     )
+    @PluginProperty(group = "advanced")
     private Property<Boolean> merged;
 
     @Schema(
         title = "Filter to draft pull requests",
         description = "Adds the `is:draft` qualifier when set to `true`"
     )
+    @PluginProperty(group = "advanced")
     private Property<Boolean> draft;
 
     @Schema(
         title = "Pull requests assigned to user",
         description = "Uses the `assignee:` qualifier for the given GitHub login"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> assigned;
 
     @Schema(
         title = "Title contains text",
         description = "Matches pull requests with titles containing the given text"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> title;
 
     @Schema(
         title = "Filter by closed date",
         description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> closedAt;
 
     @Schema(
         title = "Filter by created date",
         description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates"
     )
+    @PluginProperty(group = "destination")
     private Property<String> createdAt;
 
     @Schema(
         title = "Filter by last update",
         description = "Supports `>`, `<`, and range syntax (`..`) with ISO-8601 dates"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> updatedAt;
 
     @Schema(
         title = "Filter by commit SHA",
         description = "Matches pull requests by commit SHA and requires at least seven characters"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> commit;
 
     @Schema(
         title = "Repository to search",
         description = "`owner/repo` value used for the `repo:` qualifier"
     )
+    @PluginProperty(group = "destination")
     private Property<String> repository;
 
     @Schema(
         title = "Base branch filter",
         description = "Adds the `base:` qualifier for the target branch name"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> base;
 
     @Schema(
         title = "Head branch filter",
         description = "Adds the `head:` qualifier for the source branch name"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> head;
 
     @Schema(
         title = "Only pull requests created by the caller",
         description = "Adds `author:@me`. This option requires authenticated execution"
     )
+    @PluginProperty(group = "destination")
     private Property<Boolean> createdByMe;
 
     @Schema(
         title = "Author username",
         description = "Adds the `author:` qualifier for the given GitHub user or app"
     )
+    @PluginProperty(group = "connection")
     private Property<String> author;
 
     @Schema(
@@ -193,6 +211,7 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         description = "ASC sorts oldest first (default); DESC sorts newest first."
     )
     @Builder.Default
+    @PluginProperty(group = "processing")
     private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Schema(
@@ -200,6 +219,7 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         description = "CREATED sorts by creation time (default); UPDATED by last update; COMMENTS by comment count."
     )
     @Builder.Default
+    @PluginProperty(group = "processing")
     private Property<Sort> sort = Property.ofValue(Sort.CREATED);
 
     @Override

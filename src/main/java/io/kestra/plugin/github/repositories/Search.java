@@ -14,6 +14,7 @@ import lombok.experimental.SuperBuilder;
 import org.kohsuke.github.*;
 
 import static io.kestra.core.utils.Rethrow.throwFunction;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -122,42 +123,49 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         title = "Repository filter",
         description = "`owner/repo` value for the `repo:` qualifier."
     )
+    @PluginProperty(group = "destination")
     private Property<String> repository;
 
     @Schema(
         title = "Search keywords and qualifiers",
         description = "Repository search syntax combining keywords with qualifiers like language, topic, stars."
     )
+    @PluginProperty(group = "main")
     private Property<String> query;
 
     @Schema(
         title = "Language filter",
         description = "Language name or alias for the `language:` qualifier."
     )
+    @PluginProperty(group = "advanced")
     private Property<String> language;
 
     @Schema(
         title = "Created date filter",
         description = "Supports `>`, `<`, and range (`..`) syntax."
     )
+    @PluginProperty(group = "destination")
     private Property<String> created;
 
     @Schema(
         title = "Stars filter",
         description = "Star count qualifier; supports `>`, `<`, and range (`..`)."
     )
+    @PluginProperty(group = "advanced")
     private Property<String> stars;
 
     @Schema(
         title = "User scope",
         description = "Limits search to repositories owned by the given user; use `org:` within `query` for organizations."
     )
+    @PluginProperty(group = "advanced")
     private Property<String> user;
 
     @Schema(
         title = "Topic filter",
         description = "Topic name used for the `topic:` qualifier"
     )
+    @PluginProperty(group = "destination")
     private Property<String> topic;
 
     @Schema(
@@ -165,6 +173,7 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         description = "ASC sorts ascending (default); DESC sorts descending."
     )
     @Builder.Default
+    @PluginProperty(group = "processing")
     private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Schema(
@@ -172,12 +181,14 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         description = "UPDATED sorts by last update time (default); STARS by star count; FORKS by fork count."
     )
     @Builder.Default
+    @PluginProperty(group = "processing")
     private Property<Sort> sort = Property.ofValue(Sort.UPDATED);
 
     @Schema(
         title = "Visibility filter",
         description = "PUBLIC limits results to public repositories, PRIVATE to private repositories visible to the token, and INTERNAL to internal repositories"
     )
+    @PluginProperty(group = "advanced")
     private Property<Visibility> visibility;
 
     @Override

@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -97,6 +98,7 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         title = "Search keywords and qualifiers",
         description = "GitHub topic search syntax combining keywords with qualifiers. Note: GitHub's topic search API does not support sorting - results are always returned in best match order."
     )
+    @PluginProperty(group = "main")
     private Property<String> query;
 
     @Schema(
@@ -111,18 +113,21 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
                       NOT_FEATURED excludes featured topics
                       """
     )
+    @PluginProperty(group = "advanced")
     private Property<Is> is;
 
     @Schema(
         title = "Repository count filter",
         description = "Supports `>`, `<`, and range (`..`) qualifiers"
     )
+    @PluginProperty(group = "destination")
     private Property<String> repositories;
 
     @Schema(
         title = "Created date filter",
         description = "Supports `>`, `<`, and range (`..`) date syntax"
     )
+    @PluginProperty(group = "destination")
     private Property<String> created;
 
     @Deprecated
@@ -131,6 +136,7 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         description = "DEPRECATED: GitHub's topic search API does not support sorting. This property will be removed in a future version."
     )
     @Builder.Default
+    @PluginProperty(group = "processing")
     private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Override

@@ -14,6 +14,7 @@ import lombok.experimental.SuperBuilder;
 import org.kohsuke.github.*;
 
 import static io.kestra.core.utils.Rethrow.throwFunction;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -89,48 +90,56 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         title = "Search keywords and qualifiers",
         description = "User search syntax combining keywords with qualifiers like location, followers, language."
     )
+    @PluginProperty(group = "main")
     private Property<String> query;
 
     @Schema(
         title = "Language filter",
         description = "Language name or alias applied to repositories the user owns"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> language;
 
     @Schema(
         title = "Joined date filter",
         description = "Supports `>`, `<`, and range (`..`) syntax with YYYY-MM-DD"
     )
+    @PluginProperty(group = "destination")
     private Property<String> created;
 
     @Schema(
         title = "Repository count filter",
         description = "Exact repository count to match"
     )
+    @PluginProperty(group = "destination")
     private Property<Integer> repositories;
 
     @Schema(
         title = "Fields to search (`in:`)",
         description = "Restricts the search to fields accepted by GitHub such as `login`, `fullname`, or `email`"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> in;
 
     @Schema(
         title = "Location filter",
         description = "Matches the public profile location field"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> location;
 
     @Schema(
         title = "Followers filter",
         description = "Supports `>`, `<`, and range (`..`) follower counts"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> followers;
 
     @Schema(
         title = "Account type",
         description = "USER returns individual accounts and ORGANIZATION returns organization accounts"
     )
+    @PluginProperty(group = "connection")
     private Property<Type> accountType;
 
     @Schema(
@@ -138,6 +147,7 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         description = "ASC sorts ascending (default); DESC sorts descending."
     )
     @Builder.Default
+    @PluginProperty(group = "processing")
     private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Schema(
@@ -145,6 +155,7 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         description = "JOINED sorts by join date (default); REPOSITORIES by public repo count; FOLLOWERS by follower count."
     )
     @Builder.Default
+    @PluginProperty(group = "processing")
     private Property<Sort> sort = Property.ofValue(Sort.JOINED);
 
     @Override

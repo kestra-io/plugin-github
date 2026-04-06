@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static io.kestra.core.utils.Rethrow.throwFunction;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -94,60 +95,70 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         title = "Search keywords and qualifiers",
         description = "GitHub code search syntax combining keywords with qualifiers like repo, path, language."
     )
+    @PluginProperty(group = "main")
     private Property<String> query;
 
     @Schema(
         title = "Repository to search",
         description = "`owner/repo` value used for the `repo:` qualifier"
     )
+    @PluginProperty(group = "destination")
     private Property<String> repository;
 
     @Schema(
         title = "User scope",
         description = "Limits the search to repositories owned by the given user"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> user;
 
     @Schema(
         title = "Fields to search",
         description = "Comma-separated `in:` targets such as `file,path`. Leave unset to search all supported fields"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> in;
 
     @Schema(
         title = "Language filter",
         description = "Programming language qualifier"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> language;
 
     @Schema(
         title = "File extension filter",
         description = "Matches files with the given extension"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> extension;
 
     @Schema(
         title = "Include forks",
         description = "Controls whether the search includes the parent repository, forks, or both"
     )
+    @PluginProperty(group = "advanced")
     private Property<Fork> fork;
 
     @Schema(
         title = "File name filter",
         description = "Matches files with this exact name"
     )
+    @PluginProperty(group = "source")
     private Property<String> filename;
 
     @Schema(
         title = "Path prefix filter",
         description = "Limits results to files under this path"
     )
+    @PluginProperty(group = "source")
     private Property<String> path;
 
     @Schema(
         title = "File size filter",
         description = "Supports `>`, `<`, and range syntax (`..`) in bytes"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> size;
 
     @Schema(
@@ -156,6 +167,7 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         description = "ASC sorts ascending (default); DESC sorts descending."
     )
     @Builder.Default
+    @PluginProperty(group = "processing")
     private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Schema(
@@ -164,6 +176,7 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         description = "BEST_MATCH ranks by relevance (default); INDEXED sorts by index time."
     )
     @Builder.Default
+    @PluginProperty(group = "processing")
     private Property<Sort> sort = Property.ofValue(Sort.BEST_MATCH);
 
     @Override

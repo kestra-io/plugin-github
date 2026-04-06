@@ -15,6 +15,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -27,6 +28,7 @@ public abstract class AbstractGithubSearchTask extends AbstractGithubTask {
         description = "Controls how hits are exposed in outputs; default `FETCH` returns all hits in the response. `FETCH_ONE` returns only the first hit, `STORE` writes hits to Kestra storage and returns a URI, and `NONE` leaves outputs empty."
     )
     @Builder.Default
+    @PluginProperty(group = "execution")
     protected Property<FetchType> fetchType = Property.ofValue(FetchType.STORE);
 
 

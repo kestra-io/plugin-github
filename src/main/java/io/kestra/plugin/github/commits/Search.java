@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 import static io.kestra.core.utils.Rethrow.throwFunction;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -85,102 +86,119 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         title = "Search keywords and qualifiers",
         description = "Commit search syntax combining keywords with qualifiers like repo, author, path."
     )
+    @PluginProperty(group = "main")
     private Property<String> query;
 
     @Schema(
         title = "Repository to search",
         description = "`owner/repo` value used for the `repo:` qualifier"
     )
+    @PluginProperty(group = "destination")
     private Property<String> repository;
 
     @Schema(
         title = "Repository visibility",
         description = "Value used for the `is:` qualifier such as `public` or `private`"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> is;
 
     @Schema(
         title = "Commit SHA filter",
         description = "Matches commits with the specified SHA-1 hash"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> hash;
 
     @Schema(
         title = "Parent commit SHA",
         description = "Filters by parent commit SHA-1"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> parent;
 
     @Schema(
         title = "Tree SHA filter",
         description = "Filters by Git tree SHA-1"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> tree;
 
     @Schema(
         title = "User scope",
         description = "Limits the search to repositories owned by the given user"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> user;
 
     @Schema(
         title = "Organization scope",
         description = "Limits the search to repositories owned by the given organization"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> org;
 
     @Schema(
         title = "Author login",
         description = "Adds the `author:` qualifier for the GitHub login"
     )
+    @PluginProperty(group = "connection")
     private Property<String> author;
 
     @Schema(
         title = "Author date filter",
         description = "Supports `>`, `<`, and range (`..`) date syntax"
     )
+    @PluginProperty(group = "connection")
     private Property<String> authorDate;
 
     @Schema(
         title = "Author email",
         description = "Filters by author email address"
     )
+    @PluginProperty(group = "connection")
     private Property<String> authorEmail;
 
     @Schema(
         title = "Author name",
         description = "Filters by author display name"
     )
+    @PluginProperty(group = "connection")
     private Property<String> authorName;
 
     @Schema(
         title = "Committer login",
         description = "Adds the `committer:` qualifier for the GitHub login"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> committer;
 
     @Schema(
         title = "Committer date filter",
         description = "Supports `>`, `<`, and range (`..`) date syntax"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> committerDate;
 
     @Schema(
         title = "Committer email",
         description = "Filters by committer email address"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> committerEmail;
 
     @Schema(
         title = "Committer name",
         description = "Filters by committer display name"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> committerName;
 
     @Schema(
         title = "Filter merge commits",
         description = "When set, includes only merge commits for `true` or excludes them for `false`"
     )
+    @PluginProperty(group = "advanced")
     private Property<Boolean> merge;
 
     @Schema(
@@ -188,6 +206,7 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         description = "ASC sorts ascending (default); DESC sorts descending."
     )
     @Builder.Default
+    @PluginProperty(group = "processing")
     private Property<Order> order = Property.ofValue(Order.ASC);
 
     @Schema(
@@ -195,6 +214,7 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         description = "COMMITTER_DATE sorts by committer timestamp (default); AUTHOR_DATE by author timestamp."
     )
     @Builder.Default
+    @PluginProperty(group = "processing")
     private Property<Sort> sort = Property.ofValue(Sort.COMMITTER_DATE);
 
     @Override

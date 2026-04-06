@@ -15,6 +15,7 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import java.util.Map;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -52,18 +53,21 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<Void
         title = "Target repository",
         description = "Repository in `owner/repo` format containing the workflow. The authenticated token must have access to this repository."
     )
+    @PluginProperty(group = "destination")
     private Property<String> repository;
 
     @Schema(
         title = "Workflow ID or filename",
         description = "Workflow identifier accepted by the GitHub API such as a numeric ID or a workflow filename like `build.yml`"
     )
+    @PluginProperty(group = "advanced")
     private Property<String> workflowId;
 
     @Schema(
         title = "Workflow ref",
         description = "Branch or tag name used to resolve the workflow file. This ref must exist in the target repository."
     )
+    @PluginProperty(group = "advanced")
     private Property<String> ref;
 
     @Schema(
@@ -71,6 +75,7 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<Void
         description = "Key/value payload passed to workflow `inputs`. Property values are rendered before the dispatch request is sent",
         requiredMode = Schema.RequiredMode.NOT_REQUIRED
     )
+    @PluginProperty(group = "source")
     private Property<Map<String, Object>> inputs;
 
     @Override
