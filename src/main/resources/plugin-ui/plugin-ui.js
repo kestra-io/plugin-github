@@ -1,0 +1,1 @@
+import{n as e,t}from"./assets/virtual_mf-REMOTE_ENTRY_ID_io_kestra_plugin_github__plugin-ui_js-C90wTjLq.js";export{t as get,e as init};
