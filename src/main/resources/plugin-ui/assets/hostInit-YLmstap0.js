@@ -1,0 +1,1 @@
+import{t as e}from"./preload-helper-DnRnmKQ0.js";await(await e(()=>import(`../plugin-ui.js`),[])).init();
