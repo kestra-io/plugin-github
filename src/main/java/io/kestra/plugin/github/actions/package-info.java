@@ -1,5 +1,5 @@
 @PluginSubGroup(
-    title = "Actions",
+    title = "GitHub Actions",
     description = "This sub-group of plugins contains tasks for triggering and managing GitHub Actions workflows.",
     categories = {
         PluginSubGroup.PluginCategory.INFRASTRUCTURE,

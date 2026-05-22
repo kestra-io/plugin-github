@@ -1,5 +1,5 @@
 @PluginSubGroup(
-    title = "Repositories",
+    title = "GitHub Repositories",
     description = "This sub-group of plugins contains tasks for managing GitHub repositories.",
     categories = {
         PluginSubGroup.PluginCategory.INFRASTRUCTURE,
