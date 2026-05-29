@@ -452,6 +452,19 @@ public class MockController {
             """);
     }
 
+    @Post("/app/installations/{installationId}/access_tokens")
+    public HttpResponse<String> createAppInstallationToken(HttpRequest<?> request, @PathVariable String installationId) {
+        capture(request);
+        return HttpResponse.created("""
+            {
+              "token": "ghs_mocktoken_for_installation_%s",
+              "expires_at": "2099-12-31T23:59:59Z",
+              "permissions": {"issues": "write", "metadata": "read"},
+              "repository_selection": "all"
+            }
+            """.formatted(installationId));
+    }
+
     @Get("/search/users")
     public HttpResponse<String> searchUsers(HttpRequest<?> request) {
         capture(request);
