@@ -20,13 +20,16 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 
+import java.io.StringReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyFactory;
 import java.security.Signature;
 import java.security.interfaces.RSAPrivateKey;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
@@ -170,66 +173,18 @@ public class AppToken extends Task implements RunnableTask<AppToken.Output> {
     }
 
     private static RSAPrivateKey parsePrivateKey(String pem) throws Exception {
-        var isPkcs1 = pem.contains("BEGIN RSA PRIVATE KEY");
-        var stripped = pem
-            .replaceAll("-----BEGIN[^-]+-----", "")
-            .replaceAll("-----END[^-]+-----", "")
-            .replaceAll("\\s", "");
-        var decoded = Base64.getDecoder().decode(stripped);
-        if (isPkcs1) {
-            // The JDK's KeyFactory only reads PKCS#8 for RSA private keys. PKCS#1 keys
-            // (the default GitHub gives you when you generate an App key) must be wrapped
-            // in a PKCS#8 PrivateKeyInfo ASN.1 structure first. Doing the wrap manually
-            // avoids pulling in BouncyCastle just for this one conversion.
-            decoded = wrapPkcs1InPkcs8(decoded);
+        // BouncyCastle's PEMParser reads both PKCS#1 (`-----BEGIN RSA PRIVATE KEY-----`,
+        // the default GitHub emits) and PKCS#8 (`-----BEGIN PRIVATE KEY-----`) transparently.
+        try (var reader = new PEMParser(new StringReader(pem))) {
+            var obj = reader.readObject();
+            PrivateKeyInfo keyInfo = switch (obj) {
+                case PEMKeyPair pair -> pair.getPrivateKeyInfo();
+                case PrivateKeyInfo info -> info;
+                case null -> throw new IllegalArgumentException("Empty or unreadable PEM input.");
+                default -> throw new IllegalArgumentException("Unsupported PEM object: " + obj.getClass().getName());
+            };
+            return (RSAPrivateKey) new JcaPEMKeyConverter().getPrivateKey(keyInfo);
         }
-        return (RSAPrivateKey) KeyFactory.getInstance("RSA")
-            .generatePrivate(new PKCS8EncodedKeySpec(decoded));
-    }
-
-    /**
-     * Wrap a PKCS#1 {@code RSAPrivateKey} byte sequence inside a PKCS#8 {@code PrivateKeyInfo}
-     * so the JDK's {@code KeyFactory} can parse it. The emitted structure is:
-     * <pre>
-     * SEQUENCE {
-     *   INTEGER 0                                      -- version
-     *   SEQUENCE {                                     -- AlgorithmIdentifier
-     *     OBJECT IDENTIFIER 1.2.840.113549.1.1.1       -- rsaEncryption
-     *     NULL
-     *   }
-     *   OCTET STRING &lt;PKCS#1 RSAPrivateKey bytes&gt;
-     * }
-     * </pre>
-     */
-    private static byte[] wrapPkcs1InPkcs8(byte[] pkcs1) {
-        var octetString = concat(new byte[]{0x04}, encodeAsn1Length(pkcs1.length), pkcs1);
-        var algId = new byte[]{
-            0x30, 0x0D,
-            0x06, 0x09, 0x2A, (byte) 0x86, 0x48, (byte) 0x86, (byte) 0xF7, 0x0D, 0x01, 0x01, 0x01,
-            0x05, 0x00
-        };
-        var version = new byte[]{0x02, 0x01, 0x00};
-        var inner = concat(version, algId, octetString);
-        return concat(new byte[]{0x30}, encodeAsn1Length(inner.length), inner);
-    }
-
-    private static byte[] encodeAsn1Length(int length) {
-        if (length < 0x80) return new byte[]{(byte) length};
-        if (length < 0x100) return new byte[]{(byte) 0x81, (byte) length};
-        if (length < 0x10000) return new byte[]{(byte) 0x82, (byte) (length >> 8), (byte) length};
-        return new byte[]{(byte) 0x83, (byte) (length >> 16), (byte) (length >> 8), (byte) length};
-    }
-
-    private static byte[] concat(byte[]... arrays) {
-        int totalLength = 0;
-        for (byte[] a : arrays) totalLength += a.length;
-        var result = new byte[totalLength];
-        int offset = 0;
-        for (byte[] a : arrays) {
-            System.arraycopy(a, 0, result, offset, a.length);
-            offset += a.length;
-        }
-        return result;
     }
 
     private static String base64UrlEncode(byte[] data) {
