@@ -2,6 +2,10 @@ package io.kestra.plugin.github.auth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.kestra.core.http.HttpRequest;
+import io.kestra.core.http.HttpResponse;
+import io.kestra.core.http.client.HttpClient;
+import io.kestra.core.http.client.configurations.HttpConfiguration;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
@@ -11,20 +15,20 @@ import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.slf4j.Logger;
 
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.Signature;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 
@@ -64,6 +68,8 @@ import java.util.Base64;
     }
 )
 public class AppToken extends Task implements RunnableTask<AppToken.Output> {
+    private static final String DEFAULT_ENDPOINT = "https://api.github.com";
+
     @Schema(
         title = "GitHub App client ID",
         description = "The fine-grained client identifier (`Iv23...`) or the numeric App ID. Used as the JWT `iss` claim when signing."
@@ -92,55 +98,55 @@ public class AppToken extends Task implements RunnableTask<AppToken.Output> {
         title = "GitHub API endpoint",
         description = "GitHub or GitHub Enterprise API base URL such as `https://api.github.com` or `https://ghe.acme.com/api/v3`. Defaults to `https://api.github.com` when unset."
     )
+    @Builder.Default
     @PluginProperty(group = "connection")
-    private Property<String> endpoint;
+    private Property<String> endpoint = Property.ofValue(DEFAULT_ENDPOINT);
 
     @Override
     public AppToken.Output run(RunContext runContext) throws Exception {
         Logger logger = runContext.logger();
 
-        String clientIdR = runContext.render(this.clientId).as(String.class).orElseThrow();
-        String installationIdR = runContext.render(this.installationId).as(String.class).orElseThrow();
-        String privateKeyR = runContext.render(this.privateKey).as(String.class).orElseThrow();
-        String endpointR = runContext.render(this.endpoint).as(String.class).orElse("https://api.github.com");
+        String rClientId = runContext.render(this.clientId).as(String.class).orElseThrow();
+        String rInstallationId = runContext.render(this.installationId).as(String.class).orElseThrow();
+        String rPrivateKey = runContext.render(this.privateKey).as(String.class).orElseThrow();
+        String rEndpoint = runContext.render(this.endpoint).as(String.class).orElse(DEFAULT_ENDPOINT);
 
-        String jwt = signJwt(clientIdR, privateKeyR);
-        logger.debug("Signed JWT for GitHub App client {}", clientIdR);
+        String jwt = signJwt(rClientId, rPrivateKey);
+        logger.debug("Signed JWT for GitHub App client {}", rClientId);
 
-        HttpClient http = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
+        HttpRequest req = HttpRequest.builder()
+            .uri(URI.create(rEndpoint + "/app/installations/" + rInstallationId + "/access_tokens"))
+            .method("POST")
+            .addHeader("Authorization", "Bearer " + jwt)
+            .addHeader("Accept", "application/vnd.github+json")
+            .addHeader("X-GitHub-Api-Version", "2022-11-28")
             .build();
 
-        HttpRequest req = HttpRequest.newBuilder()
-            .uri(URI.create(endpointR + "/app/installations/" + installationIdR + "/access_tokens"))
-            .timeout(Duration.ofSeconds(30))
-            .header("Authorization", "Bearer " + jwt)
-            .header("Accept", "application/vnd.github+json")
-            .header("X-GitHub-Api-Version", "2022-11-28")
-            .header("User-Agent", "kestra-plugin-github")
-            .POST(HttpRequest.BodyPublishers.noBody())
-            .build();
+        try (HttpClient http = new HttpClient(runContext, HttpConfiguration.builder().build())) {
+            HttpResponse<String> resp = http.request(req, String.class);
 
-        HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
+            int status = resp.getStatus().getCode();
+            if (status < 200 || status >= 300) {
+                throw new IllegalStateException(
+                    "GitHub installation token exchange failed with HTTP " + status + ": " + resp.getBody()
+                );
+            }
 
-        if (resp.statusCode() < 200 || resp.statusCode() >= 300) {
-            throw new IllegalStateException(
-                "GitHub installation token exchange failed with HTTP " + resp.statusCode() + ": " + resp.body()
-            );
+            JsonNode body = MAPPER.readTree(resp.getBody());
+            if (body.get("token") == null) {
+                throw new IllegalStateException(
+                    "GitHub response did not contain a `token` field. Body: " + resp.getBody()
+                );
+            }
+
+            return Output.builder()
+                .token(body.get("token").asText())
+                .expiresAt(body.has("expires_at") ? Instant.parse(body.get("expires_at").asText()) : null)
+                .build();
         }
-
-        JsonNode body = new ObjectMapper().readTree(resp.body());
-        if (body.get("token") == null) {
-            throw new IllegalStateException(
-                "GitHub response did not contain a `token` field. Body: " + resp.body()
-            );
-        }
-
-        return Output.builder()
-            .token(body.get("token").asText())
-            .expiresAt(body.has("expires_at") ? Instant.parse(body.get("expires_at").asText()) : null)
-            .build();
     }
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     // -------- JWT signing --------
 
