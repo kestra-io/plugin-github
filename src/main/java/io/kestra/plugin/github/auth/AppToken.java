@@ -1,9 +1,7 @@
 package io.kestra.plugin.github.auth;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kestra.core.http.HttpRequest;
-import io.kestra.core.http.HttpResponse;
 import io.kestra.core.http.client.HttpClient;
 import io.kestra.core.http.client.configurations.HttpConfiguration;
 import io.kestra.core.models.annotations.Example;
@@ -13,6 +11,7 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
+import io.kestra.core.serializers.JacksonMapper;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
@@ -21,7 +20,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.slf4j.Logger;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -31,6 +29,7 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Map;
 
 @SuperBuilder
 @ToString
@@ -69,6 +68,7 @@ import java.util.Base64;
 )
 public class AppToken extends Task implements RunnableTask<AppToken.Output> {
     private static final String DEFAULT_ENDPOINT = "https://api.github.com";
+    private static final ObjectMapper MAPPER = JacksonMapper.ofJson();
 
     @Schema(
         title = "GitHub App client ID",
@@ -104,17 +104,17 @@ public class AppToken extends Task implements RunnableTask<AppToken.Output> {
 
     @Override
     public AppToken.Output run(RunContext runContext) throws Exception {
-        Logger logger = runContext.logger();
+        var logger = runContext.logger();
 
-        String rClientId = runContext.render(this.clientId).as(String.class).orElseThrow();
-        String rInstallationId = runContext.render(this.installationId).as(String.class).orElseThrow();
-        String rPrivateKey = runContext.render(this.privateKey).as(String.class).orElseThrow();
-        String rEndpoint = runContext.render(this.endpoint).as(String.class).orElse(DEFAULT_ENDPOINT);
+        var rClientId = runContext.render(this.clientId).as(String.class).orElseThrow();
+        var rInstallationId = runContext.render(this.installationId).as(String.class).orElseThrow();
+        var rPrivateKey = runContext.render(this.privateKey).as(String.class).orElseThrow();
+        var rEndpoint = runContext.render(this.endpoint).as(String.class).orElse(DEFAULT_ENDPOINT);
 
-        String jwt = signJwt(rClientId, rPrivateKey);
+        var jwt = signJwt(rClientId, rPrivateKey);
         logger.debug("Signed JWT for GitHub App client {}", rClientId);
 
-        HttpRequest req = HttpRequest.builder()
+        var req = HttpRequest.builder()
             .uri(URI.create(rEndpoint + "/app/installations/" + rInstallationId + "/access_tokens"))
             .method("POST")
             .addHeader("Authorization", "Bearer " + jwt)
@@ -122,20 +122,21 @@ public class AppToken extends Task implements RunnableTask<AppToken.Output> {
             .addHeader("X-GitHub-Api-Version", "2022-11-28")
             .build();
 
-        try (HttpClient http = new HttpClient(runContext, HttpConfiguration.builder().build())) {
-            HttpResponse<String> resp = http.request(req, String.class);
+        try (var http = new HttpClient(runContext, HttpConfiguration.builder().build())) {
+            var resp = http.request(req, String.class);
 
-            int status = resp.getStatus().getCode();
+            var status = resp.getStatus().getCode();
             if (status < 200 || status >= 300) {
+                logger.debug("GitHub installation token exchange response body: {}", resp.getBody());
                 throw new IllegalStateException(
-                    "GitHub installation token exchange failed with HTTP " + status + ": " + resp.getBody()
+                    "GitHub installation token exchange failed with HTTP " + status
                 );
             }
 
-            JsonNode body = MAPPER.readTree(resp.getBody());
+            var body = MAPPER.readTree(resp.getBody());
             if (body.get("token") == null) {
                 throw new IllegalStateException(
-                    "GitHub response did not contain a `token` field. Body: " + resp.getBody()
+                    "GitHub response did not contain a `token` field."
                 );
             }
 
@@ -146,37 +147,35 @@ public class AppToken extends Task implements RunnableTask<AppToken.Output> {
         }
     }
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    // -------- JWT signing --------
-
     private static String signJwt(String clientId, String pem) throws Exception {
-        // iat is set 60 seconds in the past to tolerate small clock skew between the worker
-        // and GitHub's auth servers. The total JWT lifetime stays under GitHub's 10-minute maximum.
-        long now = System.currentTimeMillis() / 1000L;
-        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
-        String payloadJson = String.format(
-            "{\"iat\":%d,\"exp\":%d,\"iss\":\"%s\"}",
-            now - 60, now + 540, clientId
-        );
+        // iat is set 60 seconds in the past to tolerate clock skew between the worker and GitHub's
+        // auth servers. exp is set 530 seconds in the future, keeping the total signed window under
+        // GitHub's 600-second cap with a 10-second buffer for boundary-case rejection.
+        var now = System.currentTimeMillis() / 1000L;
+        var headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        var payloadJson = MAPPER.writeValueAsString(Map.of(
+            "iat", now - 60,
+            "exp", now + 530,
+            "iss", clientId
+        ));
 
-        String header = base64UrlEncode(headerJson.getBytes(StandardCharsets.UTF_8));
-        String payload = base64UrlEncode(payloadJson.getBytes(StandardCharsets.UTF_8));
-        String signingInput = header + "." + payload;
+        var header = base64UrlEncode(headerJson.getBytes(StandardCharsets.UTF_8));
+        var payload = base64UrlEncode(payloadJson.getBytes(StandardCharsets.UTF_8));
+        var signingInput = header + "." + payload;
 
-        Signature signer = Signature.getInstance("SHA256withRSA");
+        var signer = Signature.getInstance("SHA256withRSA");
         signer.initSign(parsePrivateKey(pem));
         signer.update(signingInput.getBytes(StandardCharsets.UTF_8));
         return signingInput + "." + base64UrlEncode(signer.sign());
     }
 
     private static RSAPrivateKey parsePrivateKey(String pem) throws Exception {
-        boolean isPkcs1 = pem.contains("BEGIN RSA PRIVATE KEY");
-        String stripped = pem
+        var isPkcs1 = pem.contains("BEGIN RSA PRIVATE KEY");
+        var stripped = pem
             .replaceAll("-----BEGIN[^-]+-----", "")
             .replaceAll("-----END[^-]+-----", "")
             .replaceAll("\\s", "");
-        byte[] decoded = Base64.getDecoder().decode(stripped);
+        var decoded = Base64.getDecoder().decode(stripped);
         if (isPkcs1) {
             // The JDK's KeyFactory only reads PKCS#8 for RSA private keys. PKCS#1 keys
             // (the default GitHub gives you when you generate an App key) must be wrapped
@@ -203,14 +202,14 @@ public class AppToken extends Task implements RunnableTask<AppToken.Output> {
      * </pre>
      */
     private static byte[] wrapPkcs1InPkcs8(byte[] pkcs1) {
-        byte[] octetString = concat(new byte[]{0x04}, encodeAsn1Length(pkcs1.length), pkcs1);
-        byte[] algId = new byte[]{
+        var octetString = concat(new byte[]{0x04}, encodeAsn1Length(pkcs1.length), pkcs1);
+        var algId = new byte[]{
             0x30, 0x0D,
             0x06, 0x09, 0x2A, (byte) 0x86, 0x48, (byte) 0x86, (byte) 0xF7, 0x0D, 0x01, 0x01, 0x01,
             0x05, 0x00
         };
-        byte[] version = new byte[]{0x02, 0x01, 0x00};
-        byte[] inner = concat(version, algId, octetString);
+        var version = new byte[]{0x02, 0x01, 0x00};
+        var inner = concat(version, algId, octetString);
         return concat(new byte[]{0x30}, encodeAsn1Length(inner.length), inner);
     }
 
@@ -224,7 +223,7 @@ public class AppToken extends Task implements RunnableTask<AppToken.Output> {
     private static byte[] concat(byte[]... arrays) {
         int totalLength = 0;
         for (byte[] a : arrays) totalLength += a.length;
-        byte[] result = new byte[totalLength];
+        var result = new byte[totalLength];
         int offset = 0;
         for (byte[] a : arrays) {
             System.arraycopy(a, 0, result, offset, a.length);
