@@ -22,6 +22,7 @@ Single-module plugin. Source packages under `io.kestra.plugin`:
 ### Key Plugin Classes
 
 - `io.kestra.plugin.github.actions.RunWorkflow`
+- `io.kestra.plugin.github.auth.AppToken`
 - `io.kestra.plugin.github.code.Search`
 - `io.kestra.plugin.github.commits.Search`
 - `io.kestra.plugin.github.issues.Comment`
@@ -37,6 +38,7 @@ Single-module plugin. Source packages under `io.kestra.plugin`:
 
 ```
 plugin-github/
+├── src/main/java/io/kestra/plugin/github/auth/
 ├── src/main/java/io/kestra/plugin/github/users/
 ├── src/test/java/io/kestra/plugin/github/users/
 ├── build.gradle

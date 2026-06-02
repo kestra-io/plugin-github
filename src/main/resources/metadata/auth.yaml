@@ -1,0 +1,8 @@
+group: io.kestra.plugin.github.auth
+name: "auth"
+title: "GitHub Authentication"
+description: "Tasks that issue GitHub access credentials."
+body: "Sign a JWT with a GitHub App's RSA private key and exchange it for a short-lived installation access token. Pass the returned token to downstream `io.kestra.plugin.github.*` tasks via `appInstallationToken`."
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"
