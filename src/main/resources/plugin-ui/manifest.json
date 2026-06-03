@@ -1,0 +1,10 @@
+{
+  "io.kestra.plugin.github.repositories.Search": [
+    {
+      "uiModule": "log-details",
+      "styles": [
+        "assets/style-CLwp3A9p.css"
+      ]
+    }
+  ]
+}
