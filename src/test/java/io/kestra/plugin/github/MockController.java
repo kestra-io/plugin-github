@@ -100,6 +100,13 @@ public class MockController {
             """);
     }
 
+    @Put("/repos/kestra-io/mock-kestra/issues/42/field-values")
+    public HttpResponse<String> setIssueFieldValues(HttpRequest<?> request, @Body String data) {
+        capture(request);
+        MockController.data = data;
+        return HttpResponse.ok("{}");
+    }
+
     @Post("/repos/kestra-io/mock-kestra/issues/42/comments")
     public HttpResponse<String> createIssueComment(HttpRequest<?> request, @Body String data) {
         capture(request);
