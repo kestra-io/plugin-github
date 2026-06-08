@@ -41,7 +41,7 @@ public class CreateTest extends AbstractGithubClientTest {
     }
 
     @Test
-    void runWithFieldValues() throws Exception {
+    void runWithFieldNodeIds() throws Exception {
         var runContext = runContextFactory.of();
 
         var task = Create.builder()
@@ -50,20 +50,42 @@ public class CreateTest extends AbstractGithubClientTest {
             .repository(Property.ofValue("kestra-io/mock-kestra"))
             .title(Property.ofValue("Test Kestra Github plugin with field values"))
             .body(Property.ofValue("Issue with custom field values"))
-            .fieldValues(Property.ofValue(Map.of("PVTF_lADOA", "high", "PVTF_lADOB", "2024-12-31")))
+            .fields(Property.ofValue(Map.of("PVTF_lADOAAAAAAAAAAAAAA", "high", "PVTF_lADOBBBBBBBBBBBBB", "2024-12-31")))
             .build();
 
         var output = task.run(runContext);
 
         assertThat(output.getIssueNumber()).isEqualTo(42);
         assertThat(MockController.data).contains("field_values");
-        assertThat(MockController.data).contains("PVTF_lADOA");
+        assertThat(MockController.data).contains("PVTF_lADOAAAAAAAAAAAAAA");
         assertThat(MockController.headers).containsEntry("x-github-api-version", "2026-03-10");
         assertThat(MockController.headers.get("authorization")).startsWith("Bearer ");
     }
 
     @Test
-    void runWithEmptyFieldValuesSkipsRestCall() throws Exception {
+    void runWithHumanReadableFieldNames() throws Exception {
+        var runContext = runContextFactory.of();
+
+        var task = Create.builder()
+            .oauthToken(Property.ofValue("test-token"))
+            .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
+            .repository(Property.ofValue("kestra-io/mock-kestra"))
+            .title(Property.ofValue("Test issue with human-readable field names"))
+            .body(Property.ofValue("Issue with field names resolved from org definitions"))
+            .fields(Property.ofValue(Map.of("Customer", "Kestra", "Stage", "In review")))
+            .build();
+
+        var output = task.run(runContext);
+
+        assertThat(output.getIssueNumber()).isEqualTo(42);
+        // Resolved node IDs from mock field-definitions endpoint must appear in the PUT body
+        assertThat(MockController.data).contains("field_values");
+        assertThat(MockController.data).contains("PVTF_customer_node_id");
+        assertThat(MockController.data).contains("PVTF_stage_node_id");
+    }
+
+    @Test
+    void runWithEmptyFieldsSkipsRestCall() throws Exception {
         var runContext = runContextFactory.of();
 
         var task = Create.builder()
@@ -72,7 +94,7 @@ public class CreateTest extends AbstractGithubClientTest {
             .repository(Property.ofValue("kestra-io/mock-kestra"))
             .title(Property.ofValue("Test Kestra Github plugin"))
             .body(Property.ofValue("Issue without field values"))
-            .fieldValues(Property.ofValue(Map.of()))
+            .fields(Property.ofValue(Map.of()))
             .build();
 
         var output = task.run(runContext);
@@ -83,7 +105,7 @@ public class CreateTest extends AbstractGithubClientTest {
     }
 
     @Test
-    void runWithFieldValuesButNoTokenThrows() {
+    void runWithFieldsButNoTokenThrows() {
         var runContext = runContextFactory.of();
 
         var task = Create.builder()
@@ -91,7 +113,7 @@ public class CreateTest extends AbstractGithubClientTest {
             .repository(Property.ofValue("kestra-io/mock-kestra"))
             .title(Property.ofValue("Test"))
             .body(Property.ofValue("Body"))
-            .fieldValues(Property.ofValue(Map.of("PVTF_lADOA", "high")))
+            .fields(Property.ofValue(Map.of("PVTF_lADOAAAAAAAAAAAAAA", "high")))
             .build();
 
         assertThatThrownBy(() -> task.run(runContext))

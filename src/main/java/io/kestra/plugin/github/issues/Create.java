@@ -3,9 +3,11 @@ package io.kestra.plugin.github.issues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
+import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
+import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.plugin.github.AbstractGithubTask;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
@@ -19,9 +21,10 @@ import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -96,7 +99,7 @@ import io.kestra.core.models.annotations.PluginProperty;
                    """
         ),
         @Example(
-            title = "Create an issue and set custom Issue Field values.",
+            title = "Create an issue and set custom Issue Field values using human-readable field names.",
             full = true,
             code = """
                    id: github_issue_create_with_fields_flow
@@ -111,9 +114,9 @@ import io.kestra.core.models.annotations.PluginProperty;
                        body: "Created by Kestra workflow {{ execution.id }}"
                        labels:
                          - automation
-                       fieldValues:
-                         PVTF_lADOA: "high"
-                         PVTF_lADOB: "2024-12-31"
+                       fields:
+                         Customer: "Kestra"
+                         Stage: "In review"
                    """
         )
     }
@@ -130,7 +133,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
         title = "Issue title",
         description = "Short summary shown in GitHub."
     )
-    @PluginProperty(group = "advanced")
+    @PluginProperty(group = "main")
     private Property<String> title;
 
     @Schema(
@@ -158,17 +161,22 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
         title = "Issue field values",
         description = """
             Custom field values to set on the issue after creation, using the GitHub Issues field-values API \
-            (API version `2026-03-10`). The map keys are field node IDs and the values are the field values \
-            to set. Unsupported value types are passed through as-is; GitHub will return a 422 if the type \
-            is invalid. Requires a token with the `project` scope in addition to `issues: write`. \
+            (API version `2026-03-10`). Only available for organization repositories — personal repositories \
+            always return HTTP 404. \
+            Keys can be either human-readable field names (e.g. `"Customer"`, `"Stage"`) or field node IDs \
+            (e.g. `PVTF_…`). Human-readable names are resolved automatically to node IDs via the GitHub API \
+            (`GET /orgs/{org}/issues/field-definitions`). \
+            Values are the field values to set. Unsupported value types are passed through as-is; \
+            GitHub will return a 422 if the type is invalid. \
+            Requires a token with the `project` scope in addition to `issues: write`. \
             When null or empty the REST call is skipped entirely and existing behavior is preserved.\
             """
     )
     @PluginProperty(group = "advanced")
-    private Property<Map<String, Object>> fieldValues;
+    private Property<Map<String, Object>> fields;
 
     private static final String FIELD_VALUES_API_VERSION = "2026-03-10";
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER = JacksonMapper.ofJson();
 
     @Override
     public Create.Output run(RunContext runContext) throws Exception {
@@ -191,12 +199,12 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
 
         GHIssue issue = issueBuilder.create();
 
-        var rFieldValues = this.fieldValues != null
-            ? runContext.render(this.fieldValues).asMap(String.class, Object.class)
+        var rFields = this.fields != null
+            ? runContext.render(this.fields).asMap(String.class, Object.class)
             : Map.<String, Object>of();
 
-        if (!rFieldValues.isEmpty()) {
-            setFieldValues(runContext, issue, rFieldValues);
+        if (!rFields.isEmpty()) {
+            setFields(runContext, issue, rFields);
         }
 
         return Output
@@ -206,36 +214,194 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
             .build();
     }
 
-    private void setFieldValues(RunContext runContext, GHIssue issue, Map<String, Object> fieldValues) throws Exception {
+    private void setFields(RunContext runContext, GHIssue issue, Map<String, Object> fields) throws Exception {
         var token = resolveToken(runContext);
         var rEndpoint = runContext.render(getEndpoint()).as(String.class)
             .orElse("https://api.github.com");
         var rRepository = runContext.render(this.repository).as(String.class).orElseThrow();
+        var org = rRepository.split("/")[0];
+
+        // Resolve human-readable field names to node IDs when needed
+        var resolvedFields = resolveFieldKeys(runContext, fields, token, rEndpoint, org);
 
         var url = "%s/repos/%s/issues/%d/field-values".formatted(
             rEndpoint.stripTrailing(),
             rRepository,
             issue.getNumber()
         );
-        var body = OBJECT_MAPPER.writeValueAsString(Map.of("field_values", fieldValues));
+        var bodyJson = OBJECT_MAPPER.writeValueAsString(Map.of("field_values", resolvedFields));
 
-        var request = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .header("Authorization", "Bearer " + token)
-            .header("Content-Type", "application/json")
-            .header("Accept", "application/vnd.github+json")
-            .header("X-GitHub-Api-Version", FIELD_VALUES_API_VERSION)
-            .PUT(HttpRequest.BodyPublishers.ofString(body))
-            .build();
+        try (var client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(30))
+                .build()) {
+            var request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .method("PUT", HttpRequest.BodyPublishers.ofString(bodyJson))
+                .header("Authorization", "Bearer " + token)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/vnd.github+json")
+                .header("X-GitHub-Api-Version", FIELD_VALUES_API_VERSION)
+                .timeout(Duration.ofSeconds(30))
+                .build();
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                runContext.logger().error("Failed to set field values on issue {} (HTTP {}): {}",
+                    issue.getHtmlUrl(), response.statusCode(),
+                    response.body().length() > 500 ? response.body().substring(0, 500) + "…" : response.body());
+                throw new RuntimeException(
+                    "Failed to set field values on issue %s (HTTP %d) — see execution logs for details"
+                        .formatted(issue.getHtmlUrl(), response.statusCode())
+                );
+            }
+        }
+    }
 
-        var response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+    /**
+     * For each key in the input map: if it looks like a node ID (length > 20 and contains only
+     * ASCII letters, digits, underscores, hyphens), pass it through unchanged. Otherwise treat it
+     * as a human-readable name and resolve it to a field node ID via the GitHub API.
+     */
+    private Map<String, Object> resolveFieldKeys(
+            RunContext runContext,
+            Map<String, Object> fields,
+            String token,
+            String endpoint,
+            String org) throws Exception {
 
-        if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new RuntimeException(
-                "Failed to set field values on issue %s (HTTP %d): %s"
-                    .formatted(issue.getHtmlUrl(), response.statusCode(), response.body())
+        var needsResolution = fields.keySet().stream().anyMatch(k -> !looksLikeNodeId(k));
+        if (!needsResolution) {
+            return fields;
+        }
+
+        var fieldDefs = fetchFieldDefinitions(runContext, token, endpoint, org);
+        var resolved = new HashMap<String, Object>(fields.size());
+        for (var entry : fields.entrySet()) {
+            var key = entry.getKey();
+            if (looksLikeNodeId(key)) {
+                resolved.put(key, entry.getValue());
+            } else {
+                var nodeId = fieldDefs.get(key);
+                if (nodeId == null) {
+                    var available = String.join(", ", fieldDefs.keySet());
+                    throw new IllegalArgumentException(
+                        "Unknown field name '%s' in organization '%s'. Available fields: [%s].".formatted(key, org, available)
+                    );
+                }
+                resolved.put(nodeId, entry.getValue());
+            }
+        }
+        return resolved;
+    }
+
+    private static boolean looksLikeNodeId(String key) {
+        return key.length() > 20 && key.chars().allMatch(c ->
+            (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+            (c >= '0' && c <= '9') || c == '_' || c == '-'
+        );
+    }
+
+    /**
+     * Fetches field definitions from the GitHub org-level REST endpoint. Falls back to GraphQL
+     * if the REST endpoint returns 404. Throws if neither endpoint provides definitions.
+     */
+    private Map<String, String> fetchFieldDefinitions(
+            RunContext runContext,
+            String token,
+            String endpoint,
+            String org) throws Exception {
+
+        try (var client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(30))
+                .build()) {
+
+            var restUrl = "%s/orgs/%s/issues/field-definitions".formatted(endpoint.stripTrailing(), org);
+            var restRequest = HttpRequest.newBuilder()
+                .uri(URI.create(restUrl))
+                .GET()
+                .header("Authorization", "Bearer " + token)
+                .header("Accept", "application/vnd.github+json")
+                .header("X-GitHub-Api-Version", FIELD_VALUES_API_VERSION)
+                .timeout(Duration.ofSeconds(30))
+                .build();
+            var restResponse = client.send(restRequest, HttpResponse.BodyHandlers.ofString());
+
+            if (restResponse.statusCode() == 200) {
+                return parseRestFieldDefinitions(restResponse.body());
+            }
+
+            if (restResponse.statusCode() == 404) {
+                runContext.logger().debug(
+                    "Field definitions REST endpoint not available for org '{}', trying GraphQL fallback", org);
+                return fetchFieldDefinitionsViaGraphQL(client, token, endpoint, org);
+            }
+
+            throw new IllegalArgumentException(
+                "Cannot resolve field name: field definitions endpoint returned HTTP %d for organization '%s'. Use the field node ID directly (e.g. PVTF_…)."
+                    .formatted(restResponse.statusCode(), org)
             );
         }
+    }
+
+    private Map<String, String> parseRestFieldDefinitions(String body) throws Exception {
+        var root = OBJECT_MAPPER.readTree(body);
+        var result = new HashMap<String, String>();
+        var items = root.isArray() ? root : root.path("field_definitions");
+        for (var node : items) {
+            var name = node.path("name").asText(null);
+            var id = node.path("id").asText(null);
+            if (name != null && id != null) {
+                result.put(name, id);
+            }
+        }
+        return result;
+    }
+
+    private Map<String, String> fetchFieldDefinitionsViaGraphQL(
+            HttpClient client,
+            String token,
+            String endpoint,
+            String org) throws Exception {
+
+        var graphqlEndpoint = endpoint.contains("api.github.com")
+            ? "https://api.github.com/graphql"
+            : endpoint.stripTrailing() + "/graphql";
+        var query = OBJECT_MAPPER.writeValueAsString(Map.of(
+            "query", "query($org: String!) { organization(login: $org) { issueTypes { nodes { id name } } } }",
+            "variables", Map.of("org", org)
+        ));
+        var graphqlRequest = HttpRequest.newBuilder()
+            .uri(URI.create(graphqlEndpoint))
+            .POST(HttpRequest.BodyPublishers.ofString(query))
+            .header("Authorization", "Bearer " + token)
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
+            .timeout(Duration.ofSeconds(30))
+            .build();
+        var graphqlResponse = client.send(graphqlRequest, HttpResponse.BodyHandlers.ofString());
+
+        if (graphqlResponse.statusCode() == 404) {
+            throw new IllegalArgumentException(
+                "Cannot resolve field name: field definitions are not available for organization '%s'. Use the field node ID directly (e.g. PVTF_…).".formatted(org)
+            );
+        }
+
+        var root = OBJECT_MAPPER.readTree(graphqlResponse.body());
+        var nodes = root.path("data").path("organization").path("issueTypes").path("nodes");
+        var result = new HashMap<String, String>();
+        for (var node : nodes) {
+            var name = node.path("name").asText(null);
+            var id = node.path("id").asText(null);
+            if (name != null && id != null) {
+                result.put(name, id);
+            }
+        }
+
+        if (result.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Cannot resolve field name: field definitions are not available for organization '%s'. Use the field node ID directly (e.g. PVTF_…).".formatted(org)
+            );
+        }
+        return result;
     }
 
     @Builder

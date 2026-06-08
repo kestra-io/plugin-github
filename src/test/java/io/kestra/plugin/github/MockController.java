@@ -100,6 +100,17 @@ public class MockController {
             """);
     }
 
+    @Get("/orgs/kestra-io/issues/field-definitions")
+    public HttpResponse<String> getOrgFieldDefinitions(HttpRequest<?> request) {
+        capture(request);
+        return HttpResponse.ok("""
+            [
+              {"id": "PVTF_customer_node_id", "name": "Customer"},
+              {"id": "PVTF_stage_node_id", "name": "Stage"}
+            ]
+            """);
+    }
+
     @Put("/repos/kestra-io/mock-kestra/issues/42/field-values")
     public HttpResponse<String> setIssueFieldValues(HttpRequest<?> request, @Body String data) {
         capture(request);
