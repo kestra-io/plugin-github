@@ -7,6 +7,8 @@ import io.kestra.plugin.github.AbstractGithubClientTest;
 import io.kestra.plugin.github.MockController;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.util.List;
 import java.util.Map;
@@ -15,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @KestraTest
+@Execution(ExecutionMode.SAME_THREAD)
 public class CreateTest extends AbstractGithubClientTest {
     @Inject
     private RunContextFactory runContextFactory;
