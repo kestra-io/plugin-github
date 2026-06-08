@@ -54,8 +54,7 @@ public abstract class AbstractGithubSearchTask extends AbstractGithubTask {
             case STORE:
                 File tempFile = runContext.workingDir().createTempFile(".ion").toFile();
 
-                try (BufferedOutputStream output =
-                         new BufferedOutputStream(new FileOutputStream(tempFile))) {
+                try (var output = new BufferedOutputStream(new FileOutputStream(tempFile), FileSerde.BUFFER_SIZE)) {
 
                     for (Map<String, Object> item : mapped) {
                         FileSerde.write(output, item);
