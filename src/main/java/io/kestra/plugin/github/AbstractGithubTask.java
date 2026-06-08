@@ -67,17 +67,17 @@ public abstract class AbstractGithubTask extends Task {
     }
 
     protected String resolveToken(RunContext runContext) throws Exception {
-        var rendered = runContext.render(this.oauthToken).as(String.class).orElse(null);
-        if (rendered != null) {
-            return rendered;
+        var rToken = runContext.render(this.oauthToken).as(String.class).orElse(null);
+        if (rToken != null) {
+            return rToken;
         }
-        rendered = runContext.render(this.appInstallationToken).as(String.class).orElse(null);
-        if (rendered != null) {
-            return rendered;
+        rToken = runContext.render(this.appInstallationToken).as(String.class).orElse(null);
+        if (rToken != null) {
+            return rToken;
         }
-        rendered = runContext.render(this.jwtToken).as(String.class).orElse(null);
-        if (rendered != null) {
-            return rendered;
+        rToken = runContext.render(this.jwtToken).as(String.class).orElse(null);
+        if (rToken != null) {
+            return rToken;
         }
         throw new IllegalStateException("No GitHub token configured: set oauthToken, appInstallationToken, or jwtToken");
     }

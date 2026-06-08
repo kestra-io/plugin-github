@@ -191,12 +191,12 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
 
         GHIssue issue = issueBuilder.create();
 
-        var renderedFieldValues = this.fieldValues != null
+        var rFieldValues = this.fieldValues != null
             ? runContext.render(this.fieldValues).asMap(String.class, Object.class)
             : Map.<String, Object>of();
 
-        if (!renderedFieldValues.isEmpty()) {
-            setFieldValues(runContext, issue, renderedFieldValues);
+        if (!rFieldValues.isEmpty()) {
+            setFieldValues(runContext, issue, rFieldValues);
         }
 
         return Output
