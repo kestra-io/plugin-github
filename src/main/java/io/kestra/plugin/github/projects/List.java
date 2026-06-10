@@ -1,5 +1,6 @@
 package io.kestra.plugin.github.projects;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kestra.core.http.HttpRequest;
 import io.kestra.core.http.client.HttpClient;
@@ -82,8 +83,6 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
 
     private static final ObjectMapper MAPPER = JacksonMapper.ofJson();
 
-    // GraphQL query fetches project items with field values, issue content, and pagination info.
-    // pageSize is fixed at 100 (GitHub's maximum per page).
     private static final String PROJECTS_QUERY = """
         query($org: String!, $number: Int!, $cursor: String) {
           organization(login: $org) {
@@ -177,7 +176,10 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
 
     @Schema(
         title = "Maximum number of items to return",
-        description = "Caps the number of items returned after all filters are applied. `0` or negative means no limit."
+        description = """
+            Caps the number of items returned after all filters are applied. `0` or negative means no limit.
+            Note: this limit is applied after all pages are fetched — it does not reduce the number of API calls or memory usage for large projects.\
+            """
     )
     @Builder.Default
     @PluginProperty(group = "advanced")
@@ -281,8 +283,7 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
                     item.put("url", content.path("url").asText(null));
                     item.put("repository", content.path("repository").path("name").asText(null));
                     item.put("createdAt", content.path("createdAt").asText(null));
-                    item.put("closedAt", content.path("closedAt").isMissingNode() || content.path("closedAt").isNull()
-                        ? null : content.path("closedAt").asText(null));
+                    item.put("closedAt", content.path("closedAt").asText(null));
 
                     var assigneesList = new ArrayList<String>();
                     for (var assignee : content.path("assignees").path("nodes")) {
@@ -296,7 +297,6 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
                     }
                     item.put("labels", labelsList);
 
-                    // Promote well-known project fields to top-level, keep all others too
                     item.put("status", fieldValues.getOrDefault("Status", null));
                     item.put("owner", fieldValues.getOrDefault("Owner", null));
                     fieldValues.forEach(item::putIfAbsent);
@@ -306,7 +306,6 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
             }
         }
 
-        // Client-side filtering
         var filtered = allItems.stream()
             .filter(item -> {
                 if (rOwner != null && !rOwner.equals(item.get("owner"))) {
@@ -339,18 +338,15 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
         );
     }
 
-    /**
-     * Maps the {@code fieldValues.nodes} inline fragments to a flat {@code fieldName -> value} map.
-     * Unknown fragment types are silently skipped to stay forward-compatible with new GitHub field types.
-     */
-    private Map<String, String> extractFieldValues(com.fasterxml.jackson.databind.JsonNode itemNode) {
+    private Map<String, String> extractFieldValues(JsonNode itemNode) {
         var result = new HashMap<String, String>();
         for (var fv : itemNode.path("fieldValues").path("nodes")) {
             var fieldName = fv.path("field").path("name").asText(null);
             if (fieldName == null) {
+                // unknown fragment type — silently skip to stay forward-compatible with new GitHub field types
                 continue;
             }
-            // Each inline fragment exposes its value under a different key
+            // each inline fragment exposes its value under a different key
             if (fv.has("text")) {
                 result.put(fieldName, fv.path("text").asText(null));
             } else if (fv.has("name")) {
