@@ -54,13 +54,8 @@ class ListTest extends AbstractGithubClientTest {
         assertThat(item.get("createdAt")).isEqualTo("2025-03-01T10:00:00Z");
         assertThat(item.get("closedAt")).isNull();
 
-        @SuppressWarnings("unchecked")
-        var assignees = (java.util.List<String>) item.get("assignees");
-        assertThat(assignees).containsExactly("alice");
-
-        @SuppressWarnings("unchecked")
-        var labels = (java.util.List<String>) item.get("labels");
-        assertThat(labels).containsExactly("area/plugin");
+        assertThat(item.get("assignees")).asList().containsExactly("alice");
+        assertThat(item.get("labels")).asList().containsExactly("area/plugin");
     }
 
     @Test
@@ -131,9 +126,7 @@ class ListTest extends AbstractGithubClientTest {
 
         assertThat(output.getSize()).isEqualTo(1);
 
-        @SuppressWarnings("unchecked")
-        var itemLabels = (java.util.List<String>) output.getRows().getFirst().get("labels");
-        assertThat(itemLabels).contains("area/core");
+        assertThat(output.getRows().getFirst().get("labels")).asList().contains("area/core");
     }
 
     @Test

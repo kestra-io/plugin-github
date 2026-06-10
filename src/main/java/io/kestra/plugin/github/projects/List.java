@@ -203,7 +203,7 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
         var rStatus = this.status != null ? runContext.render(this.status).asList(String.class) : java.util.List.<String>of();
         var rLabels = this.labels != null ? runContext.render(this.labels).asList(String.class) : java.util.List.<String>of();
 
-        var graphqlUrl = rEndpoint.stripTrailing() + "/graphql";
+        var graphqlUrl = rEndpoint.stripTrailing().replaceFirst("/+$", "") + "/graphql";
         var allItems = new ArrayList<Map<String, Object>>();
 
         var httpConfig = HttpConfiguration.builder().allowFailed(Property.ofValue(true)).build();
@@ -268,7 +268,6 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
 
                 for (var node : itemsNode.path("nodes")) {
                     var content = node.path("content");
-                    // Skip Draft items (null content) and non-Issue content nodes (e.g. PullRequest)
                     if (content.isNull() || content.isMissingNode()) {
                         continue;
                     }
@@ -353,7 +352,6 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
                 // unknown fragment type — silently skip to stay forward-compatible with new GitHub field types
                 continue;
             }
-            // each inline fragment exposes its value under a different key
             if (fv.has("text")) {
                 result.put(fieldName, fv.path("text").asText(null));
             } else if (fv.has("name")) {

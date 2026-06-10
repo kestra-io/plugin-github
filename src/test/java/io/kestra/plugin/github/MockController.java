@@ -480,7 +480,6 @@ public class MockController {
         capture(request);
         MockController.data = data;
 
-        // Route to the correct mock response based on the query/variables content
         if (data.contains("projectV2")) {
             return handleProjectsQuery(data);
         }
@@ -508,7 +507,6 @@ public class MockController {
                     """);
             }
 
-            // Page 2 of a multi-page project
             if (hasCursor && "cursor-abc".equals(cursor)) {
                 return HttpResponse.ok("""
                     {
@@ -546,7 +544,6 @@ public class MockController {
                     """);
             }
 
-            // Multi-page project (number=2)
             if (number == 2) {
                 return HttpResponse.ok("""
                     {
@@ -584,7 +581,6 @@ public class MockController {
                     """);
             }
 
-            // Default single-page project (number=1): 3 items (1 draft, 1 PR, 1 real issue)
             return HttpResponse.ok("""
                 {
                   "data": {
