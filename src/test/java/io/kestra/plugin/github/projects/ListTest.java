@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -48,7 +50,7 @@ class ListTest extends AbstractGithubClientTest {
         assertThat(item.get("url")).isEqualTo("https://github.com/kestra-io/kestra/issues/1234");
         assertThat(item.get("repository")).isEqualTo("kestra-ee");
         assertThat(item.get("status")).isEqualTo("In Progress");
-        assertThat(item.get("owner")).isEqualTo("Plugins");
+        assertThat(item.get("Owner")).isEqualTo("Plugins");
         assertThat(item.get("createdAt")).isEqualTo("2025-03-01T10:00:00Z");
         assertThat(item.get("closedAt")).isNull();
 
@@ -81,20 +83,20 @@ class ListTest extends AbstractGithubClientTest {
     }
 
     @Test
-    void ownerFilter() throws Exception {
+    void fieldsFilter() throws Exception {
         var runContext = runContextFactory.of();
 
         var task = defaultBuilder()
             .organization(Property.ofValue("kestra-io"))
             .projectNumber(Property.ofValue(2))
-            .owner(Property.ofValue("Team A"))
+            .fields(Property.ofValue(Map.of("Owner", "Team A")))
             .fetchType(Property.ofValue(FetchType.FETCH))
             .build();
 
         var output = task.run(runContext);
 
         assertThat(output.getSize()).isEqualTo(1);
-        assertThat(output.getRows().getFirst().get("owner")).isEqualTo("Team A");
+        assertThat(output.getRows().getFirst().get("Owner")).isEqualTo("Team A");
     }
 
     @Test

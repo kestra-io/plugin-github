@@ -33,7 +33,7 @@ import java.util.Map;
     title = "List items from a GitHub Projects v2 board",
     description = """
         Fetches all items from a GitHub Projects v2 board via the GraphQL API, with optional \
-        client-side filtering by owner, status, and labels. \
+        client-side filtering by project field values, status, and labels. \
         Supports pagination for projects with more than 100 items. \
         The token must have the `read:project` scope in addition to `repo` access.\
         """
@@ -57,7 +57,7 @@ import java.util.Map;
                    """
         ),
         @Example(
-            title = "List project items filtered by status and labels, stored to internal storage.",
+            title = "List project items filtered by field values, status, and labels, stored to internal storage.",
             full = true,
             code = """
                    id: github_projects_list_filtered_flow
@@ -69,6 +69,8 @@ import java.util.Map;
                        oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        organization: kestra-io
                        projectNumber: 1
+                       fields:
+                         Owner: Plugins
                        status:
                          - In Progress
                          - Done
@@ -154,11 +156,15 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
     private Property<Integer> projectNumber;
 
     @Schema(
-        title = "Owner filter",
-        description = "When set, only items whose owner field matches this value are returned (case-sensitive)."
+        title = "Project field filters",
+        description = """
+            When set, only items whose project field values match all the listed entries are returned (case-sensitive). \
+            Keys are project field names (e.g. `Owner`, `Stage`); values are the expected field values. \
+            An empty map disables this filter.\
+            """
     )
     @PluginProperty(group = "processing")
-    private Property<String> owner;
+    private Property<Map<String, String>> fields;
 
     @Schema(
         title = "Status filter",
@@ -193,7 +199,7 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
         var rEndpoint = runContext.render(getEndpoint()).as(String.class).orElse("https://api.github.com");
         var rLimit = runContext.render(this.limit).as(Integer.class).orElse(0);
 
-        var rOwner = runContext.render(this.owner).as(String.class).orElse(null);
+        var rFields = this.fields != null ? runContext.render(this.fields).asMap(String.class, String.class) : Map.<String, String>of();
         var rStatus = this.status != null ? runContext.render(this.status).asList(String.class) : java.util.List.<String>of();
         var rLabels = this.labels != null ? runContext.render(this.labels).asList(String.class) : java.util.List.<String>of();
 
@@ -298,7 +304,6 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
                     item.put("labels", labelsList);
 
                     item.put("status", fieldValues.getOrDefault("Status", null));
-                    item.put("owner", fieldValues.getOrDefault("Owner", null));
                     fieldValues.forEach(item::putIfAbsent);
 
                     allItems.add(item);
@@ -308,8 +313,10 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
 
         var filtered = allItems.stream()
             .filter(item -> {
-                if (rOwner != null && !rOwner.equals(item.get("owner"))) {
-                    return false;
+                for (var entry : rFields.entrySet()) {
+                    if (!entry.getValue().equals(item.get(entry.getKey()))) {
+                        return false;
+                    }
                 }
                 if (!rStatus.isEmpty()) {
                     var itemStatus = (String) item.get("status");
