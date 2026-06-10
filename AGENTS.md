@@ -28,6 +28,7 @@ Single-module plugin. Source packages under `io.kestra.plugin`:
 - `io.kestra.plugin.github.issues.Comment`
 - `io.kestra.plugin.github.issues.Create`
 - `io.kestra.plugin.github.issues.Search`
+- `io.kestra.plugin.github.projects.List`
 - `io.kestra.plugin.github.pulls.Create`
 - `io.kestra.plugin.github.pulls.Search`
 - `io.kestra.plugin.github.repositories.Search`
@@ -39,7 +40,9 @@ Single-module plugin. Source packages under `io.kestra.plugin`:
 ```
 plugin-github/
 ├── src/main/java/io/kestra/plugin/github/auth/
+├── src/main/java/io/kestra/plugin/github/projects/
 ├── src/main/java/io/kestra/plugin/github/users/
+├── src/test/java/io/kestra/plugin/github/projects/
 ├── src/test/java/io/kestra/plugin/github/users/
 ├── build.gradle
 └── README.md

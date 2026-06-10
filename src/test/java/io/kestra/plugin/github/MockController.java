@@ -1,5 +1,7 @@
 package io.kestra.plugin.github;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.kestra.core.serializers.JacksonMapper;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
@@ -12,6 +14,8 @@ import java.util.Map;
 @Consumes("application/json")
 @Produces("application/vnd.github+json")
 public class MockController {
+    private static final ObjectMapper MAPPER = JacksonMapper.ofJson();
+
     public static String data;
     public static Map<String, String> headers = new HashMap<>();
     public static Map<String, String> queryParameters = new HashMap<>();
@@ -468,6 +472,165 @@ public class MockController {
               ]
             }
             """);
+    }
+
+    @Post("/graphql")
+    @Produces(MediaType.APPLICATION_JSON)
+    public HttpResponse<String> graphql(HttpRequest<?> request, @Body String data) {
+        capture(request);
+        MockController.data = data;
+
+        // Route to the correct mock response based on the query/variables content
+        if (data.contains("projectV2")) {
+            return handleProjectsQuery(data);
+        }
+        return HttpResponse.ok("{\"data\":{}}");
+    }
+
+    private HttpResponse<String> handleProjectsQuery(String body) {
+        try {
+            var root = MAPPER.readTree(body);
+            var variables = root.path("variables");
+            var org = variables.path("org").asText("");
+            var number = variables.path("number").asInt(0);
+            var cursor = variables.path("cursor").asText(null);
+            var hasCursor = cursor != null && !cursor.isEmpty() && !"null".equals(cursor);
+
+            if ("missing-org".equals(org)) {
+                return HttpResponse.ok("{\"data\":{\"organization\":null}}");
+            }
+            if (number == 999) {
+                return HttpResponse.ok("{\"data\":{\"organization\":{\"projectV2\":null}}}");
+            }
+            if ("forbidden-org".equals(org)) {
+                return HttpResponse.ok("""
+                    {"errors":[{"type":"FORBIDDEN","message":"Resource not accessible by token"}]}
+                    """);
+            }
+
+            // Page 2 of a multi-page project
+            if (hasCursor && "cursor-abc".equals(cursor)) {
+                return HttpResponse.ok("""
+                    {
+                      "data": {
+                        "organization": {
+                          "projectV2": {
+                            "items": {
+                              "pageInfo": {"hasNextPage": false, "endCursor": null},
+                              "nodes": [
+                                {
+                                  "fieldValues": {
+                                    "nodes": [
+                                      {"field": {"name": "Status"}, "name": "Done"},
+                                      {"field": {"name": "Owner"}, "text": "Team B"}
+                                    ]
+                                  },
+                                  "content": {
+                                    "__typename": "Issue",
+                                    "number": 2,
+                                    "title": "Second issue",
+                                    "url": "https://github.com/kestra-io/kestra/issues/2",
+                                    "createdAt": "2025-02-01T10:00:00Z",
+                                    "closedAt": "2025-03-01T08:00:00Z",
+                                    "repository": {"name": "kestra"},
+                                    "assignees": {"nodes": [{"login": "bob"}]},
+                                    "labels": {"nodes": [{"name": "area/core"}]}
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """);
+            }
+
+            // Multi-page project (number=2)
+            if (number == 2) {
+                return HttpResponse.ok("""
+                    {
+                      "data": {
+                        "organization": {
+                          "projectV2": {
+                            "items": {
+                              "pageInfo": {"hasNextPage": true, "endCursor": "cursor-abc"},
+                              "nodes": [
+                                {
+                                  "fieldValues": {
+                                    "nodes": [
+                                      {"field": {"name": "Status"}, "name": "In Progress"},
+                                      {"field": {"name": "Owner"}, "text": "Team A"}
+                                    ]
+                                  },
+                                  "content": {
+                                    "__typename": "Issue",
+                                    "number": 1,
+                                    "title": "First issue",
+                                    "url": "https://github.com/kestra-io/kestra/issues/1",
+                                    "createdAt": "2025-01-01T10:00:00Z",
+                                    "closedAt": null,
+                                    "repository": {"name": "kestra"},
+                                    "assignees": {"nodes": [{"login": "alice"}]},
+                                    "labels": {"nodes": [{"name": "area/plugin"}]}
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """);
+            }
+
+            // Default single-page project (number=1): 3 items (1 draft, 1 PR, 1 real issue)
+            return HttpResponse.ok("""
+                {
+                  "data": {
+                    "organization": {
+                      "projectV2": {
+                        "items": {
+                          "pageInfo": {"hasNextPage": false, "endCursor": null},
+                          "nodes": [
+                            {
+                              "fieldValues": {"nodes": []},
+                              "content": null
+                            },
+                            {
+                              "fieldValues": {"nodes": []},
+                              "content": {"__typename": "PullRequest", "number": 10, "title": "A PR"}
+                            },
+                            {
+                              "fieldValues": {
+                                "nodes": [
+                                  {"field": {"name": "Status"}, "name": "In Progress"},
+                                  {"field": {"name": "Owner"}, "text": "Plugins"},
+                                  {"field": {"name": "Release"}, "text": "1.4"}
+                                ]
+                              },
+                              "content": {
+                                "__typename": "Issue",
+                                "number": 1234,
+                                "title": "My task",
+                                "url": "https://github.com/kestra-io/kestra/issues/1234",
+                                "createdAt": "2025-03-01T10:00:00Z",
+                                "closedAt": null,
+                                "repository": {"name": "kestra-ee"},
+                                "assignees": {"nodes": [{"login": "alice"}]},
+                                "labels": {"nodes": [{"name": "area/plugin"}]}
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+                """);
+        } catch (Exception e) {
+            return HttpResponse.serverError("{\"errors\":[{\"message\":\"mock error\"}]}");
+        }
     }
 
     @Post("/app/installations/{installationId}/access_tokens")

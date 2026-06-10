@@ -1,0 +1,8 @@
+group: io.kestra.plugin.github.projects
+name: "projects"
+title: "GitHub Projects"
+description: "Tasks for listing and managing GitHub Projects v2 boards."
+body: "Authenticate with a GitHub token that has the read:project scope and supply an organization login and project number to fetch all items from a GitHub Projects v2 board, with optional filtering by owner, status, and labels."
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"
