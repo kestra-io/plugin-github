@@ -146,6 +146,30 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
                       repository { name }
                       assignees(first: 10) { nodes { login } }
                       labels(first: 10) { nodes { name } }
+                      issueFieldValues(first: 30) {
+                        nodes {
+                          ... on IssueFieldSingleSelectValue {
+                            field { ... on IssueFieldSingleSelect { name } }
+                            name
+                          }
+                          ... on IssueFieldTextValue {
+                            field { ... on IssueFieldText { name } }
+                            value
+                          }
+                          ... on IssueFieldNumberValue {
+                            field { ... on IssueFieldNumber { name } }
+                            value
+                          }
+                          ... on IssueFieldDateValue {
+                            field { ... on IssueFieldDate { name } }
+                            value
+                          }
+                          ... on IssueFieldMultiSelectValue {
+                            field { ... on IssueFieldMultiSelect { name } }
+                            value
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -320,6 +344,9 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
 
                     item.put("status", fieldValues.getOrDefault("Status", null));
                     fieldValues.forEach(item::putIfAbsent);
+                    // Org-level issue fields (e.g. Owner, Stage, Priority) are stored separately
+                    // from project item fieldValues — merge them after so project fields win on collision.
+                    extractIssueFieldValues(content).forEach(item::putIfAbsent);
 
                     allItems.add(item);
                 }
@@ -404,6 +431,24 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
                 result.put(fieldName, String.join(",", names));
             } else if (fv.has("milestone")) {
                 result.put(fieldName, fv.path("milestone").path("title").asText(null));
+            }
+        }
+        return result;
+    }
+
+    private Map<String, String> extractIssueFieldValues(JsonNode contentNode) {
+        var result = new HashMap<String, String>();
+        for (var fv : contentNode.path("issueFieldValues").path("nodes")) {
+            var fieldName = fv.path("field").path("name").asText(null);
+            if (fieldName == null) {
+                continue;
+            }
+            if (fv.has("name")) {
+                // IssueFieldSingleSelectValue
+                result.put(fieldName, fv.path("name").asText(null));
+            } else if (fv.has("value")) {
+                // IssueFieldTextValue, IssueFieldNumberValue, IssueFieldDateValue, IssueFieldMultiSelectValue
+                result.put(fieldName, fv.path("value").asText(null));
             }
         }
         return result;
