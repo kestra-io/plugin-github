@@ -95,7 +95,7 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
                   endCursor
                 }
                 nodes {
-                  fieldValues(first: 20) {
+                  fieldValues(first: 50) {
                     nodes {
                       ... on ProjectV2ItemFieldTextValue {
                         field { ... on ProjectV2FieldCommon { name } }
@@ -116,6 +116,22 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
                       ... on ProjectV2ItemFieldIterationValue {
                         field { ... on ProjectV2FieldCommon { name } }
                         title
+                      }
+                      ... on ProjectV2ItemFieldUserValue {
+                        field { ... on ProjectV2FieldCommon { name } }
+                        users(first: 10) { nodes { login } }
+                      }
+                      ... on ProjectV2ItemFieldRepositoryValue {
+                        field { ... on ProjectV2FieldCommon { name } }
+                        repository { nameWithOwner }
+                      }
+                      ... on ProjectV2ItemFieldLabelValue {
+                        field { ... on ProjectV2FieldCommon { name } }
+                        labels(first: 10) { nodes { name } }
+                      }
+                      ... on ProjectV2ItemFieldMilestoneValue {
+                        field { ... on ProjectV2FieldCommon { name } }
+                        milestone { title }
                       }
                     }
                   }
@@ -334,6 +350,16 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
             })
             .toList();
 
+        if (!allItems.isEmpty() && filtered.isEmpty() && (!rFields.isEmpty() || !rStatus.isEmpty() || !rLabels.isEmpty())) {
+            runContext.logger().warn(
+                "All {} fetched items were excluded by the configured filters (fields={}, status={}, labels={}). " +
+                "Verify that filter values match the actual project field values (filters are case-sensitive).",
+                allItems.size(), rFields, rStatus, rLabels
+            );
+        } else {
+            runContext.logger().info("Fetched {} items, {} passed filters.", allItems.size(), filtered.size());
+        }
+
         var limited = (rLimit > 0 && filtered.size() > rLimit) ? filtered.subList(0, rLimit) : filtered;
 
         return handleFetch(
@@ -362,6 +388,22 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
                 result.put(fieldName, fv.path("number").asText(null));
             } else if (fv.has("title")) {
                 result.put(fieldName, fv.path("title").asText(null));
+            } else if (fv.has("users")) {
+                var logins = new ArrayList<String>();
+                for (var user : fv.path("users").path("nodes")) {
+                    logins.add(user.path("login").asText());
+                }
+                result.put(fieldName, String.join(",", logins));
+            } else if (fv.has("repository")) {
+                result.put(fieldName, fv.path("repository").path("nameWithOwner").asText(null));
+            } else if (fv.has("labels")) {
+                var names = new ArrayList<String>();
+                for (var label : fv.path("labels").path("nodes")) {
+                    names.add(label.path("name").asText());
+                }
+                result.put(fieldName, String.join(",", names));
+            } else if (fv.has("milestone")) {
+                result.put(fieldName, fv.path("milestone").path("title").asText(null));
             }
         }
         return result;
