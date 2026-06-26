@@ -66,7 +66,7 @@ import io.kestra.core.models.annotations.PluginProperty;
                        oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                        query: "micronaut framework"
                        is: NOT_CURATED
-                       repositories: >100
+                       repositories: ">100"
                    """
         )
     }
