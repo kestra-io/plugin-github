@@ -95,6 +95,7 @@ public class AppToken extends Task implements RunnableTask<AppToken.Output> {
     )
     @NotNull
     @PluginProperty(group = "connection", secret = true)
+    @ToString.Exclude
     private Property<String> privateKey;
 
     @Schema(
