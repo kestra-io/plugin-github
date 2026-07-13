@@ -43,6 +43,7 @@ import io.kestra.core.models.annotations.PluginProperty;
         ),
         @Example(
             title = "Search for open issues in a repository.",
+            full = true,
             code = """
                    id: github_issue_search_flow
                    namespace: company.team
