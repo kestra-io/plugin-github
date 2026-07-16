@@ -50,5 +50,67 @@ public class CommentTest extends AbstractGithubClientTest {
 
         assertThat(commentOutput.getIssueUrl()).isNotNull();
         assertThat(commentOutput.getCommentUrl()).isNotNull();
+        assertThat(commentOutput.getCommentId()).isEqualTo(100L);
+        assertThat(commentOutput.getUpdated()).isFalse();
+    }
+
+    @Test
+    void updateByCommentId() throws Exception {
+        var runContext = runContextFactory.of();
+
+        var commentTask = Comment.builder()
+            .oauthToken(Property.ofValue(""))
+            .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
+            .repository(Property.ofValue("kestra-io/mock-kestra"))
+            .issueNumber(Property.ofValue(42))
+            .commentId(Property.ofValue(100L))
+            .body(Property.ofValue("Updated body for an existing comment"))
+            .build();
+
+        Comment.Output commentOutput = commentTask.run(runContext);
+
+        assertThat(commentOutput.getCommentUrl()).isNotNull();
+        assertThat(commentOutput.getCommentId()).isEqualTo(100L);
+        assertThat(commentOutput.getUpdated()).isTrue();
+    }
+
+    @Test
+    void updateByTagFindsExistingComment() throws Exception {
+        var runContext = runContextFactory.of();
+
+        var commentTask = Comment.builder()
+            .oauthToken(Property.ofValue(""))
+            .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
+            .repository(Property.ofValue("kestra-io/mock-kestra"))
+            .issueNumber(Property.ofValue(42))
+            .updateTag(Property.ofValue("test-report"))
+            .body(Property.ofValue("## Test report\nAll green"))
+            .build();
+
+        Comment.Output commentOutput = commentTask.run(runContext);
+
+        assertThat(commentOutput.getCommentUrl()).isNotNull();
+        assertThat(commentOutput.getCommentId()).isEqualTo(100L);
+        assertThat(commentOutput.getUpdated()).isTrue();
+    }
+
+    @Test
+    void updateByUnknownTagCreatesNewComment() throws Exception {
+        var runContext = runContextFactory.of();
+
+        var commentTask = Comment.builder()
+            .oauthToken(Property.ofValue(""))
+            .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
+            .repository(Property.ofValue("kestra-io/mock-kestra"))
+            .issueNumber(Property.ofValue(42))
+            .updateTag(Property.ofValue("unmatched-tag"))
+            .body(Property.ofValue("## Test report\nFirst run"))
+            .build();
+
+        Comment.Output commentOutput = commentTask.run(runContext);
+
+        assertThat(commentOutput.getCommentUrl()).isNotNull();
+        assertThat(commentOutput.getCommentId()).isEqualTo(100L);
+        assertThat(commentOutput.getUpdated()).isFalse();
     }
 }
