@@ -138,6 +138,41 @@ public class MockController {
             """).header("Location", "https://github.com/kestra-io/mock-kestra/issues/42#issuecomment-100");
     }
 
+    @Get("/repos/kestra-io/mock-kestra/issues/42/comments")
+    public HttpResponse<String> listIssueComments(HttpRequest<?> request) {
+        capture(request);
+        var base = baseUrl(request);
+        return HttpResponse.ok("""
+            [
+              {
+                "id": 100,
+                "url": "%s/repos/kestra-io/mock-kestra/issues/comments/100",
+                "html_url": "https://github.com/kestra-io/mock-kestra/issues/42#issuecomment-100",
+                "body": "Previous report\\n\\n<!-- kestra:comment-tag:test-report -->",
+                "user": {
+                    "login": "kestra-io"
+                }
+              }
+            ]
+            """.formatted(base));
+    }
+
+    @Patch("/repos/kestra-io/mock-kestra/issues/comments/100")
+    public HttpResponse<String> updateIssueComment(HttpRequest<?> request, @Body String data) {
+        capture(request);
+        MockController.data = data;
+        return HttpResponse.ok("""
+            {
+              "id": 100,
+              "html_url": "https://github.com/kestra-io/mock-kestra/issues/42#issuecomment-100",
+              "body": "This comment is a test",
+              "user": {
+                  "login": "kestra-io"
+              }
+            }
+            """).header("Location", "https://github.com/kestra-io/mock-kestra/issues/42#issuecomment-100");
+    }
+
     @Post("/repos/kestra-io/mock-kestra/pulls")
     public HttpResponse<String> createPullRequest(HttpRequest<?> request, @Body String data) {
         capture(request);
