@@ -23,7 +23,7 @@ public abstract class AbstractGithubTask extends Task {
         title = "GitHub login",
         description = "GitHub login used with `oauthToken` for authenticated requests. Leave unset when authenticating with `jwtToken` or `appInstallationToken`."
     )
-    @PluginProperty(group = "advanced")
+    @PluginProperty(group = "connection")
     private Property<String> login;
 
     @Schema(
