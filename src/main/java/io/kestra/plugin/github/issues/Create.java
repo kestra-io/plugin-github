@@ -9,6 +9,7 @@ import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
+import io.kestra.core.models.tasks.TicketingTaskInterface;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.plugin.github.AbstractGithubTask;
@@ -120,7 +121,7 @@ import java.util.Map;
         )
     }
 )
-public class Create extends AbstractGithubTask implements RunnableTask<Create.Output> {
+public class Create extends AbstractGithubTask implements RunnableTask<Create.Output>, TicketingTaskInterface {
     @Schema(
         title = "Target repository",
         description = "Repository in `owner/repo` format where the issue will be created"
