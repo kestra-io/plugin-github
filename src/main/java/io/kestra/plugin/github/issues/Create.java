@@ -7,6 +7,7 @@ import io.kestra.core.http.client.configurations.HttpConfiguration;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.annotations.TicketingField;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.models.tasks.TicketingTaskInterface;
@@ -134,6 +135,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
         description = "Short summary shown in GitHub."
     )
     @PluginProperty(group = "main")
+    @TicketingField(role = TicketingField.Role.CASE_TITLE)
     private Property<String> title;
 
     @Schema(
@@ -141,6 +143,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
         description = "Markdown body for the issue. This value is rendered before the request is sent"
     )
     @PluginProperty(group = "main")
+    @TicketingField(role = TicketingField.Role.CASE_DESCRIPTION)
     private Property<String> body;
 
     @Schema(
@@ -409,12 +412,14 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
             title = "Issue URL",
             description = "GitHub URL for the created issue"
         )
+        @TicketingField(role = TicketingField.Role.TICKET_URL)
         private URL issueUrl;
 
         @Schema(
             title = "Issue number",
             description = "Numeric issue number assigned by GitHub"
         )
+        @TicketingField(role = TicketingField.Role.TICKET_KEY)
         private Integer issueNumber;
     }
 
