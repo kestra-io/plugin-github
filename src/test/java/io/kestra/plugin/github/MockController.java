@@ -236,6 +236,19 @@ public class MockController {
         capture(request);
         return HttpResponse.ok(runJson(101, "completed", runConclusion));
     }
+    @Get("/repos/kestra-io/mock-kestra/actions/runs/101/jobs")
+    public HttpResponse<String> getRunJobs(HttpRequest<?> request) {
+        capture(request);
+        return HttpResponse.ok("""
+            {
+              "total_count": 2,
+              "jobs": [
+                {"id": 1, "run_id": 101, "name": "build", "status": "completed", "conclusion": "success"},
+                {"id": 2, "run_id": 101, "name": "test", "status": "completed", "conclusion": "failure"}
+              ]
+            }
+            """);
+    }
     private String baseUrl(HttpRequest<?> request) {
         var host = request.getHeaders().get("Host");
         return "http://" + host;
