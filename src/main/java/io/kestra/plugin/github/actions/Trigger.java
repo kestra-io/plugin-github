@@ -1,5 +1,9 @@
 package io.kestra.plugin.github.actions;
 
+import static io.kestra.plugin.github.actions.RunUtils.parseEnum;
+import static io.kestra.plugin.github.actions.RunUtils.toInstant;
+import static io.kestra.plugin.github.actions.RunUtils.toMap;
+
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
@@ -12,6 +16,7 @@ import io.kestra.core.models.triggers.TriggerContext;
 import io.kestra.core.models.triggers.TriggerOutput;
 import io.kestra.core.models.triggers.TriggerService;
 import io.kestra.core.runners.RunContext;
+import io.kestra.core.storages.kv.KVValueAndMetadata;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
@@ -27,8 +32,8 @@ import org.kohsuke.github.GitHubBuilder;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,7 +45,7 @@ import java.util.Optional;
 @NoArgsConstructor
 @Schema(
     title = "Trigger a flow when GitHub Actions runs complete",
-    description = "Polls a repository at the configured interval and starts one execution when at least one workflow run has completed since the previous evaluation. A run counts as new when it is completed and its last update is after the previous evaluation time, so a run that was still in progress at the previous poll is reported once it finishes. Only the latest `limit` completed runs are scanned. The token needs the `actions:read` permission."
+    description = "Polls a repository at the configured interval and starts one execution when at least one workflow run has completed since the previous evaluation. A run counts as new when it is completed and its last update is after the watermark kept in the namespace KV Store (the previous evaluation time on the first poll), so a run that was still in progress at the previous poll is reported once it finishes. Only the latest `limit` completed runs are scanned. The token needs the `actions:read` permission."
 )
 @Plugin(
     examples = {
@@ -120,7 +125,7 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         title = "Target repository",
         description = "Repository in `owner/repo` format to watch."
     )
-    @PluginProperty(group = "destination")
+    @PluginProperty(group = "source")
     @NotNull
     private Property<String> repository;
 
@@ -136,7 +141,7 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     @PluginProperty(group = "processing")
     private Property<String> conclusion;
 
-    @Schema(title = "Limit", description = "Number of latest completed runs scanned at each poll.")
+    @Schema(title = "Limit", description = "Number of latest completed runs scanned at each poll, between 1 and 100 (default 50).")
     @Builder.Default
     @PluginProperty(group = "processing")
     private Property<Integer> limit = Property.ofValue(50);
@@ -146,19 +151,35 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         var runContext = conditionContext.getRunContext();
         var logger = runContext.logger();
 
-        // The previous evaluation time acts as the watermark
+        int max = runContext.render(limit).as(Integer.class).orElse(50);
+        if (max < 1 || max > 100) {
+            throw new IllegalArgumentException("`limit` must be between 1 and 100, got " + max);
+        }
+        var rRepository = runContext.render(repository).as(String.class)
+            .orElseThrow(() -> new IllegalArgumentException("`repository` is required, in `owner/repo` format"));
+
+        var kvStore = runContext.namespaceKv(runContext.flowInfo().namespace());
+        var kvKey = watermarkKey(context);
         Instant watermark = context.getDate().toInstant();
-        logger.debug("Polling GitHub Actions for runs updated after {}", watermark);
+        var stored = kvStore.getValue(kvKey);
+        if (stored.isPresent()) {
+            try {
+                watermark = Instant.parse(String.valueOf(stored.get().value()));
+            } catch (DateTimeParseException e) {
+                logger.warn("Ignoring unreadable watermark '{}' in KV Store key {}", stored.get().value(), kvKey);
+            }
+        }
+        var polledAt = Instant.now();
+        logger.debug("Polling GitHub Actions for runs updated between {} and {}", watermark, polledAt);
 
         var gitHub = connect(runContext);
-        var repo = gitHub.getRepository(runContext.render(repository).as(String.class).orElseThrow());
+        var repo = gitHub.getRepository(rRepository);
         var query = repo.queryWorkflowRuns().status(GHWorkflowRun.Status.COMPLETED);
 
         runContext.render(branch).as(String.class).ifPresent(query::branch);
-        runContext.render(event).as(String.class).ifPresent(v -> query.event(GHEvent.valueOf(v.toUpperCase())));
-        runContext.render(conclusion).as(String.class).ifPresent(v -> query.conclusion(GHWorkflowRun.Conclusion.valueOf(v.toUpperCase())));
+        runContext.render(event).as(String.class).ifPresent(v -> query.event(parseEnum(GHEvent.class, "event", v)));
+        runContext.render(conclusion).as(String.class).ifPresent(v -> query.conclusion(parseEnum(GHWorkflowRun.Conclusion.class, "conclusion", v)));
 
-        int max = runContext.render(limit).as(Integer.class).orElse(50);
         int scanned = 0;
         List<Map<String, Object>> runs = new ArrayList<>();
 
@@ -167,23 +188,13 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
                 break;
             }
             var updated = toInstant(run.getUpdatedAt());
-            if (updated == null || !updated.isAfter(watermark)) {
+            if (updated == null || !updated.isAfter(watermark) || updated.isAfter(polledAt)) {
                 continue;
             }
-            var url = run.getHtmlUrl();
-            var map = new LinkedHashMap<String, Object>();
-            map.put("runId", run.getId());
-            map.put("runNumber", run.getRunNumber());
-            map.put("status", lower(run.getStatus()));
-            map.put("conclusion", lower(run.getConclusion()));
-            map.put("event", lower(run.getEvent()));
-            map.put("headBranch", run.getHeadBranch());
-            map.put("headSha", run.getHeadSha());
-            map.put("htmlUrl", url == null ? null : url.toString());
-            map.put("createdAt", toInstant(run.getCreatedAt()));
-            map.put("updatedAt", updated);
-            runs.add(map);
+            runs.add(toMap(run));
         }
+
+        kvStore.put(kvKey, new KVValueAndMetadata(null, polledAt.toString()));
 
         if (runs.isEmpty()) {
             return Optional.empty();
@@ -195,13 +206,19 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         return Optional.of(TriggerService.generateExecution(this, conditionContext, context, output));
     }
 
+    private static String watermarkKey(TriggerContext context) {
+        return "github_actions_watermark_" + context.getFlowId().length() + "_" + context.getFlowId() + "_" + context.getTriggerId();
+    }
+
     private GitHub connect(RunContext runContext) throws Exception {
         GitHubBuilder builder = new GitHubBuilder();
 
         if (this.login != null && this.oauthToken != null) {
             builder.withOAuthToken(
-                runContext.render(this.oauthToken).as(String.class).orElseThrow(),
-                runContext.render(this.login).as(String.class).orElseThrow()
+                runContext.render(this.oauthToken).as(String.class)
+                    .orElseThrow(() -> new IllegalArgumentException("`oauthToken` rendered to an empty value - check the secret it references")),
+                runContext.render(this.login).as(String.class)
+                    .orElseThrow(() -> new IllegalArgumentException("`login` rendered to an empty value"))
             );
         } else {
             runContext.render(this.oauthToken).as(String.class).ifPresent(builder::withOAuthToken);
@@ -212,14 +229,6 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         runContext.render(this.endpoint).as(String.class).ifPresent(builder::withEndpoint);
 
         return builder.build();
-    }
-
-    private static Instant toInstant(java.util.Date date) {
-        return date == null ? null : date.toInstant();
-    }
-
-    private static String lower(Enum<?> value) {
-        return value == null ? null : value.name().toLowerCase();
     }
 
     @Builder

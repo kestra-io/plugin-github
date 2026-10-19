@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,14 +31,18 @@ public class TriggerTest extends AbstractGithubClientTest {
             .build();
     }
 
-    private static TriggerContext triggerContext(ZonedDateTime date) {
+    private static TriggerContext triggerContext(String flowId, ZonedDateTime date) {
         return TriggerContext.builder()
             .tenantId(null)
             .namespace("company.team")
-            .flowId("test-flow")
+            .flowId(flowId)
             .triggerId("watch-runs")
             .date(date)
             .build();
+    }
+
+    private static String randomFlowId() {
+        return "test-flow-" + UUID.randomUUID();
     }
 
     @Test
@@ -46,7 +51,7 @@ public class TriggerTest extends AbstractGithubClientTest {
         var conditionContext = TestsUtils.mockTrigger(runContextFactory, trigger).getKey();
 
         // the mocked run was last updated in 2024, so a 2023 watermark must see it
-        var result = trigger.evaluate(conditionContext, triggerContext(ZonedDateTime.parse("2023-01-01T00:00:00Z")));
+        var result = trigger.evaluate(conditionContext, triggerContext(randomFlowId(), ZonedDateTime.parse("2023-01-01T00:00:00Z")));
 
         assertThat(result).isPresent();
     }
@@ -56,8 +61,21 @@ public class TriggerTest extends AbstractGithubClientTest {
         var trigger = trigger();
         var conditionContext = TestsUtils.mockTrigger(runContextFactory, trigger).getKey();
 
-        var result = trigger.evaluate(conditionContext, triggerContext(ZonedDateTime.now()));
+        var result = trigger.evaluate(conditionContext, triggerContext(randomFlowId(), ZonedDateTime.now()));
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    void doesNotFireTwiceForTheSameRun() throws Exception {
+        var trigger = trigger();
+        var conditionContext = TestsUtils.mockTrigger(runContextFactory, trigger).getKey();
+        var context = triggerContext(randomFlowId(), ZonedDateTime.parse("2023-01-01T00:00:00Z"));
+
+        var first = trigger.evaluate(conditionContext, context);
+        var second = trigger.evaluate(conditionContext, context);
+
+        assertThat(first).isPresent();
+        assertThat(second).isEmpty();
     }
 }

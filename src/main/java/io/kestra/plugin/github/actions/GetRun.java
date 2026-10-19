@@ -1,5 +1,8 @@
 package io.kestra.plugin.github.actions;
 
+import static io.kestra.plugin.github.actions.RunUtils.lower;
+import static io.kestra.plugin.github.actions.RunUtils.toInstant;
+
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
@@ -8,6 +11,7 @@ import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.github.AbstractGithubTask;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -60,7 +64,8 @@ public class GetRun extends AbstractGithubTask implements RunnableTask<GetRun.Ou
         title = "Target repository",
         description = "Repository in `owner/repo` format containing the workflow run."
     )
-    @PluginProperty(group = "destination")
+    @PluginProperty(group = "source")
+    @NotNull
     private Property<String> repository;
 
     @Schema(
@@ -68,6 +73,7 @@ public class GetRun extends AbstractGithubTask implements RunnableTask<GetRun.Ou
         description = "Numeric id of the workflow run, for example the `runId` output of `RunWorkflow`."
     )
     @PluginProperty(group = "main")
+    @NotNull
     private Property<Long> runId;
 
     @Schema(
@@ -81,8 +87,8 @@ public class GetRun extends AbstractGithubTask implements RunnableTask<GetRun.Ou
     @Override
     public Output run(RunContext runContext) throws Exception {
         var gitHub = connect(runContext);
-        var repo = gitHub.getRepository(runContext.render(repository).as(String.class).orElseThrow());
-        var run = repo.getWorkflowRun(runContext.render(runId).as(Long.class).orElseThrow());
+        var repo = gitHub.getRepository(runContext.render(repository).as(String.class).orElseThrow(() -> new IllegalArgumentException("`repository` is required, in `owner/repo` format")));
+        var run = repo.getWorkflowRun(runContext.render(runId).as(Long.class).orElseThrow(() -> new IllegalArgumentException("`runId` is required - use the `runId` output of RunWorkflow or the id in the run URL")));
 
         List<Map<String, Object>> jobs = null;
         if (runContext.render(includeJobs).as(Boolean.class).orElse(false)) {
@@ -110,14 +116,6 @@ public class GetRun extends AbstractGithubTask implements RunnableTask<GetRun.Ou
             .updatedAt(toInstant(run.getUpdatedAt()))
             .jobs(jobs)
             .build();
-    }
-
-    private static Instant toInstant(java.util.Date date) {
-        return date == null ? null : date.toInstant();
-    }
-
-    private static String lower(Enum<?> value) {
-        return value == null ? null : value.name().toLowerCase();
     }
 
     @Builder

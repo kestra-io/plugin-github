@@ -1,5 +1,7 @@
 package io.kestra.plugin.github.actions;
 
+import static io.kestra.plugin.github.actions.RunUtils.lower;
+
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
@@ -8,6 +10,8 @@ import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.github.AbstractGithubTask;
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -16,12 +20,17 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.kohsuke.github.GHEvent;
 import org.kohsuke.github.GHWorkflow;
+import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHWorkflowRun;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 @SuperBuilder
 @ToString
@@ -80,6 +89,18 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
     private static final Duration LOOKUP_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration LOOKUP_INTERVAL = Duration.ofSeconds(2);
 
+    @JsonIgnore
+    @Getter(AccessLevel.NONE)
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private final AtomicReference<Runnable> killable = new AtomicReference<>();
+
+    @JsonIgnore
+    @Getter(AccessLevel.NONE)
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private final AtomicBoolean isKilled = new AtomicBoolean(false);
+
     @Schema(
         title = "Target repository",
         description = "Repository in `owner/repo` format containing the workflow. The authenticated token must have access to this repository."
@@ -114,7 +135,7 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
         description = "When `true`, polls the created run until it is completed. When `false` (default), the task returns right after the dispatch."
     )
     @Builder.Default
-    @PluginProperty(group = "advanced")
+    @PluginProperty(group = "execution")
     private Property<Boolean> wait = Property.ofValue(false);
 
     @Schema(
@@ -122,7 +143,7 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
         description = "Delay between two status checks when `wait` is `true`."
     )
     @Builder.Default
-    @PluginProperty(group = "advanced")
+    @PluginProperty(group = "execution")
     private Property<Duration> pollInterval = Property.ofValue(Duration.ofSeconds(5));
 
     @Schema(
@@ -130,7 +151,7 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
         description = "Maximum time to wait for the run to complete when `wait` is `true`."
     )
     @Builder.Default
-    @PluginProperty(group = "advanced")
+    @PluginProperty(group = "execution")
     private Property<Duration> timeout = Property.ofValue(Duration.ofHours(1));
 
     @Schema(
@@ -138,7 +159,7 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
         description = "When `true`, cancels the GitHub run if the wait timeout is reached."
     )
     @Builder.Default
-    @PluginProperty(group = "advanced")
+    @PluginProperty(group = "reliability")
     private Property<Boolean> cancelOnTimeout = Property.ofValue(false);
 
     @Schema(
@@ -146,7 +167,7 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
         description = "When `true` (default), the task fails if the finished run's conclusion is not `success`. Only used when `wait` is `true`."
     )
     @Builder.Default
-    @PluginProperty(group = "advanced")
+    @PluginProperty(group = "reliability")
     private Property<Boolean> failOnConclusion = Property.ofValue(true);
 
     @Override
@@ -189,10 +210,31 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
         logger.info("Workflow run {} started: {}", run.getId(), run.getHtmlUrl());
 
         if (rWait) {
+            var startedRunId = run.getId();
+            killable.set(() -> cancelRun(repo, startedRunId, logger));
+        }
+
+        if (rWait) {
             run = waitForCompletion(runContext, repo.getWorkflowRun(run.getId()), repo);
         }
 
         return toOutput(run);
+    }
+
+    @Override
+    public void kill() {
+        if (isKilled.compareAndSet(false, true)) {
+            Optional.ofNullable(killable.get()).ifPresent(Runnable::run);
+        }
+    }
+
+    private static void cancelRun(GHRepository repo, long runId, Logger logger) {
+        try {
+            repo.getWorkflowRun(runId).cancel();
+            logger.warn("Execution killed, cancelled workflow run {}", runId);
+        } catch (Exception e) {
+            logger.warn("Unable to cancel workflow run {}: {}", runId, e.getMessage());
+        }
     }
 
     private GHWorkflowRun latestRun(org.kohsuke.github.GHRepository repo, GHWorkflow workflow, String rRef) throws IOException {
@@ -229,6 +271,9 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
         var logger = runContext.logger();
         var rPollInterval = runContext.render(pollInterval).as(Duration.class).orElse(Duration.ofSeconds(5));
         var rTimeout = runContext.render(timeout).as(Duration.class).orElse(Duration.ofHours(1));
+        if (rPollInterval.isZero() || rPollInterval.isNegative() || rTimeout.isZero() || rTimeout.isNegative()) {
+            throw new IllegalArgumentException("`pollInterval` and `timeout` must be positive durations, got " + rPollInterval + " and " + rTimeout);
+        }
         var deadline = Instant.now().plus(rTimeout);
 
         while (run.getStatus() != GHWorkflowRun.Status.COMPLETED) {
@@ -262,10 +307,6 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
             .status(lower(run.getStatus()))
             .conclusion(lower(run.getConclusion()))
             .build();
-    }
-
-    private static String lower(Enum<?> value) {
-        return value == null ? null : value.name().toLowerCase();
     }
 
     @Builder
