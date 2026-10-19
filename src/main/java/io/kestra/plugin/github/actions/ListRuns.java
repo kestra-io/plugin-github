@@ -1,18 +1,15 @@
 package io.kestra.plugin.github.actions;
 
-import static io.kestra.plugin.github.actions.RunUtils.parseEnum;
-import static io.kestra.plugin.github.actions.RunUtils.toMap;
-
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
+import io.kestra.core.models.tasks.common.FetchType;
 import io.kestra.core.runners.RunContext;
-import io.kestra.plugin.github.AbstractGithubTask;
+import io.kestra.plugin.github.AbstractGithubSearchTask;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,6 +21,10 @@ import org.kohsuke.github.GHWorkflowRun;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+
+import static io.kestra.plugin.github.actions.RunUtils.parseEnum;
+import static io.kestra.plugin.github.actions.RunUtils.toMap;
 
 @SuperBuilder
 @ToString
@@ -32,7 +33,7 @@ import java.util.Map;
 @NoArgsConstructor
 @Schema(
     title = "List workflow runs",
-    description = "Lists GitHub Actions workflow runs of a repository, newest first, with optional filters on branch, actor, event, status and conclusion. The token needs the `actions:read` permission."
+    description = "Lists GitHub Actions workflow runs of a repository, newest first, with optional filters on branch, actor, event, status and conclusion. Use `fetchType` to return the runs inline (`FETCH`), only the first one (`FETCH_ONE`), or write them to Kestra internal storage (`STORE`, the default). The token needs the `actions:read` permission."
 )
 @Plugin(
     examples = {
@@ -51,6 +52,7 @@ import java.util.Map;
                     branch: main
                     conclusion: failure
                     limit: 10
+                    fetchType: FETCH
 
                   - id: log_count
                     type: io.kestra.plugin.core.log.Log
@@ -59,7 +61,7 @@ import java.util.Map;
         )
     }
 )
-public class ListRuns extends AbstractGithubTask implements RunnableTask<ListRuns.Output> {
+public class ListRuns extends AbstractGithubSearchTask implements RunnableTask<AbstractGithubSearchTask.Output> {
     @Schema(
         title = "Target repository",
         description = "Repository in `owner/repo` format."
@@ -89,7 +91,7 @@ public class ListRuns extends AbstractGithubTask implements RunnableTask<ListRun
     private Property<String> conclusion;
 
     @Schema(title = "Limit", description = "Maximum number of runs to return, between 1 and 100 (default 30).")
-    @Builder.Default
+    @lombok.Builder.Default
     @PluginProperty(group = "processing")
     private Property<Integer> limit = Property.ofValue(30);
 
@@ -109,8 +111,8 @@ public class ListRuns extends AbstractGithubTask implements RunnableTask<ListRun
         if (max < 1 || max > 100) {
             throw new IllegalArgumentException("`limit` must be between 1 and 100, got " + max);
         }
-        List<Map<String, Object>> runs = new ArrayList<>();
 
+        List<Map<String, Object>> runs = new ArrayList<>();
         for (GHWorkflowRun run : query.list().withPageSize(Math.min(max, 100))) {
             if (runs.size() >= max) {
                 break;
@@ -118,19 +120,7 @@ public class ListRuns extends AbstractGithubTask implements RunnableTask<ListRun
             runs.add(toMap(run));
         }
 
-        return Output.builder()
-            .runs(runs)
-            .size(runs.size())
-            .build();
-    }
-
-    @Builder
-    @Getter
-    public static class Output implements io.kestra.core.models.tasks.Output {
-        @Schema(title = "Runs", description = "Matching runs with id, number, status, conclusion, event, branch, sha, URL and timestamps.")
-        private final List<Map<String, Object>> runs;
-
-        @Schema(title = "Size", description = "Number of runs returned.")
-        private final Integer size;
+        var rFetchType = runContext.render(fetchType).as(FetchType.class).orElse(FetchType.STORE);
+        return handleFetch(runContext, runs, Function.identity(), rFetchType);
     }
 }
