@@ -1,7 +1,6 @@
 package io.kestra.plugin.github.actions;
 
-import static io.kestra.plugin.github.actions.RunUtils.lower;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
@@ -10,7 +9,6 @@ import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.github.AbstractGithubTask;
 import io.swagger.v3.oas.annotations.media.Schema;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -19,8 +17,8 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.kohsuke.github.GHEvent;
-import org.kohsuke.github.GHWorkflow;
 import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GHWorkflow;
 import org.kohsuke.github.GHWorkflowRun;
 import org.slf4j.Logger;
 
@@ -32,6 +30,8 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static io.kestra.plugin.github.actions.RunUtils.lower;
+
 @SuperBuilder
 @ToString
 @EqualsAndHashCode
@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @NoArgsConstructor
 @Schema(
     title = "Dispatch a workflow run",
-    description = "Triggers a `workflow_dispatch` event for a workflow in the target repository. The authenticated token must be allowed to read the repository and run workflows on the selected ref. Outputs the id and URL of the created run. With `wait: true`, polls until the run completes and fails the task when the conclusion is not `success`."
+    description = "Triggers a `workflow_dispatch` event for a workflow in the target repository. The authenticated token must be allowed to read the repository and run workflows on the selected ref. Outputs the id and URL of the created run. With `wait: true`, polls until the run completes and fails the task when the conclusion is not `success`. The created run is detected as the newest `workflow_dispatch` run of this workflow on the ref, so two executions dispatching the same workflow and ref at the same moment can report each other's run."
 )
 @Plugin(
     examples = {
@@ -76,7 +76,7 @@ import java.util.concurrent.atomic.AtomicReference;
                     workflowId: ci.yml
                     ref: main
                     wait: true
-                    timeout: PT30M
+                    waitTimeout: PT30M
 
                   - id: log_result
                     type: io.kestra.plugin.core.log.Log
@@ -132,7 +132,7 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
 
     @Schema(
         title = "Wait for completion",
-        description = "When `true`, polls the created run until it is completed. When `false` (default), the task returns right after the dispatch."
+        description = "When `true`, looks for the created run for up to 30 seconds, then polls it until it is completed. When `false` (default), the task looks for the run once right after the dispatch and returns; the run outputs are empty if GitHub has not registered the run yet."
     )
     @Builder.Default
     @PluginProperty(group = "execution")
@@ -148,11 +148,11 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
 
     @Schema(
         title = "Wait timeout",
-        description = "Maximum time to wait for the run to complete when `wait` is `true`."
+        description = "Maximum time to wait for the run to complete when `wait` is `true`. Separate from the task-level `timeout`, which stops the task on the worker."
     )
     @Builder.Default
     @PluginProperty(group = "execution")
-    private Property<Duration> timeout = Property.ofValue(Duration.ofHours(1));
+    private Property<Duration> waitTimeout = Property.ofValue(Duration.ofHours(1));
 
     @Schema(
         title = "Cancel the run on timeout",
@@ -164,7 +164,7 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
 
     @Schema(
         title = "Fail on unsuccessful conclusion",
-        description = "When `true` (default), the task fails if the finished run's conclusion is not `success`. Only used when `wait` is `true`."
+        description = "When `true` (default), the task fails if the finished run's conclusion is not `success`, which includes `skipped` and `neutral`. Only used when `wait` is `true`."
     )
     @Builder.Default
     @PluginProperty(group = "reliability")
@@ -180,8 +180,8 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
         var rRef = runContext.render(ref).as(String.class).orElse(null);
         var rWait = runContext.render(wait).as(Boolean.class).orElse(false);
 
-        long lastKnownRunId = 0;
-        boolean canTrackRun = true;
+        var lastKnownRunId = 0L;
+        var canTrackRun = true;
         try {
             lastKnownRunId = latestRunId(repo, workflow, rRef);
         } catch (IOException | RuntimeException e) {
@@ -198,27 +198,30 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
             return Output.builder().build();
         }
 
-        var run = findNewRun(repo, workflow, rRef, lastKnownRunId);
+        var lookupTimeout = rWait ? LOOKUP_TIMEOUT : Duration.ZERO;
+        var run = findNewRun(repo, workflow, rRef, lastKnownRunId, lookupTimeout);
         if (run == null) {
             if (rWait) {
                 throw new IllegalStateException("The dispatched workflow run was not found after " + LOOKUP_TIMEOUT);
             }
-            logger.warn("The dispatched workflow run was not found yet, returning without run details");
+            logger.warn("The dispatched workflow run is not visible on GitHub yet, returning without run details");
             return Output.builder().build();
         }
 
         logger.info("Workflow run {} started: {}", run.getId(), run.getHtmlUrl());
 
-        if (rWait) {
-            var startedRunId = run.getId();
-            killable.set(() -> cancelRun(repo, startedRunId, logger));
+        if (!rWait) {
+            return toOutput(run);
         }
 
-        if (rWait) {
-            run = waitForCompletion(runContext, repo.getWorkflowRun(run.getId()), repo);
+        var startedRunId = run.getId();
+        killable.set(() -> cancelRun(repo, startedRunId, logger));
+        if (isKilled.get()) {
+            cancelRun(repo, startedRunId, logger);
+            throw new IllegalStateException("The execution was killed, workflow run " + startedRunId + " was cancelled");
         }
 
-        return toOutput(run);
+        return toOutput(waitForCompletion(runContext, repo.getWorkflowRun(startedRunId), repo));
     }
 
     @Override
@@ -237,7 +240,7 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
         }
     }
 
-    private GHWorkflowRun latestRun(org.kohsuke.github.GHRepository repo, GHWorkflow workflow, String rRef) throws IOException {
+    private GHWorkflowRun latestRun(GHRepository repo, GHWorkflow workflow, String rRef) throws IOException {
         var seen = 0;
         for (var candidate : repo.queryWorkflowRuns().event(GHEvent.WORKFLOW_DISPATCH).branch(rRef).list().withPageSize(30)) {
             if (candidate.getWorkflowId() == workflow.getId()) {
@@ -250,39 +253,45 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
         return null;
     }
 
-    private long latestRunId(org.kohsuke.github.GHRepository repo, GHWorkflow workflow, String rRef) throws IOException {
+    private long latestRunId(GHRepository repo, GHWorkflow workflow, String rRef) throws IOException {
         var latest = latestRun(repo, workflow, rRef);
         return latest == null ? 0 : latest.getId();
     }
 
-    private GHWorkflowRun findNewRun(org.kohsuke.github.GHRepository repo, GHWorkflow workflow, String rRef, long lastKnownRunId) throws Exception {
-        var deadline = Instant.now().plus(LOOKUP_TIMEOUT);
-        while (Instant.now().isBefore(deadline)) {
+    private GHWorkflowRun findNewRun(GHRepository repo, GHWorkflow workflow, String rRef, long lastKnownRunId, Duration lookupTimeout) throws Exception {
+        var deadline = Instant.now().plus(lookupTimeout);
+        while (true) {
             var candidate = latestRun(repo, workflow, rRef);
             if (candidate != null && candidate.getId() > lastKnownRunId) {
                 return candidate;
             }
+            if (!Instant.now().plus(LOOKUP_INTERVAL).isBefore(deadline)) {
+                return null;
+            }
             Thread.sleep(LOOKUP_INTERVAL.toMillis());
         }
-        return null;
     }
 
-    private GHWorkflowRun waitForCompletion(RunContext runContext, GHWorkflowRun run, org.kohsuke.github.GHRepository repo) throws Exception {
+    private GHWorkflowRun waitForCompletion(RunContext runContext, GHWorkflowRun run, GHRepository repo) throws Exception {
         var logger = runContext.logger();
         var rPollInterval = runContext.render(pollInterval).as(Duration.class).orElse(Duration.ofSeconds(5));
-        var rTimeout = runContext.render(timeout).as(Duration.class).orElse(Duration.ofHours(1));
-        if (rPollInterval.isZero() || rPollInterval.isNegative() || rTimeout.isZero() || rTimeout.isNegative()) {
-            throw new IllegalArgumentException("`pollInterval` and `timeout` must be positive durations, got " + rPollInterval + " and " + rTimeout);
+        var rWaitTimeout = runContext.render(waitTimeout).as(Duration.class).orElse(Duration.ofHours(1));
+        if (rPollInterval.isZero() || rPollInterval.isNegative() || rWaitTimeout.isZero() || rWaitTimeout.isNegative()) {
+            throw new IllegalArgumentException("`pollInterval` and `waitTimeout` must be positive durations, got " + rPollInterval + " and " + rWaitTimeout);
         }
-        var deadline = Instant.now().plus(rTimeout);
+        var deadline = Instant.now().plus(rWaitTimeout);
 
         while (run.getStatus() != GHWorkflowRun.Status.COMPLETED) {
             if (Instant.now().isAfter(deadline)) {
                 if (runContext.render(cancelOnTimeout).as(Boolean.class).orElse(false)) {
-                    logger.warn("Timeout reached, cancelling workflow run {}", run.getId());
-                    run.cancel();
+                    logger.warn("Wait timeout reached, cancelling workflow run {}", run.getId());
+                    try {
+                        run.cancel();
+                    } catch (Exception e) {
+                        logger.warn("Unable to cancel workflow run {}: {}", run.getId(), e.getMessage());
+                    }
                 }
-                throw new IllegalStateException("Workflow run " + run.getId() + " did not complete within " + rTimeout);
+                throw new IllegalStateException("Workflow run " + run.getId() + " did not complete within " + rWaitTimeout);
             }
             Thread.sleep(rPollInterval.toMillis());
             run = repo.getWorkflowRun(run.getId());
