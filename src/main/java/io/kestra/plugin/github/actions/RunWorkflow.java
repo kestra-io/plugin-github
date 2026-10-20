@@ -1,12 +1,17 @@
 package io.kestra.plugin.github.actions;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.kestra.core.http.HttpRequest;
+import io.kestra.core.http.client.HttpClient;
+import io.kestra.core.http.client.configurations.HttpConfiguration;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
+import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.plugin.github.AbstractGithubTask;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
@@ -23,8 +28,10 @@ import org.kohsuke.github.GHWorkflowRun;
 import org.slf4j.Logger;
 
 import java.io.IOException;
+import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,7 +46,7 @@ import static io.kestra.plugin.github.actions.RunUtils.lower;
 @NoArgsConstructor
 @Schema(
     title = "Dispatch a workflow run",
-    description = "Triggers a `workflow_dispatch` event for a workflow in the target repository. The authenticated token must be allowed to read the repository and run workflows on the selected ref. Outputs the id and URL of the created run. With `wait: true`, polls until the run completes and fails the task when the conclusion is not `success`. The created run is detected as the newest `workflow_dispatch` run of this workflow on the ref, so two executions dispatching the same workflow and ref at the same moment can report each other's run."
+    description = "Triggers a `workflow_dispatch` event for a workflow in the target repository. The authenticated token must be allowed to read the repository and run workflows on the selected ref. Outputs the id and URL of the created run. With `wait: true`, polls until the run completes and fails the task when the conclusion is not `success`. The run id comes from the dispatch response (`return_run_details`). When GitHub does not return it (older GitHub Enterprise Server), the created run is detected as the newest `workflow_dispatch` run of this workflow on the ref, so two executions dispatching the same workflow and ref at the same moment can report each other's run."
 )
 @Plugin(
     examples = {
@@ -86,6 +93,8 @@ import static io.kestra.plugin.github.actions.RunUtils.lower;
     }
 )
 public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunWorkflow.Output> {
+    private static final ObjectMapper MAPPER = JacksonMapper.ofJson(false);
+    private static final String DEFAULT_ENDPOINT = "https://api.github.com";
     private static final Duration LOOKUP_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration LOOKUP_INTERVAL = Duration.ofSeconds(2);
 
@@ -189,23 +198,29 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
             logger.warn("Unable to read existing workflow runs, the run id will not be available: {}", e.getMessage());
         }
 
-        workflow.dispatch(rRef, runContext.render(inputs).asMap(String.class, Object.class));
+        var rRepository = runContext.render(repository).as(String.class).orElse(null);
+        var dispatchedRunId = dispatch(runContext, rRepository, workflow, rRef);
 
-        if (!canTrackRun) {
-            if (rWait) {
-                throw new IllegalStateException("Cannot wait for the workflow run because its runs could not be listed");
+        GHWorkflowRun run;
+        if (dispatchedRunId.isPresent()) {
+            run = repo.getWorkflowRun(dispatchedRunId.get());
+        } else {
+            if (!canTrackRun) {
+                if (rWait) {
+                    throw new IllegalStateException("Cannot wait for the workflow run because its runs could not be listed");
+                }
+                return Output.builder().build();
             }
-            return Output.builder().build();
-        }
 
-        var lookupTimeout = rWait ? LOOKUP_TIMEOUT : Duration.ZERO;
-        var run = findNewRun(repo, workflow, rRef, lastKnownRunId, lookupTimeout);
-        if (run == null) {
-            if (rWait) {
-                throw new IllegalStateException("The dispatched workflow run was not found after " + LOOKUP_TIMEOUT);
+            var lookupTimeout = rWait ? LOOKUP_TIMEOUT : Duration.ZERO;
+            run = findNewRun(repo, workflow, rRef, lastKnownRunId, lookupTimeout);
+            if (run == null) {
+                if (rWait) {
+                    throw new IllegalStateException("The dispatched workflow run was not found after " + LOOKUP_TIMEOUT);
+                }
+                logger.warn("The dispatched workflow run is not visible on GitHub yet, returning without run details");
+                return Output.builder().build();
             }
-            logger.warn("The dispatched workflow run is not visible on GitHub yet, returning without run details");
-            return Output.builder().build();
         }
 
         logger.info("Workflow run {} started: {}", run.getId(), run.getHtmlUrl());
@@ -222,6 +237,50 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
         }
 
         return toOutput(waitForCompletion(runContext, repo.getWorkflowRun(startedRunId), repo));
+    }
+
+    private Optional<Long> dispatch(RunContext runContext, String rRepository, GHWorkflow workflow, String rRef) throws Exception {
+        var body = new LinkedHashMap<String, Object>();
+        body.put("ref", rRef);
+        var rInputs = runContext.render(inputs).asMap(String.class, Object.class);
+        if (!rInputs.isEmpty()) {
+            body.put("inputs", rInputs);
+        }
+        body.put("return_run_details", true);
+
+        var rEndpoint = runContext.render(getEndpoint()).as(String.class)
+            .orElse(DEFAULT_ENDPOINT)
+            .replaceFirst("/+$", "");
+        var url = "%s/repos/%s/actions/workflows/%d/dispatches".formatted(rEndpoint, rRepository, workflow.getId());
+
+        var httpConfig = HttpConfiguration.builder().allowFailed(Property.ofValue(true)).build();
+        try (var client = new HttpClient(runContext, httpConfig)) {
+            var request = HttpRequest.builder()
+                .uri(URI.create(url))
+                .method("POST")
+                .body(HttpRequest.StringRequestBody.builder().content(MAPPER.writeValueAsString(body)).build())
+                .addHeader("Authorization", "Bearer " + resolveToken(runContext))
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Accept", "application/vnd.github+json")
+                .build();
+            var response = client.request(request, String.class);
+            var status = response.getStatus().getCode();
+
+            if (status == 204) {
+                return Optional.empty();
+            }
+            var responseBody = response.getBody();
+            if (status < 200 || status >= 300) {
+                throw new IllegalStateException(
+                    "Failed to dispatch workflow %d of %s (HTTP %d): %s".formatted(workflow.getId(), rRepository, status, responseBody)
+                );
+            }
+            if (responseBody == null || responseBody.isBlank()) {
+                return Optional.empty();
+            }
+            var runId = MAPPER.readTree(responseBody).path("workflow_run_id").asLong(0);
+            return runId > 0 ? Optional.of(runId) : Optional.empty();
+        }
     }
 
     @Override

@@ -66,6 +66,18 @@ public class MockController {
     public HttpResponse<String> dispat(HttpRequest<?> request, @Body String data) {
         capture(request);
         MockController.data = data;
+        if (dispatchFails) {
+            return HttpResponse.badRequest("{\"message\":\"Workflow does not have 'workflow_dispatch' trigger\"}");
+        }
+        if (dispatchReturnsRunDetails && data != null && data.contains("return_run_details")) {
+            return HttpResponse.ok("""
+                {
+                  "workflow_run_id": 101,
+                  "run_url": "https://api.github.com/repos/kestra-io/mock-kestra/actions/runs/101",
+                  "html_url": "https://github.com/kestra-io/mock-kestra/actions/runs/101"
+                }
+                """);
+        }
         return HttpResponse.noContent();
     }
 
@@ -204,6 +216,8 @@ public class MockController {
     public static String runUpdatedAt = "2024-01-01T00:05:00Z";
     public static volatile String runStatus = "completed";
     public static volatile boolean runCancelled = false;
+    public static volatile boolean dispatchReturnsRunDetails = true;
+    public static volatile boolean dispatchFails = false;
 
     private static String runJson(long id, String status, String conclusion) {
         return """

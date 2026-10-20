@@ -24,7 +24,7 @@ public class RunWorkflowTest extends AbstractGithubClientTest {
 
     private RunWorkflow.RunWorkflowBuilder<?, ?> builder(boolean wait, boolean failOnConclusion) {
         return RunWorkflow.builder()
-            .oauthToken(Property.ofValue(""))
+            .oauthToken(Property.ofValue("test-token"))
             .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
             .repository(Property.ofValue("kestra-io/mock-kestra"))
             .workflowId(Property.ofValue("105842276")) // https://api.github.com/repos/kestra-io/plugin-github/actions/workflows/105842276
@@ -39,13 +39,36 @@ public class RunWorkflowTest extends AbstractGithubClientTest {
 
     @Test
     void testRunWorkflow() throws Exception {
+        MockController.runStatus = "queued";
+
         var output = task(false, true).run(runContextFactory.of());
 
-        assertThat(MockController.data).isEqualTo("{\"ref\":\"master\"}");
+        assertThat(MockController.data).contains("\"ref\":\"master\"").contains("\"return_run_details\":true");
         assertThat(output.getRunId()).isEqualTo(101L);
         assertThat(output.getHtmlUrl()).isEqualTo("https://github.com/kestra-io/mock-kestra/actions/runs/101");
         assertThat(output.getStatus()).isEqualTo("queued");
         assertThat(output.getConclusion()).isNull();
+    }
+
+    @Test
+    void testRunWorkflowFallsBackToLookupWhenNoRunDetailsAreReturned() throws Exception {
+        MockController.dispatchReturnsRunDetails = false;
+
+        var output = task(false, true).run(runContextFactory.of());
+
+        assertThat(output.getRunId()).isEqualTo(101L);
+        assertThat(output.getHtmlUrl()).isEqualTo("https://github.com/kestra-io/mock-kestra/actions/runs/101");
+        assertThat(output.getStatus()).isEqualTo("queued");
+        assertThat(output.getConclusion()).isNull();
+    }
+
+    @Test
+    void testDispatchFailureIsReported() {
+        MockController.dispatchFails = true;
+
+        var exception = assertThrows(IllegalStateException.class, () -> task(false, true).run(runContextFactory.of()));
+
+        assertThat(exception.getMessage()).contains("HTTP 400");
     }
 
     @Test
