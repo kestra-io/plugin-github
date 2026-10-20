@@ -42,7 +42,9 @@ public class GetRunTest extends AbstractGithubClientTest {
         var output = task().includeJobs(Property.ofValue(true)).build().run(runContextFactory.of());
 
         assertThat(output.getJobs()).hasSize(2);
-        assertThat(output.getJobs().get(0)).containsEntry("name", "build").containsEntry("conclusion", "success");
-        assertThat(output.getJobs().get(1)).containsEntry("name", "test").containsEntry("conclusion", "failure");
+        assertThat(output.getJobs().getFirst().getName()).isEqualTo("build");
+        assertThat(output.getJobs().getFirst().getConclusion()).isEqualTo("success");
+        assertThat(output.getJobs().getLast().getName()).isEqualTo("test");
+        assertThat(output.getJobs().getLast().getConclusion()).isEqualTo("failure");
     }
 }

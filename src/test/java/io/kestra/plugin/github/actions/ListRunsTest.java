@@ -89,6 +89,13 @@ public class ListRunsTest extends AbstractGithubClientTest {
     }
 
     @Test
+    void testInvalidEnumValueIsRejected() {
+        var task = task().event(Property.ofExpression("{{ 'NOT_AN_EVENT' }}")).build();
+
+        assertThrows(Exception.class, () -> task.run(runContextFactory.of()));
+    }
+
+    @Test
     void testFetchOne() throws Exception {
         var output = task()
             .fetchType(Property.ofValue(FetchType.FETCH_ONE))

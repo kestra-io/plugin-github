@@ -18,11 +18,11 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.function.Function;
 
 import static io.kestra.plugin.github.actions.RunUtils.collect;
 import static io.kestra.plugin.github.actions.RunUtils.resolveWorkflow;
-import static io.kestra.plugin.github.actions.RunUtils.toMap;
 
 @SuperBuilder
 @ToString
@@ -131,9 +131,9 @@ public class ListRuns extends AbstractGithubSearchTask implements RunnableTask<A
         var rWorkflowId = runContext.render(workflowId).as(String.class);
         var workflow = rWorkflowId.isPresent() ? resolveWorkflow(repo, rWorkflowId.get()) : null;
 
-        var runs = new ArrayList<java.util.Map<String, Object>>();
+        var runs = new ArrayList<Map<String, Object>>();
         for (var run : collect(query, workflow, max)) {
-            runs.add(toMap(run));
+            runs.add(RunSummary.of(run).toMap());
         }
 
         var rFetchType = runContext.render(fetchType).as(FetchType.class).orElse(FetchType.STORE);

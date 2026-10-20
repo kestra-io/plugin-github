@@ -8,6 +8,12 @@ import io.kestra.plugin.github.MockController;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -16,7 +22,7 @@ public class RunWorkflowTest extends AbstractGithubClientTest {
     @Inject
     private RunContextFactory runContextFactory;
 
-    private RunWorkflow task(boolean wait, boolean failOnConclusion) {
+    private RunWorkflow.RunWorkflowBuilder<?, ?> builder(boolean wait, boolean failOnConclusion) {
         return RunWorkflow.builder()
             .oauthToken(Property.ofValue(""))
             .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
@@ -24,8 +30,11 @@ public class RunWorkflowTest extends AbstractGithubClientTest {
             .workflowId(Property.ofValue("105842276")) // https://api.github.com/repos/kestra-io/plugin-github/actions/workflows/105842276
             .ref(Property.ofValue("master"))
             .wait(Property.ofValue(wait))
-            .failOnConclusion(Property.ofValue(failOnConclusion))
-            .build();
+            .failOnConclusion(Property.ofValue(failOnConclusion));
+    }
+
+    private RunWorkflow task(boolean wait, boolean failOnConclusion) {
+        return builder(wait, failOnConclusion).build();
     }
 
     @Test
@@ -51,22 +60,76 @@ public class RunWorkflowTest extends AbstractGithubClientTest {
     @Test
     void testWaitFailureThrows() {
         MockController.runConclusion = "failure";
-        try {
-            var exception = assertThrows(IllegalStateException.class, () -> task(true, true).run(runContextFactory.of()));
-            assertThat(exception.getMessage()).contains("failure");
-        } finally {
-            MockController.runConclusion = "success";
-        }
+
+        var exception = assertThrows(IllegalStateException.class, () -> task(true, true).run(runContextFactory.of()));
+
+        assertThat(exception.getMessage()).contains("failure");
     }
 
     @Test
     void testWaitFailureDoesNotThrowWhenDisabled() throws Exception {
         MockController.runConclusion = "failure";
+
+        var output = task(true, false).run(runContextFactory.of());
+
+        assertThat(output.getConclusion()).isEqualTo("failure");
+    }
+
+    @Test
+    void testWaitTimeoutCancelsTheRunWhenEnabled() {
+        MockController.runStatus = "in_progress";
+        var task = builder(true, true)
+            .waitTimeout(Property.ofValue(Duration.ofSeconds(1)))
+            .pollInterval(Property.ofValue(Duration.ofMillis(200)))
+            .cancelOnTimeout(Property.ofValue(true))
+            .build();
+
+        var exception = assertThrows(IllegalStateException.class, () -> task.run(runContextFactory.of()));
+
+        assertThat(exception.getMessage()).contains("did not complete");
+        assertThat(MockController.runCancelled).isTrue();
+    }
+
+    @Test
+    void testWaitTimeoutDoesNotCancelTheRunByDefault() {
+        MockController.runStatus = "in_progress";
+        var task = builder(true, true)
+            .waitTimeout(Property.ofValue(Duration.ofSeconds(1)))
+            .pollInterval(Property.ofValue(Duration.ofMillis(200)))
+            .build();
+
+        var exception = assertThrows(IllegalStateException.class, () -> task.run(runContextFactory.of()));
+
+        assertThat(exception.getMessage()).contains("did not complete");
+        assertThat(MockController.runCancelled).isFalse();
+    }
+
+    @Test
+    void testKillCancelsTheRun() throws Exception {
+        MockController.runStatus = "in_progress";
+        var task = builder(true, true)
+            .pollInterval(Property.ofValue(Duration.ofMillis(200)))
+            .build();
+        var future = CompletableFuture.supplyAsync(() -> {
+            try {
+                return task.run(runContextFactory.of());
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        });
+
         try {
-            var output = task(true, false).run(runContextFactory.of());
-            assertThat(output.getConclusion()).isEqualTo("failure");
+            task.kill();
+
+            var deadline = Instant.now().plusSeconds(15);
+            while (!MockController.runCancelled && Instant.now().isBefore(deadline)) {
+                Thread.sleep(100);
+            }
+
+            assertThat(MockController.runCancelled).isTrue();
         } finally {
-            MockController.runConclusion = "success";
+            MockController.runStatus = "completed";
+            future.handle((output, error) -> null).get(15, TimeUnit.SECONDS);
         }
     }
 }

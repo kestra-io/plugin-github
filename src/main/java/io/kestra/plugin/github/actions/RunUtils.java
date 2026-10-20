@@ -9,9 +9,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 final class RunUtils {
     static final int MAX_SCAN = 500;
@@ -51,21 +49,5 @@ final class RunUtils {
             }
         }
         return runs;
-    }
-
-    static Map<String, Object> toMap(GHWorkflowRun run) throws IOException {
-        var url = run.getHtmlUrl();
-        var map = new LinkedHashMap<String, Object>();
-        map.put("runId", run.getId());
-        map.put("runNumber", run.getRunNumber());
-        map.put("status", lower(run.getStatus()));
-        map.put("conclusion", lower(run.getConclusion()));
-        map.put("event", lower(run.getEvent()));
-        map.put("headBranch", run.getHeadBranch());
-        map.put("headSha", run.getHeadSha());
-        map.put("htmlUrl", url == null ? null : url.toString());
-        map.put("createdAt", toInstant(run.getCreatedAt()));
-        map.put("updatedAt", toInstant(run.getUpdatedAt()));
-        return map;
     }
 }

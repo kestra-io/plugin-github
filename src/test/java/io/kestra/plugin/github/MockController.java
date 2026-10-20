@@ -202,6 +202,8 @@ public class MockController {
 
     public static String runConclusion = "success";
     public static String runUpdatedAt = "2024-01-01T00:05:00Z";
+    public static volatile String runStatus = "completed";
+    public static volatile boolean runCancelled = false;
 
     private static String runJson(long id, String status, String conclusion) {
         return """
@@ -232,6 +234,13 @@ public class MockController {
         return HttpResponse.ok("{\"total_count\":2,\"workflow_runs\":[" + runs + "]}");
     }
 
+    @Post("/repos/kestra-io/mock-kestra/actions/runs/101/cancel")
+    public HttpResponse<String> cancelRun(HttpRequest<?> request) {
+        capture(request);
+        runCancelled = true;
+        return HttpResponse.accepted();
+    }
+
     @Get("/repos/kestra-io/mock-kestra/actions/workflows/999")
     public HttpResponse<String> getOtherWorkflow(HttpRequest<?> request) {
         capture(request);
@@ -241,7 +250,7 @@ public class MockController {
     @Get("/repos/kestra-io/mock-kestra/actions/runs/101")
     public HttpResponse<String> getRun(HttpRequest<?> request) {
         capture(request);
-        return HttpResponse.ok(runJson(101, "completed", runConclusion));
+        return HttpResponse.ok(runJson(101, runStatus, "completed".equals(runStatus) ? runConclusion : null));
     }
     @Get("/repos/kestra-io/mock-kestra/actions/runs/101/jobs")
     public HttpResponse<String> getRunJobs(HttpRequest<?> request) {

@@ -38,5 +38,7 @@ public abstract class AbstractGithubClientTest {
         MockController.queryParameters.clear();
         MockController.runConclusion = "success";
         MockController.runUpdatedAt = "2024-01-01T00:05:00Z";
+        MockController.runStatus = "completed";
+        MockController.runCancelled = false;
     }
 }

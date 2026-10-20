@@ -33,7 +33,6 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -43,7 +42,6 @@ import java.util.stream.Stream;
 import static io.kestra.plugin.github.actions.RunUtils.collect;
 import static io.kestra.plugin.github.actions.RunUtils.resolveWorkflow;
 import static io.kestra.plugin.github.actions.RunUtils.toInstant;
-import static io.kestra.plugin.github.actions.RunUtils.toMap;
 
 @SuperBuilder
 @ToString
@@ -196,7 +194,7 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         var nextDelivered = new TreeSet<String>();
         state.delivered().stream().filter(token -> updatedMillis(token) > cutoff).forEach(nextDelivered::add);
 
-        var runs = new ArrayList<Map<String, Object>>();
+        var runs = new ArrayList<RunSummary>();
         for (var run : collect(query, workflow, max)) {
             var updated = toInstant(run.getUpdatedAt());
             if (updated == null || !updated.isAfter(since)) {
@@ -209,7 +207,7 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
             if (updated.toEpochMilli() > cutoff) {
                 nextDelivered.add(token);
             }
-            runs.add(toMap(run));
+            runs.add(RunSummary.of(run));
         }
 
         kvStore.put(kvKey, new KVValueAndMetadata(null, new State(polledAt, nextDelivered).serialize()));
@@ -282,7 +280,7 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(title = "Runs", description = "Completed runs found since the previous evaluation, with id, number, status, conclusion, event, branch, sha, URL and timestamps.")
-        private final List<Map<String, Object>> runs;
+        private final List<RunSummary> runs;
 
         @Schema(title = "Size", description = "Number of runs found.")
         private final Integer size;

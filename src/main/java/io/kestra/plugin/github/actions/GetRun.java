@@ -1,8 +1,5 @@
 package io.kestra.plugin.github.actions;
 
-import static io.kestra.plugin.github.actions.RunUtils.lower;
-import static io.kestra.plugin.github.actions.RunUtils.toInstant;
-
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
@@ -18,13 +15,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.kohsuke.github.GHWorkflowJob;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+
+import static io.kestra.plugin.github.actions.RunUtils.lower;
+import static io.kestra.plugin.github.actions.RunUtils.toInstant;
 
 @SuperBuilder
 @ToString
@@ -90,16 +87,18 @@ public class GetRun extends AbstractGithubTask implements RunnableTask<GetRun.Ou
         var repo = gitHub.getRepository(runContext.render(repository).as(String.class).orElseThrow(() -> new IllegalArgumentException("`repository` is required, in `owner/repo` format")));
         var run = repo.getWorkflowRun(runContext.render(runId).as(Long.class).orElseThrow(() -> new IllegalArgumentException("`runId` is required - use the `runId` output of RunWorkflow or the id in the run URL")));
 
-        List<Map<String, Object>> jobs = null;
+        List<Job> jobs = null;
         if (runContext.render(includeJobs).as(Boolean.class).orElse(false)) {
             jobs = new ArrayList<>();
-            for (GHWorkflowJob job : run.listJobs()) {
-                var map = new LinkedHashMap<String, Object>();
-                map.put("id", job.getId());
-                map.put("name", job.getName());
-                map.put("status", lower(job.getStatus()));
-                map.put("conclusion", lower(job.getConclusion()));
-                jobs.add(map);
+            for (var job : run.listJobs()) {
+                jobs.add(
+                    Job.builder()
+                        .id(job.getId())
+                        .name(job.getName())
+                        .status(lower(job.getStatus()))
+                        .conclusion(lower(job.getConclusion()))
+                        .build()
+                );
             }
         }
 
@@ -146,6 +145,22 @@ public class GetRun extends AbstractGithubTask implements RunnableTask<GetRun.Ou
         private final Instant updatedAt;
 
         @Schema(title = "Jobs", description = "Jobs of the run with id, name, status and conclusion. Only set when `includeJobs` is `true`.")
-        private final List<Map<String, Object>> jobs;
+        private final List<Job> jobs;
+    }
+
+    @Builder
+    @Getter
+    public static class Job {
+        @Schema(title = "Job ID", description = "Id of the job.")
+        private final Long id;
+
+        @Schema(title = "Name", description = "Name of the job.")
+        private final String name;
+
+        @Schema(title = "Status", description = "Job status such as `queued`, `in_progress` or `completed`.")
+        private final String status;
+
+        @Schema(title = "Conclusion", description = "Job conclusion such as `success` or `failure`. Only set when the job is completed.")
+        private final String conclusion;
     }
 }
