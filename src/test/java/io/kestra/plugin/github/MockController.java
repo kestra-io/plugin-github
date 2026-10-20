@@ -201,6 +201,7 @@ public class MockController {
     }
 
     public static String runConclusion = "success";
+    public static String runUpdatedAt = "2024-01-01T00:05:00Z";
 
     private static String runJson(long id, String status, String conclusion) {
         return """
@@ -216,9 +217,9 @@ public class MockController {
               "conclusion": %s,
               "html_url": "https://github.com/kestra-io/mock-kestra/actions/runs/%d",
               "created_at": "2024-01-01T00:00:00Z",
-              "updated_at": "2024-01-01T00:05:00Z"
+              "updated_at": "%s"
             }
-            """.formatted(id, id, status, conclusion == null ? "null" : "\"" + conclusion + "\"", id);
+            """.formatted(id, id, status, conclusion == null ? "null" : "\"" + conclusion + "\"", id, runUpdatedAt);
     }
 
     @Get("/repos/kestra-io/mock-kestra/actions/runs")
@@ -229,6 +230,12 @@ public class MockController {
             ? runJson(100, "completed", "success")
             : runJson(101, "queued", null) + "," + runJson(100, "completed", "success");
         return HttpResponse.ok("{\"total_count\":2,\"workflow_runs\":[" + runs + "]}");
+    }
+
+    @Get("/repos/kestra-io/mock-kestra/actions/workflows/999")
+    public HttpResponse<String> getOtherWorkflow(HttpRequest<?> request) {
+        capture(request);
+        return HttpResponse.ok("{\"id\":999,\"name\":\"Other\",\"path\":\".github/workflows/other.yml\",\"state\":\"active\"}");
     }
 
     @Get("/repos/kestra-io/mock-kestra/actions/runs/101")

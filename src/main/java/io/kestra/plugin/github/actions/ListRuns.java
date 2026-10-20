@@ -10,20 +10,18 @@ import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.github.AbstractGithubSearchTask;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.kohsuke.github.GHEvent;
-import org.kohsuke.github.GHWorkflowRun;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
-import static io.kestra.plugin.github.actions.RunUtils.parseEnum;
+import static io.kestra.plugin.github.actions.RunUtils.collect;
+import static io.kestra.plugin.github.actions.RunUtils.resolveWorkflow;
 import static io.kestra.plugin.github.actions.RunUtils.toMap;
 
 @SuperBuilder
@@ -33,12 +31,12 @@ import static io.kestra.plugin.github.actions.RunUtils.toMap;
 @NoArgsConstructor
 @Schema(
     title = "List workflow runs",
-    description = "Lists GitHub Actions workflow runs of a repository, newest first, with optional filters on branch, actor, event, status and conclusion. Use `fetchType` to return the runs inline (`FETCH`), only the first one (`FETCH_ONE`), or write them to Kestra internal storage (`STORE`, the default). The token needs the `actions:read` permission."
+    description = "Lists GitHub Actions workflow runs of a repository, newest first, with optional filters on workflow, branch, actor, event, status, conclusion and creation date. Use `fetchType` to return the runs inline (`FETCH`), only the first one (`FETCH_ONE`), or write them to Kestra internal storage (`STORE`, the default). The token needs the `actions:read` permission."
 )
 @Plugin(
     examples = {
         @Example(
-            title = "List the 10 latest failed runs on the main branch.",
+            title = "List the 10 latest failed runs of a workflow on the main branch.",
             full = true,
             code = """
                 id: github_actions_list_runs
@@ -49,8 +47,9 @@ import static io.kestra.plugin.github.actions.RunUtils.toMap;
                     type: io.kestra.plugin.github.actions.ListRuns
                     oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                     repository: my-org/my-repo
+                    workflowId: ci.yml
                     branch: main
-                    conclusion: failure
+                    conclusion: FAILURE
                     limit: 10
                     fetchType: FETCH
 
@@ -70,6 +69,13 @@ public class ListRuns extends AbstractGithubSearchTask implements RunnableTask<A
     @NotNull
     private Property<String> repository;
 
+    @Schema(
+        title = "Workflow",
+        description = "Only return runs of this workflow, given as its numeric id or its file name such as `ci.yml`. The filter is applied after fetching, so at most the 500 most recent runs of the repository are examined."
+    )
+    @PluginProperty(group = "processing")
+    private Property<String> workflowId;
+
     @Schema(title = "Branch", description = "Only return runs for this branch.")
     @PluginProperty(group = "processing")
     private Property<String> branch;
@@ -78,45 +84,55 @@ public class ListRuns extends AbstractGithubSearchTask implements RunnableTask<A
     @PluginProperty(group = "processing")
     private Property<String> actor;
 
-    @Schema(title = "Event", description = "Only return runs triggered by this event, for example `push` or `workflow_dispatch`.")
+    @Schema(title = "Event", description = "Only return runs triggered by this event, for example `PUSH` or `WORKFLOW_DISPATCH`.")
     @PluginProperty(group = "processing")
-    private Property<String> event;
+    private Property<RunEvent> event;
 
-    @Schema(title = "Status", description = "Only return runs with this status, for example `queued`, `in_progress` or `completed`.")
+    @Schema(title = "Status", description = "Only return runs with this status, for example `QUEUED`, `IN_PROGRESS` or `COMPLETED`.")
     @PluginProperty(group = "processing")
-    private Property<String> status;
+    private Property<RunStatus> status;
 
-    @Schema(title = "Conclusion", description = "Only return runs with this conclusion, for example `success` or `failure`.")
+    @Schema(title = "Conclusion", description = "Only return runs with this conclusion, for example `SUCCESS` or `FAILURE`.")
     @PluginProperty(group = "processing")
-    private Property<String> conclusion;
+    private Property<RunConclusion> conclusion;
+
+    @Schema(
+        title = "Created",
+        description = "Only return runs created within this date range, using GitHub's date syntax, for example `>=2026-10-01` or `2026-10-01..2026-10-15`."
+    )
+    @PluginProperty(group = "processing")
+    private Property<String> created;
 
     @Schema(title = "Limit", description = "Maximum number of runs to return, between 1 and 100 (default 30).")
-    @lombok.Builder.Default
+    @Builder.Default
     @PluginProperty(group = "processing")
     private Property<Integer> limit = Property.ofValue(30);
 
     @Override
     public Output run(RunContext runContext) throws Exception {
-        var gitHub = connect(runContext);
-        var repo = gitHub.getRepository(runContext.render(repository).as(String.class).orElseThrow(() -> new IllegalArgumentException("`repository` is required, in `owner/repo` format")));
-        var query = repo.queryWorkflowRuns();
-
-        runContext.render(branch).as(String.class).ifPresent(query::branch);
-        runContext.render(actor).as(String.class).ifPresent(query::actor);
-        runContext.render(event).as(String.class).ifPresent(v -> query.event(parseEnum(GHEvent.class, "event", v)));
-        runContext.render(status).as(String.class).ifPresent(v -> query.status(parseEnum(GHWorkflowRun.Status.class, "status", v)));
-        runContext.render(conclusion).as(String.class).ifPresent(v -> query.conclusion(parseEnum(GHWorkflowRun.Conclusion.class, "conclusion", v)));
-
-        int max = runContext.render(limit).as(Integer.class).orElse(30);
+        var max = runContext.render(limit).as(Integer.class).orElse(30);
         if (max < 1 || max > 100) {
             throw new IllegalArgumentException("`limit` must be between 1 and 100, got " + max);
         }
 
-        List<Map<String, Object>> runs = new ArrayList<>();
-        for (GHWorkflowRun run : query.list().withPageSize(Math.min(max, 100))) {
-            if (runs.size() >= max) {
-                break;
-            }
+        var repo = connect(runContext).getRepository(
+            runContext.render(repository).as(String.class)
+                .orElseThrow(() -> new IllegalArgumentException("`repository` is required, in `owner/repo` format"))
+        );
+        var query = repo.queryWorkflowRuns();
+
+        runContext.render(branch).as(String.class).ifPresent(query::branch);
+        runContext.render(actor).as(String.class).ifPresent(query::actor);
+        runContext.render(event).as(RunEvent.class).ifPresent(v -> query.event(v.value()));
+        runContext.render(status).as(RunStatus.class).ifPresent(v -> query.status(v.toSdk()));
+        runContext.render(conclusion).as(RunConclusion.class).ifPresent(v -> query.conclusion(v.toSdk()));
+        runContext.render(created).as(String.class).ifPresent(query::created);
+
+        var rWorkflowId = runContext.render(workflowId).as(String.class);
+        var workflow = rWorkflowId.isPresent() ? resolveWorkflow(repo, rWorkflowId.get()) : null;
+
+        var runs = new ArrayList<java.util.Map<String, Object>>();
+        for (var run : collect(query, workflow, max)) {
             runs.add(toMap(run));
         }
 

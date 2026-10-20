@@ -1,9 +1,5 @@
 package io.kestra.plugin.github.actions;
 
-import static io.kestra.plugin.github.actions.RunUtils.parseEnum;
-import static io.kestra.plugin.github.actions.RunUtils.toInstant;
-import static io.kestra.plugin.github.actions.RunUtils.toMap;
-
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
@@ -16,6 +12,7 @@ import io.kestra.core.models.triggers.TriggerContext;
 import io.kestra.core.models.triggers.TriggerOutput;
 import io.kestra.core.models.triggers.TriggerService;
 import io.kestra.core.runners.RunContext;
+import io.kestra.core.storages.kv.KVStore;
 import io.kestra.core.storages.kv.KVValueAndMetadata;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
@@ -25,18 +22,28 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.kohsuke.github.GHEvent;
 import org.kohsuke.github.GHWorkflowRun;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
+import org.slf4j.Logger;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static io.kestra.plugin.github.actions.RunUtils.collect;
+import static io.kestra.plugin.github.actions.RunUtils.resolveWorkflow;
+import static io.kestra.plugin.github.actions.RunUtils.toInstant;
+import static io.kestra.plugin.github.actions.RunUtils.toMap;
 
 @SuperBuilder
 @ToString
@@ -45,7 +52,7 @@ import java.util.Optional;
 @NoArgsConstructor
 @Schema(
     title = "Trigger a flow when GitHub Actions runs complete",
-    description = "Polls a repository at the configured interval and starts one execution when at least one workflow run has completed since the previous evaluation. A run counts as new when it is completed and its last update is after the watermark kept in the namespace KV Store (the previous evaluation time on the first poll), so a run that was still in progress at the previous poll is reported once it finishes. Only the latest `limit` completed runs are scanned. The token needs the `actions:read` permission."
+    description = "Polls a repository at the configured interval and starts one execution when at least one workflow run has completed since the previous evaluation. The state is kept in the namespace KV Store: a watermark (the previous evaluation time on the first poll) and the runs already delivered. Each poll looks back 5 minutes before the watermark, so a run that GitHub lists late or a clock drift cannot make it skip a run, and a run is never delivered twice. A run still in progress at one poll is reported once it completes. Only the latest `limit` completed runs are scanned. The token needs the `actions:read` permission."
 )
 @Plugin(
     examples = {
@@ -66,14 +73,17 @@ import java.util.Optional;
                     type: io.kestra.plugin.github.actions.Trigger
                     oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
                     repository: my-org/my-repo
+                    workflowId: ci.yml
                     branch: main
-                    conclusion: failure
+                    conclusion: FAILURE
                     interval: PT1M
                 """
         )
     }
 )
 public class Trigger extends AbstractTrigger implements PollingTriggerInterface, TriggerOutput<Trigger.Output> {
+    private static final Duration LOOKBACK = Duration.ofMinutes(5);
+
     @Builder.Default
     @Schema(
         title = "Interval between polls",
@@ -129,17 +139,24 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     @NotNull
     private Property<String> repository;
 
+    @Schema(
+        title = "Workflow",
+        description = "Only report runs of this workflow, given as its numeric id or its file name such as `ci.yml`. The filter is applied after fetching, so at most the 500 most recent runs of the repository are examined."
+    )
+    @PluginProperty(group = "processing")
+    private Property<String> workflowId;
+
     @Schema(title = "Branch", description = "Only report runs for this branch.")
     @PluginProperty(group = "processing")
     private Property<String> branch;
 
-    @Schema(title = "Event", description = "Only report runs triggered by this event, for example `push` or `workflow_dispatch`.")
+    @Schema(title = "Event", description = "Only report runs triggered by this event, for example `PUSH` or `WORKFLOW_DISPATCH`.")
     @PluginProperty(group = "processing")
-    private Property<String> event;
+    private Property<RunEvent> event;
 
-    @Schema(title = "Conclusion", description = "Only report runs with this conclusion, for example `success` or `failure`. All completed runs are reported when unset.")
+    @Schema(title = "Conclusion", description = "Only report runs with this conclusion, for example `SUCCESS` or `FAILURE`. All completed runs are reported when unset.")
     @PluginProperty(group = "processing")
-    private Property<String> conclusion;
+    private Property<RunConclusion> conclusion;
 
     @Schema(title = "Limit", description = "Number of latest completed runs scanned at each poll, between 1 and 100 (default 50).")
     @Builder.Default
@@ -151,7 +168,7 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         var runContext = conditionContext.getRunContext();
         var logger = runContext.logger();
 
-        int max = runContext.render(limit).as(Integer.class).orElse(50);
+        var max = runContext.render(limit).as(Integer.class).orElse(50);
         if (max < 1 || max > 100) {
             throw new IllegalArgumentException("`limit` must be between 1 and 100, got " + max);
         }
@@ -160,47 +177,48 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
 
         var kvStore = runContext.namespaceKv(runContext.flowInfo().namespace());
         var kvKey = watermarkKey(context);
-        Instant watermark = context.getDate().toInstant();
-        var stored = kvStore.getValue(kvKey);
-        if (stored.isPresent()) {
-            try {
-                watermark = Instant.parse(String.valueOf(stored.get().value()));
-            } catch (DateTimeParseException e) {
-                logger.warn("Ignoring unreadable watermark '{}' in KV Store key {}", stored.get().value(), kvKey);
-            }
-        }
+        var state = readState(kvStore, kvKey, context.getDate().toInstant(), logger);
         var polledAt = Instant.now();
-        logger.debug("Polling GitHub Actions for runs updated between {} and {}", watermark, polledAt);
+        var since = state.watermark().minus(LOOKBACK);
+        logger.debug("Polling GitHub Actions for runs updated after {} (watermark {}, polled at {})", since, state.watermark(), polledAt);
 
-        var gitHub = connect(runContext);
-        var repo = gitHub.getRepository(rRepository);
+        var repo = connect(runContext).getRepository(rRepository);
         var query = repo.queryWorkflowRuns().status(GHWorkflowRun.Status.COMPLETED);
 
         runContext.render(branch).as(String.class).ifPresent(query::branch);
-        runContext.render(event).as(String.class).ifPresent(v -> query.event(parseEnum(GHEvent.class, "event", v)));
-        runContext.render(conclusion).as(String.class).ifPresent(v -> query.conclusion(parseEnum(GHWorkflowRun.Conclusion.class, "conclusion", v)));
+        runContext.render(event).as(RunEvent.class).ifPresent(v -> query.event(v.value()));
+        runContext.render(conclusion).as(RunConclusion.class).ifPresent(v -> query.conclusion(v.toSdk()));
 
-        int scanned = 0;
-        List<Map<String, Object>> runs = new ArrayList<>();
+        var rWorkflowId = runContext.render(workflowId).as(String.class);
+        var workflow = rWorkflowId.isPresent() ? resolveWorkflow(repo, rWorkflowId.get()) : null;
 
-        for (GHWorkflowRun run : query.list().withPageSize(Math.min(max, 100))) {
-            if (scanned++ >= max) {
-                break;
-            }
+        var cutoff = polledAt.minus(LOOKBACK).toEpochMilli();
+        var nextDelivered = new TreeSet<String>();
+        state.delivered().stream().filter(token -> updatedMillis(token) > cutoff).forEach(nextDelivered::add);
+
+        var runs = new ArrayList<Map<String, Object>>();
+        for (var run : collect(query, workflow, max)) {
             var updated = toInstant(run.getUpdatedAt());
-            if (updated == null || !updated.isAfter(watermark) || updated.isAfter(polledAt)) {
+            if (updated == null || !updated.isAfter(since)) {
                 continue;
+            }
+            var token = run.getId() + ":" + updated.toEpochMilli();
+            if (state.delivered().contains(token)) {
+                continue;
+            }
+            if (updated.toEpochMilli() > cutoff) {
+                nextDelivered.add(token);
             }
             runs.add(toMap(run));
         }
 
-        kvStore.put(kvKey, new KVValueAndMetadata(null, polledAt.toString()));
+        kvStore.put(kvKey, new KVValueAndMetadata(null, new State(polledAt, nextDelivered).serialize()));
 
         if (runs.isEmpty()) {
             return Optional.empty();
         }
 
-        logger.info("Found {} completed GitHub Actions run(s) since {}", runs.size(), watermark);
+        logger.info("Found {} completed GitHub Actions run(s) updated after {}", runs.size(), since);
 
         var output = Output.builder().runs(runs).size(runs.size()).build();
         return Optional.of(TriggerService.generateExecution(this, conditionContext, context, output));
@@ -210,8 +228,31 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         return "github_actions_watermark_" + context.getFlowId().length() + "_" + context.getFlowId() + "_" + context.getTriggerId();
     }
 
+    private static long updatedMillis(String token) {
+        return Long.parseLong(token.substring(token.indexOf(':') + 1));
+    }
+
+    private static State readState(KVStore kvStore, String kvKey, Instant fallback, Logger logger) throws Exception {
+        var stored = kvStore.getValue(kvKey);
+        if (stored.isEmpty()) {
+            return new State(fallback, Set.of());
+        }
+        var lines = String.valueOf(stored.get().value()).split("\n");
+        try {
+            var delivered = Arrays.stream(lines)
+                .skip(1)
+                .map(String::trim)
+                .filter(line -> line.matches("\\d+:\\d+"))
+                .collect(Collectors.toSet());
+            return new State(Instant.parse(lines[0].trim()), delivered);
+        } catch (DateTimeParseException e) {
+            logger.warn("Ignoring unreadable state in KV Store key {}", kvKey);
+            return new State(fallback, Set.of());
+        }
+    }
+
     private GitHub connect(RunContext runContext) throws Exception {
-        GitHubBuilder builder = new GitHubBuilder();
+        var builder = new GitHubBuilder();
 
         if (this.login != null && this.oauthToken != null) {
             builder.withOAuthToken(
@@ -229,6 +270,12 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         runContext.render(this.endpoint).as(String.class).ifPresent(builder::withEndpoint);
 
         return builder.build();
+    }
+
+    private record State(Instant watermark, Set<String> delivered) {
+        String serialize() {
+            return Stream.concat(Stream.of(watermark.toString()), delivered.stream()).collect(Collectors.joining("\n"));
+        }
     }
 
     @Builder

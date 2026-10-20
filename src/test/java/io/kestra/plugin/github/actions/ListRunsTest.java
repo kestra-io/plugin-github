@@ -9,6 +9,7 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @KestraTest
 public class ListRunsTest extends AbstractGithubClientTest {
@@ -32,7 +33,7 @@ public class ListRunsTest extends AbstractGithubClientTest {
         assertThat(output.getSize()).isGreaterThanOrEqualTo(1);
         assertThat(output.getRows()).hasSize(output.getSize());
 
-        var last = output.getRows().get(output.getRows().size() - 1);
+        var last = output.getRows().getLast();
         assertThat(last).containsEntry("runId", 100L);
         assertThat(last).containsEntry("status", "completed");
         assertThat(last).containsEntry("conclusion", "success");
@@ -43,7 +44,10 @@ public class ListRunsTest extends AbstractGithubClientTest {
     void testListRunsWithFiltersAndLimit() throws Exception {
         var output = task()
             .branch(Property.ofValue("master"))
-            .status(Property.ofValue("completed"))
+            .status(Property.ofValue(RunStatus.COMPLETED))
+            .conclusion(Property.ofValue(RunConclusion.SUCCESS))
+            .event(Property.ofValue(RunEvent.WORKFLOW_DISPATCH))
+            .created(Property.ofValue(">=2024-01-01"))
             .limit(Property.ofValue(1))
             .fetchType(Property.ofValue(FetchType.FETCH))
             .build()
@@ -51,6 +55,37 @@ public class ListRunsTest extends AbstractGithubClientTest {
 
         assertThat(output.getSize()).isEqualTo(1);
         assertThat(output.getRows()).hasSize(1);
+    }
+
+    @Test
+    void testWorkflowFilterKeepsRunsOfThatWorkflow() throws Exception {
+        var output = task()
+            .workflowId(Property.ofValue("105842276"))
+            .fetchType(Property.ofValue(FetchType.FETCH))
+            .build()
+            .run(runContextFactory.of());
+
+        assertThat(output.getSize()).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void testWorkflowFilterExcludesRunsOfOtherWorkflows() throws Exception {
+        var output = task()
+            .workflowId(Property.ofValue("999"))
+            .fetchType(Property.ofValue(FetchType.FETCH))
+            .build()
+            .run(runContextFactory.of());
+
+        assertThat(output.getSize()).isZero();
+        assertThat(output.getRows()).isEmpty();
+    }
+
+    @Test
+    void testUnknownWorkflowIsRejected() {
+        var task = task().workflowId(Property.ofValue("404")).build();
+
+        var exception = assertThrows(IllegalArgumentException.class, () -> task.run(runContextFactory.of()));
+        assertThat(exception.getMessage()).contains("404");
     }
 
     @Test
@@ -78,6 +113,6 @@ public class ListRunsTest extends AbstractGithubClientTest {
     void testInvalidLimitIsRejected() {
         var task = task().limit(Property.ofValue(500)).build();
 
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> task.run(runContextFactory.of()));
+        assertThrows(IllegalArgumentException.class, () -> task.run(runContextFactory.of()));
     }
 }
