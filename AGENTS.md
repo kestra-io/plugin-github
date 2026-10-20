@@ -21,7 +21,10 @@ Single-module plugin. Source packages under `io.kestra.plugin`:
 
 ### Key Plugin Classes
 
+- `io.kestra.plugin.github.actions.GetRun`
+- `io.kestra.plugin.github.actions.ListRuns`
 - `io.kestra.plugin.github.actions.RunWorkflow`
+- `io.kestra.plugin.github.actions.Trigger`
 - `io.kestra.plugin.github.auth.AppToken`
 - `io.kestra.plugin.github.code.Search`
 - `io.kestra.plugin.github.commits.Search`

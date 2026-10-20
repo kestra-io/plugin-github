@@ -66,6 +66,18 @@ public class MockController {
     public HttpResponse<String> dispat(HttpRequest<?> request, @Body String data) {
         capture(request);
         MockController.data = data;
+        if (dispatchFails) {
+            return HttpResponse.badRequest("{\"message\":\"Workflow does not have 'workflow_dispatch' trigger\"}");
+        }
+        if (dispatchReturnsRunDetails && data != null && data.contains("return_run_details")) {
+            return HttpResponse.ok("""
+                {
+                  "workflow_run_id": 101,
+                  "run_url": "https://api.github.com/repos/kestra-io/mock-kestra/actions/runs/101",
+                  "html_url": "https://github.com/kestra-io/mock-kestra/actions/runs/101"
+                }
+                """);
+        }
         return HttpResponse.noContent();
     }
 
@@ -200,6 +212,73 @@ public class MockController {
             """).header("Location", "https://github.com/kestra-io/mock-kestra/pull/10");
     }
 
+    public static String runConclusion = "success";
+    public static String runUpdatedAt = "2024-01-01T00:05:00Z";
+    public static volatile String runStatus = "completed";
+    public static volatile boolean runCancelled = false;
+    public static volatile boolean dispatchReturnsRunDetails = true;
+    public static volatile boolean dispatchFails = false;
+
+    private static String runJson(long id, String status, String conclusion) {
+        return """
+            {
+              "id": %d,
+              "name": "CI",
+              "workflow_id": 105842276,
+              "run_number": %d,
+              "event": "workflow_dispatch",
+              "head_branch": "master",
+              "head_sha": "abc123",
+              "status": "%s",
+              "conclusion": %s,
+              "html_url": "https://github.com/kestra-io/mock-kestra/actions/runs/%d",
+              "created_at": "2024-01-01T00:00:00Z",
+              "updated_at": "%s"
+            }
+            """.formatted(id, id, status, conclusion == null ? "null" : "\"" + conclusion + "\"", id, runUpdatedAt);
+    }
+
+    @Get("/repos/kestra-io/mock-kestra/actions/runs")
+    public HttpResponse<String> listRuns(HttpRequest<?> request) {
+        capture(request);
+        // before the dispatch only the old run exists, after it a new queued run appears
+        var runs = MockController.data == null
+            ? runJson(100, "completed", "success")
+            : runJson(101, "queued", null) + "," + runJson(100, "completed", "success");
+        return HttpResponse.ok("{\"total_count\":2,\"workflow_runs\":[" + runs + "]}");
+    }
+
+    @Post("/repos/kestra-io/mock-kestra/actions/runs/101/cancel")
+    public HttpResponse<String> cancelRun(HttpRequest<?> request) {
+        capture(request);
+        runCancelled = true;
+        return HttpResponse.accepted();
+    }
+
+    @Get("/repos/kestra-io/mock-kestra/actions/workflows/999")
+    public HttpResponse<String> getOtherWorkflow(HttpRequest<?> request) {
+        capture(request);
+        return HttpResponse.ok("{\"id\":999,\"name\":\"Other\",\"path\":\".github/workflows/other.yml\",\"state\":\"active\"}");
+    }
+
+    @Get("/repos/kestra-io/mock-kestra/actions/runs/101")
+    public HttpResponse<String> getRun(HttpRequest<?> request) {
+        capture(request);
+        return HttpResponse.ok(runJson(101, runStatus, "completed".equals(runStatus) ? runConclusion : null));
+    }
+    @Get("/repos/kestra-io/mock-kestra/actions/runs/101/jobs")
+    public HttpResponse<String> getRunJobs(HttpRequest<?> request) {
+        capture(request);
+        return HttpResponse.ok("""
+            {
+              "total_count": 2,
+              "jobs": [
+                {"id": 1, "run_id": 101, "name": "build", "status": "completed", "conclusion": "success"},
+                {"id": 2, "run_id": 101, "name": "test", "status": "completed", "conclusion": "failure"}
+              ]
+            }
+            """);
+    }
     private String baseUrl(HttpRequest<?> request) {
         var host = request.getHeaders().get("Host");
         return "http://" + host;

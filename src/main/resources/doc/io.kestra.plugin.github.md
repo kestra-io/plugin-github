@@ -10,4 +10,6 @@ Set `oauthToken` to a GitHub Personal Access Token (PAT) or a GitHub App install
 
 `actions.RunWorkflow` dispatches a GitHub Actions workflow by name or ID — use it to trigger CI pipelines or automation jobs from a Kestra flow and optionally pass inputs. `issues.Create` and `issues.Comment` automate issue management; `pulls.Create` opens a pull request programmatically after a branch push.
 
+Beyond dispatching, `actions.RunWorkflow` can wait for the run to finish (`wait: true`) and returns its `runId`, `htmlUrl`, `status` and `conclusion`. `actions.GetRun` and `actions.ListRuns` read runs back, including jobs, and the polling trigger `actions.Trigger` starts a flow when workflow runs complete.
+
 For data retrieval and reporting, the `Search` tasks under `code`, `commits`, `issues`, `pulls`, `repositories`, `users`, and `topics` query the GitHub search API and return results as Kestra outputs for downstream processing.
