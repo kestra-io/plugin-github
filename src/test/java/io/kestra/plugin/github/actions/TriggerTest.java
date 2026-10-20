@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -109,6 +110,25 @@ public class TriggerTest extends AbstractGithubClientTest {
         var result = trigger.evaluate(conditionContext, triggerContext(randomFlowId(), ZonedDateTime.now()));
 
         assertThat(result).isPresent();
+    }
+
+    @Test
+    void storesTheStateAsAMap() throws Exception {
+        var flowId = randomFlowId();
+        var trigger = trigger().build();
+        var conditionContext = TestsUtils.mockTrigger(runContextFactory, trigger).getKey();
+
+        trigger.evaluate(conditionContext, triggerContext(flowId, ZonedDateTime.parse("2023-01-01T00:00:00Z")));
+
+        var runContext = conditionContext.getRunContext();
+        var key = "github_actions_watermark_" + flowId.length() + "_" + flowId + "_watch-runs";
+        var stored = runContext.namespaceKv(runContext.flowInfo().namespace()).getValue(key);
+
+        assertThat(stored).isPresent();
+        assertThat(stored.get().value()).isInstanceOf(Map.class);
+        var state = (Map<?, ?>) stored.get().value();
+        assertThat(state.containsKey("watermark")).isTrue();
+        assertThat(state.containsKey("delivered")).isTrue();
     }
 
     @Test

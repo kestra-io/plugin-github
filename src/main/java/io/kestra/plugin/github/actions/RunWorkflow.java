@@ -203,8 +203,10 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
 
         GHWorkflowRun run;
         if (dispatchedRunId.isPresent()) {
+            logger.debug("Run id {} taken from the dispatch response (return_run_details)", dispatchedRunId.get());
             run = repo.getWorkflowRun(dispatchedRunId.get());
         } else {
+            logger.debug("The dispatch response had no run id, falling back to the lookup of the newest workflow_dispatch run");
             if (!canTrackRun) {
                 if (rWait) {
                     throw new IllegalStateException("Cannot wait for the workflow run because its runs could not be listed");

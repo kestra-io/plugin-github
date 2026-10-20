@@ -31,13 +31,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static io.kestra.plugin.github.actions.RunUtils.collect;
 import static io.kestra.plugin.github.actions.RunUtils.resolveWorkflow;
@@ -50,7 +50,7 @@ import static io.kestra.plugin.github.actions.RunUtils.toInstant;
 @NoArgsConstructor
 @Schema(
     title = "Trigger a flow when GitHub Actions runs complete",
-    description = "Polls a repository at the configured interval and starts one execution when at least one workflow run has completed since the previous evaluation. The state is kept in the namespace KV Store: a watermark (the previous evaluation time on the first poll) and the runs already delivered. Each poll looks back 5 minutes before the watermark, so a run that GitHub lists late or a clock drift cannot make it skip a run, and a run is never delivered twice. A run still in progress at one poll is reported once it completes. Only the latest `limit` completed runs are scanned. The token needs the `actions:read` permission."
+    description = "Polls a repository at the configured interval and starts one execution when at least one workflow run has completed since the previous evaluation. The state is kept in the namespace KV Store: a watermark (the previous evaluation time on the first poll) and the runs already delivered. Each poll looks back 5 minutes before the watermark, so a run that GitHub lists late or a clock drift cannot make it skip a run, and a run is never delivered twice. On the first poll the watermark is the trigger creation time, so runs that completed up to 5 minutes before the trigger was created are reported as well. A run still in progress at one poll is reported once it completes. Only the latest `limit` completed runs are scanned. The token needs the `actions:read` permission."
 )
 @Plugin(
     examples = {
@@ -235,15 +235,21 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         if (stored.isEmpty()) {
             return new State(fallback, Set.of());
         }
-        var lines = String.valueOf(stored.get().value()).split("\n");
         try {
-            var delivered = Arrays.stream(lines)
-                .skip(1)
-                .map(String::trim)
-                .filter(line -> line.matches("\\d+:\\d+"))
-                .collect(Collectors.toSet());
-            return new State(Instant.parse(lines[0].trim()), delivered);
-        } catch (DateTimeParseException e) {
+            if (!(stored.get().value() instanceof Map<?, ?> map)) {
+                throw new IllegalArgumentException("The stored state is not a map");
+            }
+            var delivered = new TreeSet<String>();
+            if (map.get("delivered") instanceof Collection<?> items) {
+                for (var item : items) {
+                    var token = String.valueOf(item);
+                    if (token.matches("\\d+:\\d+")) {
+                        delivered.add(token);
+                    }
+                }
+            }
+            return new State(Instant.parse(String.valueOf(map.get("watermark"))), delivered);
+        } catch (IllegalArgumentException | DateTimeParseException e) {
             logger.warn("Ignoring unreadable state in KV Store key {}", kvKey);
             return new State(fallback, Set.of());
         }
@@ -271,8 +277,11 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     }
 
     private record State(Instant watermark, Set<String> delivered) {
-        String serialize() {
-            return Stream.concat(Stream.of(watermark.toString()), delivered.stream()).collect(Collectors.joining("\n"));
+        Map<String, Object> serialize() {
+            var map = new LinkedHashMap<String, Object>();
+            map.put("watermark", watermark.toString());
+            map.put("delivered", new ArrayList<>(new TreeSet<>(delivered)));
+            return map;
         }
     }
 
