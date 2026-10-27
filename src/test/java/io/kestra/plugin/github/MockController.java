@@ -19,6 +19,7 @@ public class MockController {
     public static String data;
     public static Map<String, String> headers = new HashMap<>();
     public static Map<String, String> queryParameters = new HashMap<>();
+    public static String lastSearchQuery;
 
     private void capture(HttpRequest<?> request) {
         headers = new HashMap<>();
@@ -476,6 +477,7 @@ public class MockController {
         capture(request);
         var base = baseUrl(request);
         var q = request.getParameters().getFirst("q").orElse("");
+        lastSearchQuery = q;
         if (q.contains("is:pr")) {
             return HttpResponse.ok("""
                 {

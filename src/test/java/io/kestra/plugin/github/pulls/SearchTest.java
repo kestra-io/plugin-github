@@ -10,6 +10,7 @@ import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.tenant.TenantService;
 import io.kestra.plugin.github.AbstractGithubClientTest;
 import io.kestra.plugin.github.AbstractGithubSearchTask;
+import io.kestra.plugin.github.MockController;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -74,6 +75,23 @@ public class SearchTest extends AbstractGithubClientTest {
         assertThat(result.size(), greaterThanOrEqualTo(1));
 
         assertThat(result.getFirst().get("state"), is("CLOSED"));
+    }
+
+    @Test
+    void testMentions() throws Exception {
+        RunContext runContext = runContextFactory.of();
+
+        Search task = Search.builder()
+            .oauthToken(Property.ofValue("oauth-token"))
+            .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
+            .query(Property.ofValue("repo:kestra-io/plugin-github"))
+            .mentions(Property.ofValue("octocat"))
+            .sort(Property.ofValue(Search.Sort.UPDATED))
+            .build();
+
+        task.run(runContext);
+
+        assertThat(MockController.lastSearchQuery, containsString("mentions:octocat"));
     }
 
     @Test
