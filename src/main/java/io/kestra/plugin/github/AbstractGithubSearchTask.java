@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import io.kestra.core.models.annotations.PluginProperty;
+import org.kohsuke.github.PagedSearchIterable;
 
 @SuperBuilder
 @ToString
@@ -25,14 +26,23 @@ import io.kestra.core.models.annotations.PluginProperty;
 public abstract class AbstractGithubSearchTask extends AbstractGithubTask {
     @Schema(
         title = "Result handling mode",
-        description = "Controls how hits are exposed in outputs; default `FETCH` returns all hits in the response. `FETCH_ONE` returns only the first hit, `STORE` writes hits to Kestra storage and returns a URI, and `NONE` leaves outputs empty."
+        description = "Controls how hits are exposed in outputs; default `STORE` writes all hits to Kestra storage and returns a URI. `FETCH` returns all hits in the response, `FETCH_ONE` returns only the first hit, and `NONE` leaves outputs empty."
     )
     @Builder.Default
     @PluginProperty(group = "execution")
     protected Property<FetchType> fetchType = Property.ofValue(FetchType.STORE);
 
 
+    protected <T> Output handleFetch(RunContext runContext, PagedSearchIterable<T> results, Function<T, Map<String, Object>> mapper, FetchType fetchType) throws Exception {
+        var items = results.toList();
+        return handleFetch(runContext, items, mapper, fetchType, (long) results.getTotalCount());
+    }
+
     protected <T> Output handleFetch(RunContext runContext, List<T> results, Function<T, Map<String, Object>> mapper, FetchType fetchType) throws Exception {
+        return handleFetch(runContext, results, mapper, fetchType, null);
+    }
+
+    protected <T> Output handleFetch(RunContext runContext, List<T> results, Function<T, Map<String, Object>> mapper, FetchType fetchType, Long total) throws Exception {
 
         List<Map<String, Object>> mapped = results.stream()
             .map(mapper)
@@ -41,12 +51,14 @@ public abstract class AbstractGithubSearchTask extends AbstractGithubTask {
         switch (fetchType) {
             case FETCH:
                 return Output.builder()
+                    .total(total)
                     .rows(mapped)
                     .size(mapped.size())
                     .build();
 
             case FETCH_ONE:
                 return Output.builder()
+                    .total(total)
                     .row(mapped.isEmpty() ? null : mapped.getFirst())
                     .size(mapped.isEmpty() ? 0 : 1)
                     .build();
@@ -62,12 +74,16 @@ public abstract class AbstractGithubSearchTask extends AbstractGithubTask {
                 }
 
                 return Output.builder()
+                    .total(total)
                     .uri(runContext.storage().putFile(tempFile))
                     .size(mapped.size())
                     .build();
 
             default:
-                return Output.builder().size(0).build();
+                return Output.builder()
+                    .total(total)
+                    .size(0)
+                    .build();
         }
     }
 

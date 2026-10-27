@@ -49,6 +49,7 @@ public class SearchTest extends AbstractGithubClientTest {
 
         assertThat(result.size(), greaterThanOrEqualTo(1));
         assertThat(result.getFirst().get("name"), is("spring-cloud"));
+        assertThat(run.getTotal(), is(1L));
     }
 
     @Test
