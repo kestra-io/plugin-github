@@ -479,7 +479,7 @@ public class MockController {
         if (q.contains("is:pr")) {
             return HttpResponse.ok("""
                 {
-                  "total_count": 1,
+                  "total_count": 42,
                   "incomplete_results": false,
                   "items": [
                     {

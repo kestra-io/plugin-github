@@ -13,8 +13,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.net.URI;
 import java.util.List;
-
-import org.kohsuke.github.PagedSearchIterable;
 import java.util.Map;
 import java.util.function.Function;
 import io.kestra.core.models.annotations.PluginProperty;
@@ -36,7 +34,7 @@ public abstract class AbstractGithubSearchTask extends AbstractGithubTask {
 
 
     protected <T> Output handleFetch(RunContext runContext, PagedSearchIterable<T> results, Function<T, Map<String, Object>> mapper, FetchType fetchType) throws Exception {
-        List<T> items = results.toList();
+        var items = results.toList();
         return handleFetch(runContext, items, mapper, fetchType, (long) results.getTotalCount());
     }
 
@@ -83,7 +81,9 @@ public abstract class AbstractGithubSearchTask extends AbstractGithubTask {
 
             default:
                 return Output.builder()
-                    .total(total).size(0).build();
+                    .total(total)
+                    .size(0)
+                    .build();
         }
     }
 
