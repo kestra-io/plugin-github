@@ -154,7 +154,8 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
             runContext,
             topics.items,
             topic -> new TopicDetails(topic).toMap(),
-            runContext.render(fetchType).as(FetchType.class).orElseThrow()
+            runContext.render(fetchType).as(FetchType.class).orElseThrow(),
+            (long) topics.totalCount
         );
     }
 

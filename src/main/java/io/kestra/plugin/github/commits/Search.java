@@ -253,7 +253,7 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
 
         return handleFetch(
             runContext,
-            commits.toList(),
+            commits,
             throwFunction(commit -> getCommitDetails(commit, gitHub.isAnonymous())),
             runContext.render(fetchType).as(FetchType.class).orElseThrow()
         );

@@ -214,7 +214,7 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
 
         return handleFetch(
             runContext,
-            repositories.toList(),
+            repositories,
             throwFunction(repository -> new RepositoryDetails(repository, gitHub.isAnonymous()).toMap()),
             runContext.render(fetchType).as(FetchType.class).orElseThrow()
         );

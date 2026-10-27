@@ -43,6 +43,8 @@ public class SearchTest extends AbstractGithubClientTest {
         AbstractGithubSearchTask.Output run = task.run(runContext);
 
         assertThat(run.getUri(), is(notNullValue()));
+        // `total` is GitHub's total_count, not the number of hits fetched
+        assertThat(run.getTotal(), is(1L));
 
         List<Map<String, Object>> result = getResult(run);
 
