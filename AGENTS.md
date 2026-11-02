@@ -34,6 +34,7 @@ Single-module plugin. Source packages under `io.kestra.plugin`:
 - `io.kestra.plugin.github.projects.List`
 - `io.kestra.plugin.github.pulls.Create`
 - `io.kestra.plugin.github.pulls.Search`
+- `io.kestra.plugin.github.repositories.DownloadArchive`
 - `io.kestra.plugin.github.repositories.Search`
 - `io.kestra.plugin.github.topics.Search`
 - `io.kestra.plugin.github.users.Search`

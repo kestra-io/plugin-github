@@ -12,4 +12,4 @@ Set `oauthToken` to a GitHub Personal Access Token (PAT) or a GitHub App install
 
 Beyond dispatching, `actions.RunWorkflow` can wait for the run to finish (`wait: true`) and returns its `runId`, `htmlUrl`, `status` and `conclusion`. `actions.GetRun` and `actions.ListRuns` read runs back, including jobs, and the polling trigger `actions.Trigger` starts a flow when workflow runs complete.
 
-For data retrieval and reporting, the `Search` tasks under `code`, `commits`, `issues`, `pulls`, `repositories`, `users`, and `topics` query the GitHub search API and return results as Kestra outputs for downstream processing.
+For data retrieval and reporting, the `Search` tasks under `code`, `commits`, `issues`, `pulls`, `repositories`, `users`, and `topics` query the GitHub search API and return results as Kestra outputs for downstream processing. `repositories.DownloadArchive` downloads a zip or gzip-compressed tar archive for a commit, branch, or tag into Kestra internal storage.

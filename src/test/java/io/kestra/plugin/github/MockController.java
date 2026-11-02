@@ -7,6 +7,8 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,6 +22,11 @@ public class MockController {
     public static Map<String, String> headers = new HashMap<>();
     public static Map<String, String> queryParameters = new HashMap<>();
     public static String lastSearchQuery;
+    public static String lastPath;
+    public static volatile boolean archiveMissing = false;
+    public static volatile String archiveRedirect;
+    public static final byte[] TAR_BYTES = "kestra-tar".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] ZIP_BYTES = "kestra-zip".getBytes(StandardCharsets.UTF_8);
 
     private void capture(HttpRequest<?> request) {
         headers = new HashMap<>();
@@ -27,6 +34,7 @@ public class MockController {
 
         queryParameters = new HashMap<>();
         request.getParameters().forEach((name, values) -> queryParameters.put(name, values.getFirst()));
+        lastPath = request.getUri().getPath();
     }
 
     @Get("/repos/kestra-io/mock-kestra")
@@ -46,9 +54,31 @@ public class MockController {
                   "admin": true,
                   "push": true,
                   "pull": true
-              }
+              },
+              "default_branch": "main"
             }
             """);
+    }
+
+    @Get(uri = "/repos/kestra-io/mock-kestra/tarball/{ref}", produces = MediaType.APPLICATION_OCTET_STREAM)
+    public HttpResponse<?> tarball(HttpRequest<?> request, @PathVariable String ref) {
+        return archive(request, TAR_BYTES);
+    }
+
+    @Get(uri = "/repos/kestra-io/mock-kestra/zipball/{ref}", produces = MediaType.APPLICATION_OCTET_STREAM)
+    public HttpResponse<?> zipball(HttpRequest<?> request, @PathVariable String ref) {
+        return archive(request, ZIP_BYTES);
+    }
+
+    private HttpResponse<?> archive(HttpRequest<?> request, byte[] payload) {
+        capture(request);
+        if (archiveMissing) {
+            return HttpResponse.notFound("{\"message\":\"Not Found\"}");
+        }
+        if (archiveRedirect != null) {
+            return HttpResponse.redirect(URI.create(archiveRedirect));
+        }
+        return HttpResponse.ok(payload).contentType(MediaType.APPLICATION_OCTET_STREAM_TYPE);
     }
 
     @Get("/repos/kestra-io/mock-kestra/actions/workflows/105842276")
