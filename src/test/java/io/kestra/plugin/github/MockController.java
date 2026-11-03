@@ -34,7 +34,7 @@ public class MockController {
 
         queryParameters = new HashMap<>();
         request.getParameters().forEach((name, values) -> queryParameters.put(name, values.getFirst()));
-        lastPath = request.getUri().getPath();
+        lastPath = request.getUri().getRawPath();
     }
 
     @Get("/repos/kestra-io/mock-kestra")
@@ -60,12 +60,12 @@ public class MockController {
             """);
     }
 
-    @Get(uri = "/repos/kestra-io/mock-kestra/tarball/{ref}", produces = MediaType.APPLICATION_OCTET_STREAM)
+    @Get(uri = "/repos/kestra-io/mock-kestra/tarball/{+ref}", produces = MediaType.APPLICATION_OCTET_STREAM)
     public HttpResponse<?> tarball(HttpRequest<?> request, @PathVariable String ref) {
         return archive(request, TAR_BYTES);
     }
 
-    @Get(uri = "/repos/kestra-io/mock-kestra/zipball/{ref}", produces = MediaType.APPLICATION_OCTET_STREAM)
+    @Get(uri = "/repos/kestra-io/mock-kestra/zipball/{+ref}", produces = MediaType.APPLICATION_OCTET_STREAM)
     public HttpResponse<?> zipball(HttpRequest<?> request, @PathVariable String ref) {
         return archive(request, ZIP_BYTES);
     }

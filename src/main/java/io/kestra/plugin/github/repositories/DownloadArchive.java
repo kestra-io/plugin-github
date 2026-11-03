@@ -23,8 +23,12 @@ import lombok.experimental.SuperBuilder;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 @SuperBuilder
 @ToString
@@ -120,18 +124,21 @@ public class DownloadArchive extends AbstractGithubTask implements RunnableTask<
             rRef = gitHub.getRepository(rRepository).getDefaultBranch();
         }
 
-        var archiveUri = URI.create("%s/repos/%s/%s/%s".formatted(gitHub.getApiUrl(), rRepository, rFormat.endpoint, rRef));
+        var encodedRef = Arrays.stream(rRef.split("/"))
+            .map(segment -> URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20"))
+            .collect(Collectors.joining("/"));
+        var archiveUri = URI.create("%s/repos/%s/%s/%s".formatted(gitHub.getApiUrl(), rRepository, rFormat.endpoint, encodedRef));
         var tempFile = runContext.workingDir().createTempFile(rFormat.extension);
         var httpConfig = HttpConfiguration.builder()
             .followRedirects(Property.ofValue(false))
             .allowFailed(Property.ofValue(true))
             .build();
         try (var client = new HttpClient(runContext, httpConfig)) {
-            var response = download(client, HttpRequest.builder()
+            var request = HttpRequest.builder()
                 .uri(archiveUri)
-                .addHeader("Authorization", "Bearer %s".formatted(resolveToken(runContext)))
-                .addHeader("Accept", "application/vnd.github+json")
-                .build(), tempFile);
+                .addHeader("Accept", "application/vnd.github+json");
+            findToken(runContext).ifPresent(token -> request.addHeader("Authorization", "Bearer %s".formatted(token)));
+            var response = download(client, request.build(), tempFile);
 
             // GitHub redirects to a signed download URL on another host, which must not receive the token.
             var location = response.getHeaders().firstValue("Location");
@@ -143,6 +150,11 @@ public class DownloadArchive extends AbstractGithubTask implements RunnableTask<
             if (status == 404) {
                 throw new IllegalArgumentException(
                     "No archive found for %s at ref `%s`. Check that the ref exists and the token has the `contents:read` permission.".formatted(rRepository, rRef)
+                );
+            }
+            if (status == 401 || status == 403) {
+                throw new IllegalArgumentException(
+                    "GitHub rejected the token (HTTP %d). Check that it is valid and has the `contents:read` permission on %s.".formatted(status, rRepository)
                 );
             }
             if (status / 100 != 2) {

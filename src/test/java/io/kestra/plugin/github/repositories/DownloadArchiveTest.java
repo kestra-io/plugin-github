@@ -1,5 +1,6 @@
 package io.kestra.plugin.github.repositories;
 
+import com.sun.net.httpserver.HttpServer;
 import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContextFactory;
@@ -12,8 +13,6 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
-
-import com.sun.net.httpserver.HttpServer;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -117,6 +116,21 @@ public class DownloadArchiveTest extends AbstractGithubClientTest {
         } finally {
             payloadServer.stop(0);
         }
+    }
+
+    @Test
+    void refIsPathEncoded() throws Exception {
+        var output = task().ref(Property.ofValue("feature/fix#12")).build().run(runContextFactory.of());
+
+        assertThat(output.getRef()).isEqualTo("feature/fix#12");
+        assertThat(MockController.lastPath).endsWith("/zipball/feature/fix%2312");
+    }
+
+    @Test
+    void publicRepositoryWithoutToken() throws Exception {
+        task().oauthToken(null).ref(Property.ofValue("main")).build().run(runContextFactory.of());
+
+        assertThat(MockController.headers).doesNotContainKey("authorization");
     }
 
     @Test
