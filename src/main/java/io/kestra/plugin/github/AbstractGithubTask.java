@@ -1,5 +1,6 @@
 package io.kestra.plugin.github;
 
+import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
@@ -11,7 +12,8 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
-import io.kestra.core.models.annotations.PluginProperty;
+
+import java.util.Optional;
 
 @SuperBuilder
 @ToString
@@ -70,25 +72,19 @@ public abstract class AbstractGithubTask extends Task {
     }
 
     protected String resolveToken(RunContext runContext) throws Exception {
-        var rToken = runContext.render(this.oauthToken).as(String.class)
-            .filter(s -> !s.isBlank())
-            .orElse(null);
-        if (rToken != null) {
-            return rToken;
+        return findToken(runContext)
+            .orElseThrow(() -> new IllegalStateException("No GitHub token configured: set oauthToken, appInstallationToken, or jwtToken"));
+    }
+
+    protected Optional<String> findToken(RunContext runContext) throws Exception {
+        var rToken = runContext.render(this.oauthToken).as(String.class).filter(s -> !s.isBlank());
+        if (rToken.isEmpty()) {
+            rToken = runContext.render(this.appInstallationToken).as(String.class).filter(s -> !s.isBlank());
         }
-        rToken = runContext.render(this.appInstallationToken).as(String.class)
-            .filter(s -> !s.isBlank())
-            .orElse(null);
-        if (rToken != null) {
-            return rToken;
+        if (rToken.isEmpty()) {
+            rToken = runContext.render(this.jwtToken).as(String.class).filter(s -> !s.isBlank());
         }
-        rToken = runContext.render(this.jwtToken).as(String.class)
-            .filter(s -> !s.isBlank())
-            .orElse(null);
-        if (rToken != null) {
-            return rToken;
-        }
-        throw new IllegalStateException("No GitHub token configured: set oauthToken, appInstallationToken, or jwtToken");
+        return rToken;
     }
 
     protected GitHub connect(final RunContext runContext) throws Exception {

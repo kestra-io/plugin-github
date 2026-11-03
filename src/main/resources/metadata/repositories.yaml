@@ -1,8 +1,8 @@
 group: io.kestra.plugin.github.repositories
 name: "repositories"
 title: "GitHub Repositories"
-description: "Tasks that search and inspect GitHub repositories."
-body: "Authenticate with a GitHub token and supply search queries, topics, owners, or visibility filters to list repositories and return metadata such as stars, forks, and languages for inventory or compliance checks."
+description: "Tasks that search GitHub repositories and download repository archives."
+body: "Search repositories with a GitHub token and return metadata such as stars, forks, and languages, or download a zip or gzip-compressed tar archive for a commit, branch, or tag into Kestra internal storage. The token is optional when downloading a public repository."
 videos: []
 createdBy: "Kestra Core Team"
 managedBy: "Kestra Core Team"

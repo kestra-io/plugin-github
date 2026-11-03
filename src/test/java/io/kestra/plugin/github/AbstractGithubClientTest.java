@@ -42,5 +42,11 @@ public abstract class AbstractGithubClientTest {
         MockController.runCancelled = false;
         MockController.dispatchReturnsRunDetails = true;
         MockController.dispatchFails = false;
+        MockController.archiveMissing = false;
+        MockController.archiveRedirect = null;
+        MockController.archiveRenamed = false;
+        MockController.archiveRateLimited = false;
+        MockController.renamedAuthorization = null;
+        MockController.lastPath = null;
     }
 }
