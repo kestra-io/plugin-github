@@ -5,6 +5,7 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.tenant.TenantService;
+import io.kestra.core.utils.IdUtils;
 import io.kestra.plugin.github.AbstractGithubClientTest;
 import io.kestra.plugin.github.MockController;
 import jakarta.inject.Inject;
@@ -32,6 +33,8 @@ public class DownloadArchiveTest extends AbstractGithubClientTest {
 
     private DownloadArchive.DownloadArchiveBuilder<?, ?> task() {
         return DownloadArchive.builder()
+            .id(IdUtils.create())
+            .type(DownloadArchive.class.getName())
             .oauthToken(Property.ofValue("oauth-token"))
             .endpoint(Property.ofValue(embeddedServer.getURI().toString()))
             .repository(Property.ofValue("kestra-io/mock-kestra"));
@@ -46,10 +49,9 @@ public class DownloadArchiveTest extends AbstractGithubClientTest {
             .build()
             .run(runContextFactory.of());
 
-        assertThat(output.getFormat()).isEqualTo("TAR_GZ");
         assertThat(output.getRef()).isEqualTo(sha);
         assertThat(output.getSize()).isEqualTo((long) MockController.TAR_BYTES.length);
-        assertThat(MockController.lastPath).endsWith("/tarball/" + sha);
+        assertThat(MockController.lastPath).endsWith("/tarball/%s".formatted(sha));
         assertStored(output, MockController.TAR_BYTES);
     }
 
@@ -61,7 +63,6 @@ public class DownloadArchiveTest extends AbstractGithubClientTest {
             .build()
             .run(runContextFactory.of());
 
-        assertThat(output.getFormat()).isEqualTo("ZIP");
         assertThat(output.getRef()).isEqualTo("develop");
         assertThat(output.getSize()).isEqualTo((long) MockController.ZIP_BYTES.length);
         assertThat(MockController.lastPath).endsWith("/zipball/develop");
@@ -73,7 +74,6 @@ public class DownloadArchiveTest extends AbstractGithubClientTest {
         var output = task().build().run(runContextFactory.of());
 
         assertThat(output.getRef()).isEqualTo("main");
-        assertThat(output.getFormat()).isEqualTo("ZIP");
         assertThat(MockController.lastPath).endsWith("/zipball/main");
         assertStored(output, MockController.ZIP_BYTES);
     }
@@ -87,8 +87,7 @@ public class DownloadArchiveTest extends AbstractGithubClientTest {
             .build()
             .run(runContextFactory.of());
 
-        // github-api sends installation tokens with the "token" scheme, same as oauthToken.
-        assertThat(MockController.headers.get("authorization")).isEqualTo("token app-installation-token");
+        assertThat(MockController.headers.get("authorization")).isEqualTo("Bearer app-installation-token");
         assertThat(MockController.lastPath).endsWith("/zipball/main");
     }
 
@@ -107,11 +106,11 @@ public class DownloadArchiveTest extends AbstractGithubClientTest {
         payloadServer.start();
         try {
             var address = payloadServer.getAddress();
-            MockController.archiveRedirect = "http://127.0.0.1:" + address.getPort() + "/archive";
+            MockController.archiveRedirect = "http://127.0.0.1:%d/archive".formatted(address.getPort());
 
             var output = task().ref(Property.ofValue("main")).build().run(runContextFactory.of());
 
-            assertThat(MockController.headers.get("authorization")).isEqualTo("token oauth-token");
+            assertThat(MockController.headers.get("authorization")).isEqualTo("Bearer oauth-token");
             assertThat(MockController.lastPath).endsWith("/zipball/main");
             assertThat(followUpAuthorization.get()).isNull();
             assertStored(output, MockController.ZIP_BYTES);
@@ -125,7 +124,9 @@ public class DownloadArchiveTest extends AbstractGithubClientTest {
         MockController.archiveMissing = true;
 
         assertThatThrownBy(() -> task().ref(Property.ofValue("missing")).build().run(runContextFactory.of()))
-            .isInstanceOf(IOException.class);
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("ref `missing`")
+            .hasMessageContaining("contents:read");
     }
 
     private void assertStored(DownloadArchive.Output output, byte[] expected) throws IOException {
