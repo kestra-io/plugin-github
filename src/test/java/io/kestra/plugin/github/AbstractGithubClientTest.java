@@ -44,6 +44,8 @@ public abstract class AbstractGithubClientTest {
         MockController.dispatchFails = false;
         MockController.archiveMissing = false;
         MockController.archiveRedirect = null;
+        MockController.archiveRenamed = false;
+        MockController.renamedAuthorization = null;
         MockController.lastPath = null;
     }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kestra.core.serializers.JacksonMapper;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 
@@ -25,6 +26,8 @@ public class MockController {
     public static String lastPath;
     public static volatile boolean archiveMissing = false;
     public static volatile String archiveRedirect;
+    public static volatile boolean archiveRenamed = false;
+    public static volatile String renamedAuthorization;
     public static final byte[] TAR_BYTES = "kestra-tar".getBytes(StandardCharsets.UTF_8);
     public static final byte[] ZIP_BYTES = "kestra-zip".getBytes(StandardCharsets.UTF_8);
 
@@ -70,8 +73,17 @@ public class MockController {
         return archive(request, ZIP_BYTES);
     }
 
+    @Get(uri = "/repositories/1/zipball/{+ref}", produces = MediaType.APPLICATION_OCTET_STREAM)
+    public HttpResponse<?> renamedZipball(HttpRequest<?> request, @PathVariable String ref) {
+        renamedAuthorization = request.getHeaders().get("Authorization");
+        return HttpResponse.redirect(URI.create(archiveRedirect));
+    }
+
     private HttpResponse<?> archive(HttpRequest<?> request, byte[] payload) {
         capture(request);
+        if (archiveRenamed) {
+            return HttpResponse.status(HttpStatus.MOVED_PERMANENTLY).header("Location", "/repositories/1/zipball/main");
+        }
         if (archiveMissing) {
             return HttpResponse.notFound("{\"message\":\"Not Found\"}");
         }

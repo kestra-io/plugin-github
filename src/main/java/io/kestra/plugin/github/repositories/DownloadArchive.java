@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @SuperBuilder
@@ -39,7 +40,8 @@ import java.util.stream.Collectors;
     title = "Download a repository archive",
     description = """
         Downloads a GitHub repository archive for a commit SHA, branch or tag and streams it to Kestra internal storage. \
-        When `ref` is omitted, the repository default branch is used. The token needs the `contents:read` permission."""
+        When `ref` is omitted, the repository default branch is used. The token needs the `contents:read` permission. \
+        It is optional for public repositories, which are then subject to GitHub's anonymous rate limit."""
 )
 @Plugin(
     examples = {
@@ -88,12 +90,14 @@ import java.util.stream.Collectors;
     }
 )
 public class DownloadArchive extends AbstractGithubTask implements RunnableTask<DownloadArchive.Output> {
+    private static final int MAX_REDIRECTS = 5;
+
     @Schema(
         title = "Target repository",
         description = """
             Repository in `owner/repo` format to download."""
     )
-    @PluginProperty(group = "source")
+    @PluginProperty(group = "main")
     @NotNull
     private Property<String> repository;
 
@@ -133,26 +137,41 @@ public class DownloadArchive extends AbstractGithubTask implements RunnableTask<
             .followRedirects(Property.ofValue(false))
             .allowFailed(Property.ofValue(true))
             .build();
+        var token = findToken(runContext);
         try (var client = new HttpClient(runContext, httpConfig)) {
-            var request = HttpRequest.builder()
-                .uri(archiveUri)
-                .addHeader("Accept", "application/vnd.github+json");
-            findToken(runContext).ifPresent(token -> request.addHeader("Authorization", "Bearer %s".formatted(token)));
-            var response = download(client, request.build(), tempFile);
+            var target = archiveUri;
+            HttpResponse<Void> response = null;
+            for (var hop = 0; hop <= MAX_REDIRECTS; hop++) {
+                var request = HttpRequest.builder()
+                    .uri(target)
+                    .addHeader("Accept", "application/vnd.github+json");
+                // Renamed repositories redirect on the API host, then GitHub redirects to a signed URL on another host that must not get the token.
+                if (token.isPresent() && isSameOrigin(target, archiveUri)) {
+                    request.addHeader("Authorization", "Bearer %s".formatted(token.get()));
+                }
+                response = download(client, request.build(), tempFile);
 
-            // GitHub redirects to a signed download URL on another host, which must not receive the token.
-            var location = response.getHeaders().firstValue("Location");
-            if (response.getStatus().getCode() / 100 == 3 && location.isPresent()) {
-                response = download(client, HttpRequest.of(archiveUri.resolve(location.get())), tempFile);
+                var location = response.getHeaders().firstValue("Location");
+                if (response.getStatus().getCode() / 100 != 3 || location.isEmpty()) {
+                    break;
+                }
+                target = target.resolve(location.get());
             }
 
             var status = response.getStatus().getCode();
-            if (status == 404) {
-                throw new IllegalArgumentException(
-                    "No archive found for %s at ref `%s`. Check that the ref exists and the token has the `contents:read` permission.".formatted(rRepository, rRef)
+            var isRateLimited = status == 429 || (status == 403 && "0".equals(response.getHeaders().firstValue("x-ratelimit-remaining").orElse(null)));
+            if (isRateLimited) {
+                throw new IllegalStateException(
+                    "GitHub rate limit reached (HTTP %d) while downloading %s. Retry later, or set a token for a higher limit.".formatted(status, rRepository)
                 );
             }
-            if (status == 401 || status == 403) {
+            if (status == 404) {
+                throw new IllegalArgumentException(token.isPresent()
+                    ? "No archive found for %s at ref `%s`. Check that the ref exists and the token has the `contents:read` permission.".formatted(rRepository, rRef)
+                    : "No archive found for %s at ref `%s`. Check that the ref exists, and set `oauthToken` or `appInstallationToken` for a private repository.".formatted(rRepository, rRef)
+                );
+            }
+            if (token.isPresent() && (status == 401 || status == 403)) {
                 throw new IllegalArgumentException(
                     "GitHub rejected the token (HTTP %d). Check that it is valid and has the `contents:read` permission on %s.".formatted(status, rRepository)
                 );
@@ -171,6 +190,12 @@ public class DownloadArchive extends AbstractGithubTask implements RunnableTask<
             .size(size)
             .ref(rRef)
             .build();
+    }
+
+    private static boolean isSameOrigin(URI uri, URI origin) {
+        return Objects.equals(uri.getScheme(), origin.getScheme())
+            && Objects.equals(uri.getHost(), origin.getHost())
+            && uri.getPort() == origin.getPort();
     }
 
     private static HttpResponse<Void> download(HttpClient client, HttpRequest request, Path target) throws Exception {

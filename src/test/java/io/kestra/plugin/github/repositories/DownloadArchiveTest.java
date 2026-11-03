@@ -134,6 +134,32 @@ public class DownloadArchiveTest extends AbstractGithubClientTest {
     }
 
     @Test
+    void renamedRepositoryKeepsTokenOnApiHostOnly() throws Exception {
+        var downloadAuthorization = new AtomicReference<String>();
+        var payloadServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        payloadServer.createContext("/archive", exchange -> {
+            downloadAuthorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
+            exchange.sendResponseHeaders(200, MockController.ZIP_BYTES.length);
+            try (var body = exchange.getResponseBody()) {
+                body.write(MockController.ZIP_BYTES);
+            }
+        });
+        payloadServer.start();
+        try {
+            MockController.archiveRenamed = true;
+            MockController.archiveRedirect = "http://127.0.0.1:%d/archive".formatted(payloadServer.getAddress().getPort());
+
+            var output = task().ref(Property.ofValue("main")).build().run(runContextFactory.of());
+
+            assertThat(MockController.renamedAuthorization).isEqualTo("Bearer oauth-token");
+            assertThat(downloadAuthorization.get()).isNull();
+            assertStored(output, MockController.ZIP_BYTES);
+        } finally {
+            payloadServer.stop(0);
+        }
+    }
+
+    @Test
     void missingArchiveFails() {
         MockController.archiveMissing = true;
 
