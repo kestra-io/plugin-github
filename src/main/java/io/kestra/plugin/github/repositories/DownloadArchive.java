@@ -29,6 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @SuperBuilder
@@ -91,6 +92,7 @@ import java.util.stream.Collectors;
 )
 public class DownloadArchive extends AbstractGithubTask implements RunnableTask<DownloadArchive.Output> {
     private static final int MAX_REDIRECTS = 5;
+    private static final Pattern REPOSITORY_PATTERN = Pattern.compile("[\\w.-]+/[\\w.-]+");
 
     @Schema(
         title = "Target repository",
@@ -121,6 +123,9 @@ public class DownloadArchive extends AbstractGithubTask implements RunnableTask<
     @Override
     public Output run(RunContext runContext) throws Exception {
         var rRepository = runContext.render(repository).as(String.class).orElseThrow(() -> new IllegalArgumentException("`repository` is required, in `owner/repo` format"));
+        if (!REPOSITORY_PATTERN.matcher(rRepository).matches()) {
+            throw new IllegalArgumentException("`repository` must be in `owner/repo` format, got `%s`.".formatted(rRepository));
+        }
         var rFormat = runContext.render(this.format).as(Format.class).orElse(Format.ZIP);
         var gitHub = connect(runContext);
         var rRef = runContext.render(this.ref).as(String.class).filter(value -> !value.isBlank()).orElse(null);
@@ -128,7 +133,11 @@ public class DownloadArchive extends AbstractGithubTask implements RunnableTask<
             rRef = gitHub.getRepository(rRepository).getDefaultBranch();
         }
 
-        var encodedRef = Arrays.stream(rRef.split("/"))
+        var refSegments = rRef.split("/");
+        if (Arrays.stream(refSegments).anyMatch(segment -> segment.equals(".") || segment.equals(".."))) {
+            throw new IllegalArgumentException("`ref` `%s` is not a valid Git ref.".formatted(rRef));
+        }
+        var encodedRef = Arrays.stream(refSegments)
             .map(segment -> URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20"))
             .collect(Collectors.joining("/"));
         var archiveUri = URI.create("%s/repos/%s/%s/%s".formatted(gitHub.getApiUrl(), rRepository, rFormat.endpoint, encodedRef));
@@ -137,7 +146,7 @@ public class DownloadArchive extends AbstractGithubTask implements RunnableTask<
             .followRedirects(Property.ofValue(false))
             .allowFailed(Property.ofValue(true))
             .build();
-        var token = findToken(runContext);
+        var rToken = findToken(runContext);
         try (var client = new HttpClient(runContext, httpConfig)) {
             var target = archiveUri;
             HttpResponse<Void> response = null;
@@ -146,8 +155,8 @@ public class DownloadArchive extends AbstractGithubTask implements RunnableTask<
                     .uri(target)
                     .addHeader("Accept", "application/vnd.github+json");
                 // Renamed repositories redirect on the API host, then GitHub redirects to a signed URL on another host that must not get the token.
-                if (token.isPresent() && isSameOrigin(target, archiveUri)) {
-                    request.addHeader("Authorization", "Bearer %s".formatted(token.get()));
+                if (rToken.isPresent() && isSameOrigin(target, archiveUri)) {
+                    request.addHeader("Authorization", "Bearer %s".formatted(rToken.get()));
                 }
                 response = download(client, request.build(), tempFile);
 
@@ -166,12 +175,12 @@ public class DownloadArchive extends AbstractGithubTask implements RunnableTask<
                 );
             }
             if (status == 404) {
-                throw new IllegalArgumentException(token.isPresent()
+                throw new IllegalArgumentException(rToken.isPresent()
                     ? "No archive found for %s at ref `%s`. Check that the ref exists and the token has the `contents:read` permission.".formatted(rRepository, rRef)
                     : "No archive found for %s at ref `%s`. Check that the ref exists, and set `oauthToken` or `appInstallationToken` for a private repository.".formatted(rRepository, rRef)
                 );
             }
-            if (token.isPresent() && (status == 401 || status == 403)) {
+            if (rToken.isPresent() && (status == 401 || status == 403)) {
                 throw new IllegalArgumentException(
                     "GitHub rejected the token (HTTP %d). Check that it is valid and has the `contents:read` permission on %s.".formatted(status, rRepository)
                 );

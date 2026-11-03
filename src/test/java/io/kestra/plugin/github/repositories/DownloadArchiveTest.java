@@ -169,6 +169,34 @@ public class DownloadArchiveTest extends AbstractGithubClientTest {
             .hasMessageContaining("contents:read");
     }
 
+    @Test
+    void missingArchiveWithoutTokenSuggestsOne() {
+        MockController.archiveMissing = true;
+
+        assertThatThrownBy(() -> task().oauthToken(null).ref(Property.ofValue("main")).build().run(runContextFactory.of()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("set `oauthToken` or `appInstallationToken`");
+    }
+
+    @Test
+    void rateLimitIsReported() {
+        MockController.archiveRateLimited = true;
+
+        assertThatThrownBy(() -> task().ref(Property.ofValue("main")).build().run(runContextFactory.of()))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("rate limit");
+    }
+
+    @Test
+    void invalidInputsFailBeforeDownloading() {
+        assertThatThrownBy(() -> task().repository(Property.ofValue("kestra-io/mock-kestra/extra")).build().run(runContextFactory.of()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("`owner/repo`");
+        assertThatThrownBy(() -> task().ref(Property.ofValue("../../user")).build().run(runContextFactory.of()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("not a valid Git ref");
+    }
+
     private void assertStored(DownloadArchive.Output output, byte[] expected) throws IOException {
         assertThat(output.getUri()).isNotNull();
         try (var input = storageInterface.get(TenantService.MAIN_TENANT, null, output.getUri())) {

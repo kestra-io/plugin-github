@@ -27,6 +27,7 @@ public class MockController {
     public static volatile boolean archiveMissing = false;
     public static volatile String archiveRedirect;
     public static volatile boolean archiveRenamed = false;
+    public static volatile boolean archiveRateLimited = false;
     public static volatile String renamedAuthorization;
     public static final byte[] TAR_BYTES = "kestra-tar".getBytes(StandardCharsets.UTF_8);
     public static final byte[] ZIP_BYTES = "kestra-zip".getBytes(StandardCharsets.UTF_8);
@@ -81,6 +82,9 @@ public class MockController {
 
     private HttpResponse<?> archive(HttpRequest<?> request, byte[] payload) {
         capture(request);
+        if (archiveRateLimited) {
+            return HttpResponse.status(HttpStatus.FORBIDDEN).header("x-ratelimit-remaining", "0");
+        }
         if (archiveRenamed) {
             return HttpResponse.status(HttpStatus.MOVED_PERMANENTLY).header("Location", "/repositories/1/zipball/main");
         }
