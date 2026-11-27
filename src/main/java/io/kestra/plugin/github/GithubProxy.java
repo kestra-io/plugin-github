@@ -102,7 +102,7 @@ public final class GithubProxy {
         if (status == PROXY_AUTH_REQUIRED) {
             var resolved = resolve(runContext, proxy);
             throw new IllegalStateException(resolved == null
-                ? "HTTP 407 Proxy Authentication Required received."
+                ? "HTTP 407 Proxy Authentication Required: a network proxy requires authentication. Set the proxy property with type: HTTP, address, port, username and password."
                 : proxyAuthMessage(resolved.host(), resolved.port()));
         }
     }

@@ -269,8 +269,8 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
                     .build();
 
                 var response = client.request(request, String.class);
-                GithubProxy.checkStatus(runContext, getProxy(), response.getStatus().getCode());
                 var statusCode = response.getStatus().getCode();
+                GithubProxy.checkStatus(runContext, getProxy(), statusCode);
                 if (statusCode != 200) {
                     throw new RuntimeException(
                         "GitHub GraphQL request failed with HTTP %d: %s".formatted(statusCode, response.getBody())
