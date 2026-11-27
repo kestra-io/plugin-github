@@ -3,8 +3,6 @@ package io.kestra.plugin.github.actions;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kestra.core.http.HttpRequest;
-import io.kestra.core.http.client.HttpClient;
-import io.kestra.core.http.client.configurations.HttpConfiguration;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
@@ -13,6 +11,7 @@ import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.plugin.github.AbstractGithubTask;
+import io.kestra.plugin.github.GithubProxy;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -255,8 +254,8 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
             .replaceFirst("/+$", "");
         var url = "%s/repos/%s/actions/workflows/%d/dispatches".formatted(rEndpoint, rRepository, workflow.getId());
 
-        var httpConfig = HttpConfiguration.builder().allowFailed(Property.ofValue(true)).build();
-        try (var client = new HttpClient(runContext, httpConfig)) {
+        var httpConfig = GithubProxy.httpConfiguration(runContext, getProxy()).allowFailed(Property.ofValue(true)).build();
+        try (var client = new GithubProxy.Client(runContext, getProxy(), httpConfig)) {
             var request = HttpRequest.builder()
                 .uri(URI.create(url))
                 .method("POST")
@@ -267,6 +266,7 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
                 .build();
             var response = client.request(request, String.class);
             var status = response.getStatus().getCode();
+            GithubProxy.checkStatus(runContext, getProxy(), status);
 
             if (status == 204) {
                 return Optional.empty();

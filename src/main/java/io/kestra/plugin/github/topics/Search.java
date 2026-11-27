@@ -3,8 +3,7 @@ package io.kestra.plugin.github.topics;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kestra.core.http.HttpRequest;
-import io.kestra.core.http.client.HttpClient;
-import io.kestra.core.http.client.configurations.HttpConfiguration;
+import io.kestra.core.http.client.configurations.ProxyConfiguration;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.property.Property;
@@ -13,6 +12,7 @@ import io.kestra.core.models.tasks.common.FetchType;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.plugin.github.AbstractGithubSearchTask;
+import io.kestra.plugin.github.GithubProxy;
 import io.kestra.plugin.github.model.TopicDetails;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
@@ -142,7 +142,7 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
     @Override
     public AbstractGithubSearchTask.Output run(RunContext runContext) throws Exception {
         var gitHub = connect(runContext);
-        var searchBuilder = new GHTopicSearchBuilder(gitHub, runContext, resolveAuthorizationHeader(runContext));
+        var searchBuilder = new GHTopicSearchBuilder(gitHub, runContext, resolveAuthorizationHeader(runContext), getProxy());
 
         runContext.render(this.query).as(String.class).ifPresent(searchBuilder::query);
         runContext.render(this.is).as(Is.class).map(Is::toString).ifPresent(searchBuilder::is);
@@ -195,13 +195,19 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
         private final GitHub root;
         private final RunContext runContext;
         private final String authorizationHeader;
+        private final ProxyConfiguration proxy;
         private final List<String> terms = new ArrayList<>();
         private final List<String> parameters = new ArrayList<>();
 
         public GHTopicSearchBuilder(GitHub gitHub, RunContext runContext, String authorizationHeader) {
+            this(gitHub, runContext, authorizationHeader, null);
+        }
+
+        public GHTopicSearchBuilder(GitHub gitHub, RunContext runContext, String authorizationHeader, ProxyConfiguration proxy) {
             this.root = gitHub;
             this.runContext = runContext;
             this.authorizationHeader = authorizationHeader;
+            this.proxy = proxy;
         }
 
         public GHTopicSearchBuilder query(String query) {
@@ -253,8 +259,9 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
                 requestBuilder.addHeader("Authorization", this.authorizationHeader);
             }
 
-            try (var client = new HttpClient(runContext, HttpConfiguration.builder().build())) {
+            try (var client = new GithubProxy.Client(runContext, this.proxy, GithubProxy.httpConfiguration(runContext, this.proxy).build())) {
                 var response = client.request(requestBuilder.build(), String.class);
+                GithubProxy.checkStatus(runContext, this.proxy, response.getStatus().getCode());
                 if (response.getStatus().getCode() != 200) {
                     throw new IllegalStateException("GitHub topic search failed with status code: " + response.getStatus().getCode());
                 }

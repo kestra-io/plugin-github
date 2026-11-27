@@ -1,5 +1,6 @@
 package io.kestra.plugin.github.actions;
 
+import io.kestra.core.http.client.configurations.ProxyConfiguration;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
@@ -14,6 +15,7 @@ import io.kestra.core.models.triggers.TriggerService;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.storages.kv.KVStore;
 import io.kestra.core.storages.kv.KVValueAndMetadata;
+import io.kestra.plugin.github.GithubProxy;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
@@ -128,6 +130,13 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     )
     @PluginProperty(group = "connection")
     private Property<String> endpoint;
+
+    @Schema(
+        title = "Proxy configuration",
+        description = GithubProxy.PROXY_PROPERTY_DESCRIPTION
+    )
+    @PluginProperty(group = "connection")
+    private ProxyConfiguration proxy;
 
     @Schema(
         title = "Target repository",
@@ -272,6 +281,8 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         runContext.render(this.jwtToken).as(String.class).ifPresent(builder::withJwtToken);
         runContext.render(this.appInstallationToken).as(String.class).ifPresent(builder::withAppInstallationToken);
         runContext.render(this.endpoint).as(String.class).ifPresent(builder::withEndpoint);
+
+        GithubProxy.apply(builder, runContext, this.proxy);
 
         return builder.build();
     }

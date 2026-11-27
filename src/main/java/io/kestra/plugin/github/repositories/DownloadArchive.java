@@ -3,7 +3,6 @@ package io.kestra.plugin.github.repositories;
 import io.kestra.core.http.HttpRequest;
 import io.kestra.core.http.HttpResponse;
 import io.kestra.core.http.client.HttpClient;
-import io.kestra.core.http.client.configurations.HttpConfiguration;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
@@ -11,6 +10,7 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.github.AbstractGithubTask;
+import io.kestra.plugin.github.GithubProxy;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
@@ -142,12 +142,12 @@ public class DownloadArchive extends AbstractGithubTask implements RunnableTask<
             .collect(Collectors.joining("/"));
         var archiveUri = URI.create("%s/repos/%s/%s/%s".formatted(gitHub.getApiUrl(), rRepository, rFormat.endpoint, encodedRef));
         var tempFile = runContext.workingDir().createTempFile(rFormat.extension);
-        var httpConfig = HttpConfiguration.builder()
+        var httpConfig = GithubProxy.httpConfiguration(runContext, getProxy())
             .followRedirects(Property.ofValue(false))
             .allowFailed(Property.ofValue(true))
             .build();
         var rToken = findToken(runContext);
-        try (var client = new HttpClient(runContext, httpConfig)) {
+        try (var client = new GithubProxy.Client(runContext, getProxy(), httpConfig)) {
             var target = archiveUri;
             HttpResponse<Void> response = null;
             for (var hop = 0; hop <= MAX_REDIRECTS; hop++) {
@@ -168,6 +168,7 @@ public class DownloadArchive extends AbstractGithubTask implements RunnableTask<
             }
 
             var status = response.getStatus().getCode();
+            GithubProxy.checkStatus(runContext, getProxy(), status);
             var isRateLimited = status == 429 || (status == 403 && "0".equals(response.getHeaders().firstValue("x-ratelimit-remaining").orElse(null)));
             if (isRateLimited) {
                 throw new IllegalStateException(
