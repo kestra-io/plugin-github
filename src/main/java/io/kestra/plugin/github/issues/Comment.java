@@ -68,6 +68,28 @@ import io.kestra.core.models.annotations.PluginProperty;
                    """
         ),
         @Example(
+            title = "Comment on an issue through an authenticated HTTP proxy. `type: HTTP` is required for the proxy to be used.",
+            full = true,
+            code = """
+                   id: github_comment_via_proxy
+                   namespace: company.team
+
+                   tasks:
+                     - id: comment_on_issue
+                       type: io.kestra.plugin.github.issues.Comment
+                       oauthToken: "{{ secret('GITHUB_ACCESS_TOKEN') }}"
+                       repository: kestra-io/kestra
+                       issueNumber: 1347
+                       body: "Triaged by execution {{ execution.id }}"
+                       proxy:
+                         type: HTTP
+                         address: proxy.acme.com
+                         port: 3128
+                         username: "{{ secret('PROXY_USERNAME') }}"
+                         password: "{{ secret('PROXY_PASSWORD') }}"
+                   """
+        ),
+        @Example(
             title = "Update a specific comment by its identifier.",
             full = true,
             code = """

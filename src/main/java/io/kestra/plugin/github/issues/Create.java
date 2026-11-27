@@ -14,6 +14,7 @@ import io.kestra.core.models.tasks.TicketingTaskInterface;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.plugin.github.AbstractGithubTask;
+import io.kestra.plugin.github.GithubProxy;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -233,7 +234,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
         );
         var bodyJson = OBJECT_MAPPER.writeValueAsString(Map.of("field_values", resolvedFields));
 
-        var httpConfig = HttpConfiguration.builder().allowFailed(Property.ofValue(true)).build();
+        var httpConfig = GithubProxy.httpConfiguration(runContext, getProxy()).allowFailed(Property.ofValue(true)).build();
         try (var client = new HttpClient(runContext, httpConfig)) {
             var request = HttpRequest.builder()
                 .uri(URI.create(url))
@@ -246,6 +247,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
                 .build();
             var response = client.request(request, String.class);
             var status = response.getStatus().getCode();
+            GithubProxy.checkStatus(status);
             if (status < 200 || status >= 300) {
                 var body = response.getBody();
                 runContext.logger().error("Failed to set field values on issue {} (HTTP {}): {}",
@@ -305,7 +307,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
             String endpoint,
             String org) throws Exception {
 
-        var httpConfig = HttpConfiguration.builder().allowFailed(Property.ofValue(true)).build();
+        var httpConfig = GithubProxy.httpConfiguration(runContext, getProxy()).allowFailed(Property.ofValue(true)).build();
         try (var client = new HttpClient(runContext, httpConfig)) {
             var restUrl = "%s/orgs/%s/issues/field-definitions".formatted(endpoint.stripTrailing(), org);
             var restRequest = HttpRequest.builder()
@@ -317,6 +319,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
                 .build();
             var restResponse = client.request(restRequest, String.class);
             var restStatus = restResponse.getStatus().getCode();
+            GithubProxy.checkStatus(restStatus);
 
             if (restStatus == 200) {
                 return parseRestFieldDefinitions(restResponse.getBody());
@@ -371,6 +374,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
             .build();
         var graphqlResponse = client.request(graphqlRequest, String.class);
         var graphqlStatus = graphqlResponse.getStatus().getCode();
+        GithubProxy.checkStatus(graphqlStatus);
 
         if (graphqlStatus == 404) {
             throw new IllegalArgumentException(

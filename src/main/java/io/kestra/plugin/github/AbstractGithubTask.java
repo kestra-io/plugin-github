@@ -1,5 +1,6 @@
 package io.kestra.plugin.github;
 
+import io.kestra.core.http.client.configurations.ProxyConfiguration;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.Task;
@@ -59,6 +60,13 @@ public abstract class AbstractGithubTask extends Task {
     @PluginProperty(group = "connection")
     private Property<String> endpoint;
 
+    @Schema(
+        title = "Proxy configuration",
+        description = GithubProxy.PROXY_PROPERTY_DESCRIPTION
+    )
+    @PluginProperty(group = "connection")
+    private ProxyConfiguration proxy;
+
     protected Property<String> oauthTokenProperty() {
         return oauthToken;
     }
@@ -102,6 +110,8 @@ public abstract class AbstractGithubTask extends Task {
         runContext.render(this.jwtToken).as(String.class).ifPresent(builder::withJwtToken);
         runContext.render(this.appInstallationToken).as(String.class).ifPresent(builder::withAppInstallationToken);
         runContext.render(this.endpoint).as(String.class).ifPresent(builder::withEndpoint);
+
+        GithubProxy.apply(builder, runContext, this.proxy);
 
         return builder.build();
     }

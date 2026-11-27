@@ -14,6 +14,7 @@ import io.kestra.core.models.tasks.common.FetchType;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.plugin.github.AbstractGithubSearchTask;
+import io.kestra.plugin.github.GithubProxy;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -246,7 +247,7 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
         var graphqlUrl = rEndpoint.stripTrailing().replaceFirst("/+$", "") + "/graphql";
         var allItems = new ArrayList<Map<String, Object>>();
 
-        var httpConfig = HttpConfiguration.builder().allowFailed(Property.ofValue(true)).build();
+        var httpConfig = GithubProxy.httpConfiguration(runContext, getProxy()).allowFailed(Property.ofValue(true)).build();
         try (var client = new HttpClient(runContext, httpConfig)) {
             String cursor = null;
             boolean hasNextPage = true;
@@ -270,6 +271,7 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
                     .build();
 
                 var response = client.request(request, String.class);
+                GithubProxy.checkStatus(response.getStatus().getCode());
                 var statusCode = response.getStatus().getCode();
                 if (statusCode != 200) {
                     throw new RuntimeException(

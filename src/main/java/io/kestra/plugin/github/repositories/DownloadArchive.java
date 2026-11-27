@@ -11,6 +11,7 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.github.AbstractGithubTask;
+import io.kestra.plugin.github.GithubProxy;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
@@ -142,7 +143,7 @@ public class DownloadArchive extends AbstractGithubTask implements RunnableTask<
             .collect(Collectors.joining("/"));
         var archiveUri = URI.create("%s/repos/%s/%s/%s".formatted(gitHub.getApiUrl(), rRepository, rFormat.endpoint, encodedRef));
         var tempFile = runContext.workingDir().createTempFile(rFormat.extension);
-        var httpConfig = HttpConfiguration.builder()
+        var httpConfig = GithubProxy.httpConfiguration(runContext, getProxy())
             .followRedirects(Property.ofValue(false))
             .allowFailed(Property.ofValue(true))
             .build();
@@ -168,6 +169,7 @@ public class DownloadArchive extends AbstractGithubTask implements RunnableTask<
             }
 
             var status = response.getStatus().getCode();
+            GithubProxy.checkStatus(status);
             var isRateLimited = status == 429 || (status == 403 && "0".equals(response.getHeaders().firstValue("x-ratelimit-remaining").orElse(null)));
             if (isRateLimited) {
                 throw new IllegalStateException(

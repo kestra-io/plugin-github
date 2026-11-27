@@ -6,6 +6,10 @@ Use the GitHub REST API from Kestra flows to automate issues, pull requests, Act
 
 Set `oauthToken` to a GitHub Personal Access Token (PAT) or a GitHub App installation token. Fine-grained PATs are preferred — scope them to the minimum repositories and permissions needed. Store the token in a [secret](https://kestra.io/docs/concepts/secret) and reference it with `{{ secret('GITHUB_TOKEN') }}`.
 
+## Proxy
+
+Every task, the `Trigger` and `AppToken` accept an optional `proxy` property. It is active when `proxy.address` is set, and `proxy.type` must then be `HTTP` (or `SOCKS`): the default `DIRECT` with an address is rejected. Set `proxy.username` and `proxy.password` (as secrets) for Basic proxy authentication; SOCKS proxies do not support credentials.
+
 ## Tasks
 
 `actions.RunWorkflow` dispatches a GitHub Actions workflow by name or ID — use it to trigger CI pipelines or automation jobs from a Kestra flow and optionally pass inputs. `issues.Create` and `issues.Comment` automate issue management; `pulls.Create` opens a pull request programmatically after a branch push.

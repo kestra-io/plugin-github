@@ -13,6 +13,7 @@ import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.plugin.github.AbstractGithubTask;
+import io.kestra.plugin.github.GithubProxy;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -255,7 +256,7 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
             .replaceFirst("/+$", "");
         var url = "%s/repos/%s/actions/workflows/%d/dispatches".formatted(rEndpoint, rRepository, workflow.getId());
 
-        var httpConfig = HttpConfiguration.builder().allowFailed(Property.ofValue(true)).build();
+        var httpConfig = GithubProxy.httpConfiguration(runContext, getProxy()).allowFailed(Property.ofValue(true)).build();
         try (var client = new HttpClient(runContext, httpConfig)) {
             var request = HttpRequest.builder()
                 .uri(URI.create(url))
@@ -267,6 +268,7 @@ public class RunWorkflow extends AbstractGithubTask implements RunnableTask<RunW
                 .build();
             var response = client.request(request, String.class);
             var status = response.getStatus().getCode();
+            GithubProxy.checkStatus(status);
 
             if (status == 204) {
                 return Optional.empty();

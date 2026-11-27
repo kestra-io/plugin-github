@@ -3,7 +3,7 @@ package io.kestra.plugin.github.auth;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kestra.core.http.HttpRequest;
 import io.kestra.core.http.client.HttpClient;
-import io.kestra.core.http.client.configurations.HttpConfiguration;
+import io.kestra.core.http.client.configurations.ProxyConfiguration;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
@@ -12,6 +12,7 @@ import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.JacksonMapper;
+import io.kestra.plugin.github.GithubProxy;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
@@ -66,6 +67,27 @@ import java.util.Map;
                        issueNumber: 1347
                        body: "Triaged automatically. Execution: {{ execution.id }}"
                    """
+        ),
+        @Example(
+            title = "Issue an installation token through an authenticated HTTP proxy.",
+            full = true,
+            code = """
+                   id: github_app_token_proxy
+                   namespace: company.team
+
+                   tasks:
+                     - id: token
+                       type: io.kestra.plugin.github.auth.AppToken
+                       clientId: "{{ secret('GITHUB_APP_CLIENT_ID') }}"
+                       installationId: "52068731"
+                       privateKey: "{{ secret('GITHUB_APP_PRIVATE_KEY') }}"
+                       proxy:
+                         type: HTTP
+                         address: proxy.acme.com
+                         port: 3128
+                         username: "{{ secret('PROXY_USERNAME') }}"
+                         password: "{{ secret('PROXY_PASSWORD') }}"
+                   """
         )
     }
 )
@@ -106,6 +128,13 @@ public class AppToken extends Task implements RunnableTask<AppToken.Output> {
     @PluginProperty(group = "connection")
     private Property<String> endpoint = Property.ofValue(DEFAULT_ENDPOINT);
 
+    @Schema(
+        title = "Proxy configuration",
+        description = GithubProxy.PROXY_PROPERTY_DESCRIPTION
+    )
+    @PluginProperty(group = "connection")
+    private ProxyConfiguration proxy;
+
     @Override
     public AppToken.Output run(RunContext runContext) throws Exception {
         var logger = runContext.logger();
@@ -126,10 +155,11 @@ public class AppToken extends Task implements RunnableTask<AppToken.Output> {
             .addHeader("X-GitHub-Api-Version", "2022-11-28")
             .build();
 
-        try (var http = new HttpClient(runContext, HttpConfiguration.builder().build())) {
+        try (var http = new HttpClient(runContext, GithubProxy.httpConfiguration(runContext, this.proxy).build())) {
             var resp = http.request(req, String.class);
 
             var status = resp.getStatus().getCode();
+            GithubProxy.checkStatus(status);
             if (status < 200 || status >= 300) {
                 logger.debug("GitHub installation token exchange response body: {}", resp.getBody());
                 throw new IllegalStateException(
