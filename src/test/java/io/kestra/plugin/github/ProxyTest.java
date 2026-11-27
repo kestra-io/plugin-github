@@ -11,9 +11,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
+import java.io.IOException;
+import java.net.InetAddress;
 import java.net.Proxy;
+import java.net.ServerSocket;
+import java.security.KeyPairGenerator;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -131,6 +136,21 @@ class ProxyTest extends AbstractGithubClientTest {
     }
 
     @Test
+    void usernameWithoutPasswordFailsFast() {
+        var half = ProxyConfiguration.builder()
+            .type(Property.ofValue(Proxy.Type.HTTP))
+            .address(Property.ofValue("127.0.0.1"))
+            .port(Property.ofValue(3128))
+            .username(Property.ofValue(USERNAME))
+            .build();
+
+        assertThatThrownBy(() -> commentBuilder().proxy(half).build().run(runContextFactory.of()))
+            .hasMessageContaining("must be set together");
+        assertThatThrownBy(() -> projectsBuilder().proxy(half).build().run(runContextFactory.of()))
+            .hasMessageContaining("must be set together");
+    }
+
+    @Test
     void socksWithCredentialsIsRejected() {
         var socks = ProxyConfiguration.builder()
             .type(Property.ofValue(Proxy.Type.SOCKS))
@@ -155,7 +175,7 @@ class ProxyTest extends AbstractGithubClientTest {
     @Test
     void socksWithoutCredentialsIsUsed() throws Exception {
         var reached = new AtomicBoolean();
-        try (var socks = new java.net.ServerSocket(0, 1, java.net.InetAddress.getLoopbackAddress())) {
+        try (var socks = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
             var thread = Thread.ofVirtual().start(() ->
             {
                 try (var client = socks.accept()) {
@@ -203,17 +223,17 @@ class ProxyTest extends AbstractGithubClientTest {
                 .build();
 
             assertThatThrownBy(() -> task.run(runContextFactory.of()))
-                .satisfies(e -> {
-                    assertThat(stack(e)).contains("407").doesNotContain("wrong-password");
-                });
+                .hasStackTraceContaining("Could not open a tunnel through the proxy 127.0.0.1:" + refusing.port())
+                .satisfies(e -> assertThat(stack(e)).doesNotContain("wrong-password"));
+            assertThat(refusing.connects.get()).isLessThanOrEqualTo(4);
         }
     }
 
     private static final class ConnectRefusingProxy implements AutoCloseable {
-        private final java.net.ServerSocket socket = new java.net.ServerSocket(0, 50, java.net.InetAddress.getLoopbackAddress());
-        final java.util.concurrent.atomic.AtomicInteger connects = new java.util.concurrent.atomic.AtomicInteger();
+        private final ServerSocket socket = new ServerSocket(0, 50, InetAddress.getLoopbackAddress());
+        final AtomicInteger connects = new AtomicInteger();
 
-        ConnectRefusingProxy() throws java.io.IOException {
+        ConnectRefusingProxy() throws IOException {
             Thread.ofVirtual().start(() ->
             {
                 while (!socket.isClosed()) {
@@ -241,7 +261,7 @@ class ProxyTest extends AbstractGithubClientTest {
         }
 
         @Override
-        public void close() throws java.io.IOException {
+        public void close() throws IOException {
             socket.close();
         }
     }
@@ -255,7 +275,7 @@ class ProxyTest extends AbstractGithubClientTest {
     }
 
     private static String pkcs8Pem() throws Exception {
-        var generator = java.security.KeyPairGenerator.getInstance("RSA");
+        var generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(2048);
         var encoded = Base64.getMimeEncoder(64, "\n".getBytes()).encodeToString(generator.generateKeyPair().getPrivate().getEncoded());
         return "-----BEGIN PRIVATE KEY-----\n" + encoded + "\n-----END PRIVATE KEY-----";

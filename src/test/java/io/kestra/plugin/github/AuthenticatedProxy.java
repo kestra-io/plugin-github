@@ -85,5 +85,6 @@ public class AuthenticatedProxy implements AutoCloseable {
     @Override
     public void close() {
         server.stop(0);
+        forwarder.close();
     }
 }

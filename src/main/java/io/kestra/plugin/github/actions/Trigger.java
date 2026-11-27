@@ -1,6 +1,5 @@
 package io.kestra.plugin.github.actions;
 
-import io.kestra.plugin.github.GithubProxy;
 import io.kestra.core.http.client.configurations.ProxyConfiguration;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
@@ -16,6 +15,7 @@ import io.kestra.core.models.triggers.TriggerService;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.storages.kv.KVStore;
 import io.kestra.core.storages.kv.KVValueAndMetadata;
+import io.kestra.plugin.github.GithubProxy;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
