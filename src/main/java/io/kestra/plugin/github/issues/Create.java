@@ -3,7 +3,6 @@ package io.kestra.plugin.github.issues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kestra.core.http.HttpRequest;
 import io.kestra.core.http.client.HttpClient;
-import io.kestra.core.http.client.configurations.HttpConfiguration;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
@@ -235,7 +234,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
         var bodyJson = OBJECT_MAPPER.writeValueAsString(Map.of("field_values", resolvedFields));
 
         var httpConfig = GithubProxy.httpConfiguration(runContext, getProxy()).allowFailed(Property.ofValue(true)).build();
-        try (var client = new HttpClient(runContext, httpConfig)) {
+        try (var client = new GithubProxy.Client(runContext, getProxy(), httpConfig)) {
             var request = HttpRequest.builder()
                 .uri(URI.create(url))
                 .method("PUT")
@@ -247,7 +246,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
                 .build();
             var response = client.request(request, String.class);
             var status = response.getStatus().getCode();
-            GithubProxy.checkStatus(status);
+            GithubProxy.checkStatus(runContext, getProxy(), status);
             if (status < 200 || status >= 300) {
                 var body = response.getBody();
                 runContext.logger().error("Failed to set field values on issue {} (HTTP {}): {}",
@@ -308,7 +307,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
             String org) throws Exception {
 
         var httpConfig = GithubProxy.httpConfiguration(runContext, getProxy()).allowFailed(Property.ofValue(true)).build();
-        try (var client = new HttpClient(runContext, httpConfig)) {
+        try (var client = new GithubProxy.Client(runContext, getProxy(), httpConfig)) {
             var restUrl = "%s/orgs/%s/issues/field-definitions".formatted(endpoint.stripTrailing(), org);
             var restRequest = HttpRequest.builder()
                 .uri(URI.create(restUrl))
@@ -319,7 +318,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
                 .build();
             var restResponse = client.request(restRequest, String.class);
             var restStatus = restResponse.getStatus().getCode();
-            GithubProxy.checkStatus(restStatus);
+            GithubProxy.checkStatus(runContext, getProxy(), restStatus);
 
             if (restStatus == 200) {
                 return parseRestFieldDefinitions(restResponse.getBody());
@@ -374,7 +373,7 @@ public class Create extends AbstractGithubTask implements RunnableTask<Create.Ou
             .build();
         var graphqlResponse = client.request(graphqlRequest, String.class);
         var graphqlStatus = graphqlResponse.getStatus().getCode();
-        GithubProxy.checkStatus(graphqlStatus);
+        GithubProxy.checkStatus(runContext, getProxy(), graphqlStatus);
 
         if (graphqlStatus == 404) {
             throw new IllegalArgumentException(

@@ -176,6 +176,76 @@ class ProxyTest extends AbstractGithubClientTest {
         }
     }
 
+    @Test
+    void connectRefusedWith407FailsClearlyOnGithubApi() throws Exception {
+        try (var refusing = new ConnectRefusingProxy()) {
+            var task = commentBuilder()
+                .endpoint(Property.ofValue("https://api.github.test"))
+                .proxy(proxy(refusing.port(), "wrong-password"))
+                .build();
+
+            assertThatThrownBy(() -> task.run(runContextFactory.of()))
+                .hasStackTraceContaining("Proxy authentication failed (HTTP 407) for 127.0.0.1:" + refusing.port())
+                .satisfies(e -> assertThat(stack(e)).doesNotContain("wrong-password"));
+            assertThat(refusing.connects.get()).isLessThanOrEqualTo(4);
+        }
+    }
+
+    @Test
+    void connectRefusedWith407ReportsOnCoreHttpClient() throws Exception {
+        try (var refusing = new ConnectRefusingProxy()) {
+            var task = AppToken.builder()
+                .clientId(Property.ofValue("Iv23liccgbXX6rx5d4gV"))
+                .installationId(Property.ofValue("52068731"))
+                .privateKey(Property.ofValue(pkcs8Pem()))
+                .endpoint(Property.ofValue("https://api.github.test"))
+                .proxy(proxy(refusing.port(), "wrong-password"))
+                .build();
+
+            assertThatThrownBy(() -> task.run(runContextFactory.of()))
+                .satisfies(e -> {
+                    assertThat(stack(e)).contains("407").doesNotContain("wrong-password");
+                });
+        }
+    }
+
+    private static final class ConnectRefusingProxy implements AutoCloseable {
+        private final java.net.ServerSocket socket = new java.net.ServerSocket(0, 50, java.net.InetAddress.getLoopbackAddress());
+        final java.util.concurrent.atomic.AtomicInteger connects = new java.util.concurrent.atomic.AtomicInteger();
+
+        ConnectRefusingProxy() throws java.io.IOException {
+            Thread.ofVirtual().start(() ->
+            {
+                while (!socket.isClosed()) {
+                    try (var client = socket.accept()) {
+                        var in = client.getInputStream();
+                        var head = new StringBuilder();
+                        int b;
+                        while (!head.toString().endsWith("\r\n\r\n") && (b = in.read()) != -1) {
+                            head.append((char) b);
+                        }
+                        if (head.toString().startsWith("CONNECT")) {
+                            connects.incrementAndGet();
+                        }
+                        client.getOutputStream().write("HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm=\"proxy\"\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".getBytes());
+                        client.getOutputStream().flush();
+                    } catch (Exception ignored) {
+                        // socket closed at the end of the test
+                    }
+                }
+            });
+        }
+
+        int port() {
+            return socket.getLocalPort();
+        }
+
+        @Override
+        public void close() throws java.io.IOException {
+            socket.close();
+        }
+    }
+
     private static String stack(Throwable throwable) {
         var builder = new StringBuilder();
         for (var t = throwable; t != null; t = t.getCause()) {

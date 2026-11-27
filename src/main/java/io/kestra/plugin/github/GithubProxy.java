@@ -1,17 +1,26 @@
 package io.kestra.plugin.github;
 
+import io.kestra.core.exceptions.IllegalVariableEvaluationException;
+import io.kestra.core.http.HttpRequest;
+import io.kestra.core.http.HttpResponse;
+import io.kestra.core.http.client.HttpClient;
+import io.kestra.core.http.client.HttpClientException;
 import io.kestra.core.http.client.configurations.HttpConfiguration;
 import io.kestra.core.http.client.configurations.ProxyConfiguration;
 import io.kestra.core.runners.RunContext;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
+import okhttp3.Response;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.function.Consumer;
 
 /**
  * Applies the optional `proxy` configuration to both the github-api client and Kestra's HTTP client.
@@ -22,6 +31,7 @@ public final class GithubProxy {
         Set `username` and `password` for Basic proxy authentication, using secrets such as `{{ secret('PROXY_PASSWORD') }}`. SOCKS proxies do not support credentials here.""";
 
     private static final int PROXY_AUTH_REQUIRED = 407;
+    private static final String PROXY_TUNNEL_AUTH_FAILURE = "Failed to authenticate with proxy";
 
     private GithubProxy() {
     }
@@ -65,12 +75,22 @@ public final class GithubProxy {
                 : response.request().newBuilder().header("Proxy-Authorization", credentials).build());
         }
 
+        var message = proxyAuthMessage(resolved.host(), resolved.port());
         okHttp.addInterceptor(chain ->
         {
-            var response = chain.proceed(chain.request());
+            Response response;
+            try {
+                response = chain.proceed(chain.request());
+            } catch (IOException e) {
+                // OkHttp raises this (a ProtocolException in some versions) when the CONNECT tunnel to an HTTPS target is refused with 407
+                if (PROXY_TUNNEL_AUTH_FAILURE.equals(e.getMessage())) {
+                    throw new IOException(message, e);
+                }
+                throw e;
+            }
             if (response.code() == PROXY_AUTH_REQUIRED) {
                 response.close();
-                throw new IOException(proxyAuthMessage());
+                throw new IOException(message);
             }
             return response;
         });
@@ -81,14 +101,57 @@ public final class GithubProxy {
     /**
      * Fails with an actionable message when the proxy rejected the credentials (HTTP 407).
      */
-    public static void checkStatus(int status) {
+    public static void checkStatus(RunContext runContext, ProxyConfiguration proxy, int status) throws Exception {
         if (status == PROXY_AUTH_REQUIRED) {
-            throw new IllegalStateException(proxyAuthMessage());
+            var resolved = resolve(runContext, proxy);
+            throw new IllegalStateException(resolved == null
+                ? "HTTP 407 Proxy Authentication Required received."
+                : proxyAuthMessage(resolved.host(), resolved.port()));
         }
     }
 
-    private static String proxyAuthMessage() {
-        return "Proxy authentication failed (HTTP 407): check the `proxy.username` and `proxy.password` values.";
+    /**
+     * Kestra's HTTP client surfaces a refused CONNECT tunnel (HTTP 407 over HTTPS) as an opaque NullPointerException from
+     * Apache HttpClient; this subclass translates it into an actionable message without touching core.
+     */
+    public static class Client extends HttpClient {
+        private final String proxyTarget;
+
+        public Client(RunContext runContext, ProxyConfiguration proxy, HttpConfiguration configuration) throws Exception {
+            super(runContext, configuration);
+            var resolved = resolve(runContext, proxy);
+            this.proxyTarget = resolved == null ? null : resolved.host() + ":" + resolved.port();
+        }
+
+        @Override
+        public <T> HttpResponse<T> request(HttpRequest request, Class<T> cls) throws HttpClientException, IllegalVariableEvaluationException {
+            try {
+                return super.request(request, cls);
+            } catch (NullPointerException e) {
+                throw tunnelFailure(e);
+            }
+        }
+
+        @Override
+        public HttpResponse<Void> request(HttpRequest request, Consumer<HttpResponse<InputStream>> consumer) throws HttpClientException, IllegalVariableEvaluationException {
+            try {
+                return super.request(request, consumer);
+            } catch (NullPointerException e) {
+                throw tunnelFailure(e);
+            }
+        }
+
+        private RuntimeException tunnelFailure(NullPointerException e) {
+            var fromApache = Arrays.stream(e.getStackTrace()).anyMatch(frame -> frame.getClassName().startsWith("org.apache.hc."));
+            if (proxyTarget == null || !fromApache) {
+                return e;
+            }
+            return new IllegalStateException("Could not open a tunnel through the proxy %s, most likely because it rejected the credentials (HTTP 407): check the `proxy.username` and `proxy.password` values.".formatted(proxyTarget), e);
+        }
+    }
+
+    private static String proxyAuthMessage(String host, int port) {
+        return "Proxy authentication failed (HTTP 407) for %s:%d: check the `proxy.username` and `proxy.password` values.".formatted(host, port);
     }
 
     private static Resolved resolve(RunContext runContext, ProxyConfiguration proxy) throws Exception {

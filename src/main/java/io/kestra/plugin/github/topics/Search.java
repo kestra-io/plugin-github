@@ -3,7 +3,6 @@ package io.kestra.plugin.github.topics;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kestra.core.http.HttpRequest;
-import io.kestra.core.http.client.HttpClient;
 import io.kestra.core.http.client.configurations.ProxyConfiguration;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
@@ -260,9 +259,9 @@ public class Search extends AbstractGithubSearchTask implements RunnableTask<Abs
                 requestBuilder.addHeader("Authorization", this.authorizationHeader);
             }
 
-            try (var client = new HttpClient(runContext, GithubProxy.httpConfiguration(runContext, this.proxy).build())) {
+            try (var client = new GithubProxy.Client(runContext, this.proxy, GithubProxy.httpConfiguration(runContext, this.proxy).build())) {
                 var response = client.request(requestBuilder.build(), String.class);
-                GithubProxy.checkStatus(response.getStatus().getCode());
+                GithubProxy.checkStatus(runContext, this.proxy, response.getStatus().getCode());
                 if (response.getStatus().getCode() != 200) {
                     throw new IllegalStateException("GitHub topic search failed with status code: " + response.getStatus().getCode());
                 }

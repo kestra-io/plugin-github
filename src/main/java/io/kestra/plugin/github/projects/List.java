@@ -3,8 +3,6 @@ package io.kestra.plugin.github.projects;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kestra.core.http.HttpRequest;
-import io.kestra.core.http.client.HttpClient;
-import io.kestra.core.http.client.configurations.HttpConfiguration;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
@@ -248,7 +246,7 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
         var allItems = new ArrayList<Map<String, Object>>();
 
         var httpConfig = GithubProxy.httpConfiguration(runContext, getProxy()).allowFailed(Property.ofValue(true)).build();
-        try (var client = new HttpClient(runContext, httpConfig)) {
+        try (var client = new GithubProxy.Client(runContext, getProxy(), httpConfig)) {
             String cursor = null;
             boolean hasNextPage = true;
 
@@ -271,7 +269,7 @@ public class List extends AbstractGithubSearchTask implements RunnableTask<Abstr
                     .build();
 
                 var response = client.request(request, String.class);
-                GithubProxy.checkStatus(response.getStatus().getCode());
+                GithubProxy.checkStatus(runContext, getProxy(), response.getStatus().getCode());
                 var statusCode = response.getStatus().getCode();
                 if (statusCode != 200) {
                     throw new RuntimeException(

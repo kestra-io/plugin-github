@@ -2,7 +2,6 @@ package io.kestra.plugin.github.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kestra.core.http.HttpRequest;
-import io.kestra.core.http.client.HttpClient;
 import io.kestra.core.http.client.configurations.ProxyConfiguration;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
@@ -155,11 +154,11 @@ public class AppToken extends Task implements RunnableTask<AppToken.Output> {
             .addHeader("X-GitHub-Api-Version", "2022-11-28")
             .build();
 
-        try (var http = new HttpClient(runContext, GithubProxy.httpConfiguration(runContext, this.proxy).build())) {
+        try (var http = new GithubProxy.Client(runContext, this.proxy, GithubProxy.httpConfiguration(runContext, this.proxy).build())) {
             var resp = http.request(req, String.class);
 
             var status = resp.getStatus().getCode();
-            GithubProxy.checkStatus(status);
+            GithubProxy.checkStatus(runContext, this.proxy, status);
             if (status < 200 || status >= 300) {
                 logger.debug("GitHub installation token exchange response body: {}", resp.getBody());
                 throw new IllegalStateException(

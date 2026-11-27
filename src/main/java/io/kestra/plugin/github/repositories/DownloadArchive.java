@@ -3,7 +3,6 @@ package io.kestra.plugin.github.repositories;
 import io.kestra.core.http.HttpRequest;
 import io.kestra.core.http.HttpResponse;
 import io.kestra.core.http.client.HttpClient;
-import io.kestra.core.http.client.configurations.HttpConfiguration;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
@@ -148,7 +147,7 @@ public class DownloadArchive extends AbstractGithubTask implements RunnableTask<
             .allowFailed(Property.ofValue(true))
             .build();
         var rToken = findToken(runContext);
-        try (var client = new HttpClient(runContext, httpConfig)) {
+        try (var client = new GithubProxy.Client(runContext, getProxy(), httpConfig)) {
             var target = archiveUri;
             HttpResponse<Void> response = null;
             for (var hop = 0; hop <= MAX_REDIRECTS; hop++) {
@@ -169,7 +168,7 @@ public class DownloadArchive extends AbstractGithubTask implements RunnableTask<
             }
 
             var status = response.getStatus().getCode();
-            GithubProxy.checkStatus(status);
+            GithubProxy.checkStatus(runContext, getProxy(), status);
             var isRateLimited = status == 429 || (status == 403 && "0".equals(response.getHeaders().firstValue("x-ratelimit-remaining").orElse(null)));
             if (isRateLimited) {
                 throw new IllegalStateException(
